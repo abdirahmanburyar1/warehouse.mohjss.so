@@ -127,16 +127,13 @@ class InventoryController extends Controller
 				Log::warning('Warehouse AMC calculation failed for inventory: ' . $e->getMessage());
 			}
 			
-			$currentProducts->transform(function ($product) use ($amcResults) {
-				$amc = isset($amcResults[$product->id]) ? $amcResults[$product->id]['amc'] : 0;
+			$currentProducts->transform(function ($product) {
+				$metrics = $product->calculateInventoryMetrics();
 				$totalQuantity = $product->items->sum('quantity');
 				
-				// Calculate reorder level: AMC × 3 (simplified version without buffer stock)
-				$reorderLevel = $amc > 0 ? round($amc * 3, 2) : 0;
-				
-				$product->reorder_level = $reorderLevel;
-				$product->amc = $amc;
-				$product->is_over_stock = ($amc > 0 && $totalQuantity > ($amc * 2));
+				$product->reorder_level = $metrics['reorder_level'];
+				$product->amc = $metrics['amc'];
+				$product->is_over_stock = ($metrics['amc'] > 0 && $totalQuantity > ($metrics['amc'] * 8));
 				return $product;
 			});
 			
@@ -154,28 +151,20 @@ class InventoryController extends Controller
 									if ($reorderLevel <= 0) {
 										return $totalQuantity > 0;
 									}
-									$lowStockThreshold = $reorderLevel * 1.3;
+									$lowStockThreshold = $reorderLevel * 0.7;
 									return $totalQuantity > $lowStockThreshold;
 									
 								case 'low_stock':
-									if ($reorderLevel <= 0) {
-										// No reorder level set, cannot be "low stock" - return false
-										return false;
-									}
-									$lowStockThreshold = $reorderLevel * 1.3;
-									$isLowStock = $totalQuantity > $reorderLevel && $totalQuantity <= $lowStockThreshold;
-									return $isLowStock;
-									
-								case 'low_stock_reorder_level':
 									if ($reorderLevel <= 0) return false;
-									return $totalQuantity > 0 && $totalQuantity <= $reorderLevel;
+									$lowStockThreshold = $reorderLevel * 0.7;
+									return $totalQuantity > 0 && $totalQuantity <= $lowStockThreshold;
 									
 								case 'out_of_stock':
-									return $totalQuantity == 0;
+									return $totalQuantity <= 0;
 									
 								case 'over_stock':
 									$amc = $product->amc ?? 0;
-									return $amc > 0 && $totalQuantity > ($amc * 2);
+									return $amc > 0 && $totalQuantity > ($amc * 8);
 
 								default:
 									return true;
@@ -322,14 +311,13 @@ class InventoryController extends Controller
 				Log::warning('Warehouse AMC calculation failed for status counting: ' . $e->getMessage());
 			}
 			
-			$allProducts->transform(function ($product) use ($allAmcResults) {
-				$amc = isset($allAmcResults[$product->id]) ? $allAmcResults[$product->id]['amc'] : 0;
+			$allProducts->transform(function ($product) {
+				$metrics = $product->calculateInventoryMetrics();
 				$totalQuantity = $product->items->sum('quantity');
-				$reorderLevel = $amc > 0 ? round($amc * 3, 2) : 0;
 				
-				$product->reorder_level = $reorderLevel;
-				$product->amc = $amc;
-				$product->is_over_stock = ($amc > 0 && $totalQuantity > ($amc * 2));
+				$product->reorder_level = $metrics['reorder_level'];
+				$product->amc = $metrics['amc'];
+				$product->is_over_stock = ($metrics['amc'] > 0 && $totalQuantity > ($metrics['amc'] * 8));
 				return $product;
 			});
 
@@ -337,7 +325,6 @@ class InventoryController extends Controller
 			$statusCounts = [
 				[ 'status' => 'in_stock', 'count' => 0 ],
 				[ 'status' => 'low_stock', 'count' => 0 ],
-				[ 'status' => 'low_stock_reorder_level', 'count' => 0 ],
 				[ 'status' => 'out_of_stock', 'count' => 0 ],
 				[ 'status' => 'over_stock', 'count' => 0 ],
 			];
@@ -349,29 +336,20 @@ class InventoryController extends Controller
 					$reorderLevel = $product->reorder_level ?? 0;
 
 					if ($totalQuantity <= 0) {
-						$statusCounts[3]['count']++; // out_of_stock
-					} elseif ($reorderLevel > 0) {
-						$lowStockThreshold = $reorderLevel * 1.3;
+						$statusCounts[2]['count']++; // out_of_stock
+					} elseif ($product->amc > 0 && $totalQuantity > ($product->amc * 8)) {
+						$statusCounts[3]['count']++; // over_stock
+					} elseif ($reorderLevel <= 0) {
+						$statusCounts[0]['count']++; // in_stock
+					} else {
+						// Low-stock = Reorder Level – 30%
+						$lowStockThreshold = $reorderLevel * 0.7;
 						
-						if ($totalQuantity > $lowStockThreshold) {
-							$statusCounts[0]['count']++; // in_stock
-						} elseif ($totalQuantity > $reorderLevel && $totalQuantity <= $lowStockThreshold) {
+						if ($totalQuantity <= $lowStockThreshold) {
 							$statusCounts[1]['count']++; // low_stock
 						} else {
-							$statusCounts[2]['count']++; // low_stock_reorder_level
-						}
-					} else {
-						// No reorder level set - cannot be "low stock", only in_stock or out_of_stock
-						if ($totalQuantity > 0) {
 							$statusCounts[0]['count']++; // in_stock
-						} else {
-							$statusCounts[3]['count']++; // out_of_stock
 						}
-					}
-
-					// Independent check for over stock (it's a flag, but we'll count it)
-					if ($product->is_over_stock) {
-						$statusCounts[4]['count']++; // over_stock
 					}
 				} catch (\Exception $e) {
 					Log::warning('[INVENTORY-STATS] Error calculating status for product ' . ($product->id ?? 'unknown') . ': ' . $e->getMessage());

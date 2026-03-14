@@ -144,248 +144,32 @@ class Product extends Model
     public function calculateAMC()
     {
         try {
-            // Get all consumption values for the product from warehouse_amcs table
-            $consumptionsWithMonth = $this->warehouseAmcs()
-                ->where('quantity', '>', 0) // Only consider positive consumption values
-                ->orderBy('month_year', 'desc') // Most recent first
-                ->get(['month_year', 'quantity']);
-
-            // If we have less than 3 values, return 0
-            if ($consumptionsWithMonth->count() < 3) {
-                return 0;
-            }
-
-            // Extract quantities and months
-            $quantities = $consumptionsWithMonth->pluck('quantity')->values();
-            $months = $consumptionsWithMonth->pluck('month_year')->values();
-            
-            // Apply the exact AMC screening formula step by step
-            $selectedMonths = [];
-            $foundValidGroup = false;
-            $passedMonths = [];
-            
-            // Step 1: Start with the closest 3 months (first 3 in our sorted array)
-            if ($quantities->count() >= 3) {
-                // Step 2: Try to find 3 consecutive months that all pass the 70% threshold
-                for ($startIndex = 0; $startIndex <= $quantities->count() - 3 && !$foundValidGroup; $startIndex++) {
-                    $testGroup = [];
-                    for ($i = 0; $i < 3; $i++) {
-                        $testGroup[] = [
-                            'month' => $months[$startIndex + $i],
-                            'quantity' => $quantities[$startIndex + $i]
-                        ];
-                    }
-                    
-                    $groupSum = collect($testGroup)->sum('quantity');
-                    $groupAverage = $groupSum / 3;
-                    
-                    // Step 3: Check if all months in this group pass the 70% threshold
-                    $allPass = true;
-                    $currentPassedMonths = [];
-                    
-                    foreach ($testGroup as $monthData) {
-                        $quantity = $monthData['quantity'];
-                        $deviation = abs($quantity - $groupAverage);
-                        $percentage = $groupAverage > 0 ? ($deviation / $groupAverage) * 100 : 0;
-                        
-                        if ($percentage <= 70) {
-                            $currentPassedMonths[] = $monthData;
-                        } else {
-                            $allPass = false;
-                        }
-                    }
-                    
-                    if ($allPass) {
-                        // All 3 months passed, use this group
-                        $selectedMonths = $testGroup;
-                        $foundValidGroup = true;
-                        break;
-                    } else if (count($currentPassedMonths) > 0) {
-                        // Some months passed, keep track of them for potential use
-                        if (count($currentPassedMonths) > count($passedMonths)) {
-                            $passedMonths = $currentPassedMonths;
-                        }
-                    }
-                }
-                
-                // Step 4: If no valid group of 3 found, try to find a group including passed months
-                if (!$foundValidGroup && count($passedMonths) > 0) {
-                    // Try to find 3 months that work together, including the passed ones
-                    for ($startIndex = 0; $startIndex <= $quantities->count() - 3; $startIndex++) {
-                        $testGroup = [];
-                        for ($i = 0; $i < 3; $i++) {
-                            $testGroup[] = [
-                                'month' => $months[$startIndex + $i],
-                                'quantity' => $quantities[$startIndex + $i]
-                            ];
-                        }
-                        
-                        $groupSum = collect($testGroup)->sum('quantity');
-                        $groupAverage = $groupSum / 3;
-                        
-                        // Check if this group passes
-                        $allPass = true;
-                        foreach ($testGroup as $monthData) {
-                            $quantity = $monthData['quantity'];
-                            $deviation = abs($quantity - $groupAverage);
-                            $percentage = $groupAverage > 0 ? ($deviation / $groupAverage) * 100 : 0;
-                            
-                            if ($percentage > 70) {
-                                $allPass = false;
-                            }
-                        }
-                        
-                        if ($allPass) {
-                            $selectedMonths = $testGroup;
-                            $foundValidGroup = true;
-                            break;
-                        }
-                    }
-                }
-                
-                // Step 5: If still no valid group, use the best available months
-                if (!$foundValidGroup && count($selectedMonths) === 0) {
-                    // Use the first 3 months as fallback
-                    for ($i = 0; $i < 3; $i++) {
-                        $selectedMonths[] = [
-                            'month' => $months[$i],
-                            'quantity' => $quantities[$i]
-                        ];
-                    }
-                }
-            }
-            
-            // Calculate final AMC
-            if (count($selectedMonths) >= 3) {
-                $amc = collect($selectedMonths)->avg('quantity');
-                $result = round($amc, 2);
-                return $result;
-            } else {
-                return 0;
-            }
-
+            $amcService = new \App\Services\WarehouseAmcCalculationService();
+            $result = $amcService->calculateAmc($this->id);
+            return $result['amc'];
         } catch (\Exception $e) {
             return 0;
         }
     }
 
-    /**
-     * Calculate buffer stock: (Max AMC - AMC) × 3
-     * Max AMC is the highest value from the selected months that passed 70% deviation screening
-     */
     public function calculateBufferStock()
     {
         try {
-            $amc = $this->calculateAMC();
-            if ($amc == 0) {
-                return 0;
-            }
-
-            // Get the selected months that passed screening (same logic as calculateAMC)
-            $consumptionsWithMonth = $this->warehouseAmcs()
-                ->where('quantity', '>', 0)
-                ->orderBy('month_year', 'desc')
-                ->get(['month_year', 'quantity']);
-
-            if ($consumptionsWithMonth->count() < 3) {
-                return 0;
-            }
-
-            // Use the same screening logic to get selected months
-            $quantities = $consumptionsWithMonth->pluck('quantity')->values();
-            $months = $consumptionsWithMonth->pluck('month_year')->values();
+            $amcService = new \App\Services\WarehouseAmcCalculationService();
+            $result = $amcService->calculateAmc($this->id);
             
-            $selectedMonths = [];
-            $passedMonths = [];
-            $failedMonths = [];
+            $amc = $result['amc'];
+            $maxMc = $result['max_mc'];
             
-            // Initial selection: 3 most recent months
-            for ($i = 0; $i < 3; $i++) {
-                $selectedMonths[] = [
-                    'month' => $months[$i],
-                    'quantity' => $quantities[$i]
-                ];
-            }
+            if ($amc == 0) return 0;
             
-            $attempt = 1;
-            $maxAttempts = 10;
+            $avgLeadTime = 3.5;
+            $maxLeadTime = 6;
             
-            while ($attempt <= $maxAttempts) {
-                $average = collect($selectedMonths)->avg('quantity');
-                $allPassed = true;
-                $newPassedMonths = [];
-                $newFailedMonths = [];
-                
-                foreach ($selectedMonths as $monthData) {
-                    $quantity = $monthData['quantity'];
-                    $deviation = abs($quantity - $average) / $average * 100;
-                    
-                    if ($deviation <= 70) {
-                        $newPassedMonths[] = $monthData;
-                    } else {
-                        $newFailedMonths[] = $monthData;
-                        $allPassed = false;
-                    }
-                }
-                
-                foreach ($newPassedMonths as $monthData) {
-                    if (!collect($passedMonths)->contains('month', $monthData['month'])) {
-                        $passedMonths[] = $monthData;
-                    }
-                }
-                
-                foreach ($newFailedMonths as $monthData) {
-                    if (!collect($failedMonths)->contains('month', $monthData['month'])) {
-                        $failedMonths[] = $monthData;
-                    }
-                }
-                
-                if ($allPassed) {
-                    break;
-                }
-                
-                if (count($passedMonths) >= 3) {
-                    $selectedMonths = array_slice($passedMonths, 0, 3);
-                    break;
-                }
-                
-                $newSelection = [];
-                foreach ($passedMonths as $monthData) {
-                    $newSelection[] = $monthData;
-                }
-                
-                $monthIndex = 0;
-                while (count($newSelection) < 3 && $monthIndex < count($quantities)) {
-                    $monthData = [
-                        'month' => $months[$monthIndex],
-                        'quantity' => $quantities[$monthIndex]
-                    ];
-                    
-                    $alreadySelected = collect($newSelection)->contains('month', $monthData['month']);
-                    $isFailed = collect($failedMonths)->contains('month', $monthData['month']);
-                    
-                    if (!$alreadySelected && !$isFailed) {
-                        $newSelection[] = $monthData;
-                    }
-                    
-                    $monthIndex++;
-                }
-                
-                $selectedMonths = $newSelection;
-                $attempt++;
-            }
+            // Formula: (MAX Monthly usageUsage among the typical three months of AMC) X Max Lead Time in Months) - (AMC X Average Lead Time in Months)
+            $bufferStock = ($maxMc * $maxLeadTime) - ($amc * $avgLeadTime);
             
-            if (count($selectedMonths) >= 3) {
-                // Find the maximum value from selected months
-                $maxAMC = max(array_column($selectedMonths, 'quantity'));
-                
-                // Calculate buffer stock: (Max AMC - AMC) × 3
-                $bufferStock = ($maxAMC - $amc) * 3;
-                return round(max(0, $bufferStock), 2);
-            }
-            
-            return 0;
-            
+            return round(max(0, $bufferStock), 2);
         } catch (\Exception $e) {
             return 0;
         }
@@ -398,172 +182,42 @@ class Product extends Model
     {
         try {
             $amc = $this->calculateAMC();
-            if ($amc == 0) {
-                return 0;
-            }
+            if ($amc == 0) return 0;
             
-            $bufferStock = $this->calculateBufferStock();
+            $avgLeadTime = 3.5;
+            $safetyStock = $this->calculateBufferStock();
             
-            // Calculate reorder level: (AMC × 3) + Buffer Stock
-            $reorderLevel = ($amc * 3) + $bufferStock;
+            // Formula: (AMC x Average Lead Time in Months) + Safety Stock
+            $reorderLevel = ($amc * $avgLeadTime) + $safetyStock;
             return round($reorderLevel, 2);
-            
         } catch (\Exception $e) {
             return 0;
         }
     }
 
-    /**
-     * Optimized method to calculate AMC, Buffer Stock, and Reorder Level in one go
-     * This avoids duplicate database queries and improves performance
-     */
     public function calculateInventoryMetrics()
     {
         try {
-            // Get all consumption values for the product from warehouse_amcs table
-            $consumptionsWithMonth = $this->warehouseAmcs()
-                ->where('quantity', '>', 0) // Only consider positive consumption values
-                ->orderBy('month_year', 'desc') // Most recent first
-                ->get(['month_year', 'quantity']);
-
-            // If we have less than 3 values, return default values
-            if ($consumptionsWithMonth->count() < 3) {
-                return [
-                    'amc' => 0,
-                    'buffer_stock' => 0,
-                    'reorder_level' => 0
-                ];
-            }
-
-            // Extract quantities and months
-            $quantities = $consumptionsWithMonth->pluck('quantity')->values();
-            $months = $consumptionsWithMonth->pluck('month_year')->values();
+            $amcService = new \App\Services\WarehouseAmcCalculationService();
+            $result = $amcService->calculateAmc($this->id);
             
-            // Start with the 3 most recent months
-            $selectedMonths = [];
-            $passedMonths = [];
-            $failedMonths = [];
-            
-            // Initial selection: 3 most recent months
-            for ($i = 0; $i < 3; $i++) {
-                $selectedMonths[] = [
-                    'month' => $months[$i],
-                    'quantity' => $quantities[$i]
-                ];
-            }
-            
-            $attempt = 1;
-            $maxAttempts = 10; // Prevent infinite loops
-            
-            while ($attempt <= $maxAttempts) {
-                // Calculate average of selected months
-                $average = collect($selectedMonths)->avg('quantity');
-                
-                // Check each month's deviation
-                $allPassed = true;
-                $newPassedMonths = [];
-                $newFailedMonths = [];
-                
-                foreach ($selectedMonths as $monthData) {
-                    $quantity = $monthData['quantity'];
-                    $deviation = abs($quantity - $average) / $average * 100;
-                    
-                    if ($deviation <= 70) {
-                        // Month passed screening
-                        $newPassedMonths[] = $monthData;
-                    } else {
-                        // Month failed screening
-                        $newFailedMonths[] = $monthData;
-                        $allPassed = false;
-                    }
-                }
-                
-                // Add newly passed months to the global passed list
-                foreach ($newPassedMonths as $monthData) {
-                    if (!collect($passedMonths)->contains('month', $monthData['month'])) {
-                        $passedMonths[] = $monthData;
-                    }
-                }
-                
-                // Add newly failed months to the global failed list
-                foreach ($newFailedMonths as $monthData) {
-                    if (!collect($failedMonths)->contains('month', $monthData['month'])) {
-                        $failedMonths[] = $monthData;
-                    }
-                }
-                
-                // If all months passed, we're done
-                if ($allPassed) {
-                    break;
-                }
-                
-                // If we have 3 or more passed months, use them
-                if (count($passedMonths) >= 3) {
-                    $selectedMonths = array_slice($passedMonths, 0, 3);
-                    break;
-                }
-                
-                // Need to reselect months including passed ones
-                $newSelection = [];
-                
-                // First, include all passed months
-                foreach ($passedMonths as $monthData) {
-                    $newSelection[] = $monthData;
-                }
-                
-                // Then add more months from the original list until we have 3
-                $monthIndex = 0;
-                while (count($newSelection) < 3 && $monthIndex < count($quantities)) {
-                    $monthData = [
-                        'month' => $months[$monthIndex],
-                        'quantity' => $quantities[$monthIndex]
-                    ];
-                    
-                    // Only add if not already in selection and not in failed months
-                    $alreadySelected = collect($newSelection)->contains('month', $monthData['month']);
-                    $isFailed = collect($failedMonths)->contains('month', $monthData['month']);
-                    
-                    if (!$alreadySelected && !$isFailed) {
-                        $newSelection[] = $monthData;
-                    }
-                    
-                    $monthIndex++;
-                }
-                
-                // Update selected months for next iteration
-                $selectedMonths = $newSelection;
-                $attempt++;
-            }
-            
-            // Calculate final metrics
-            if (count($selectedMonths) >= 3) {
-                $amc = collect($selectedMonths)->avg('quantity');
-                $amc = round($amc, 2);
-                
-                // Find the maximum value from selected months
-                $maxAMC = max(array_column($selectedMonths, 'quantity'));
-                
-                // Calculate buffer stock: (Max AMC - AMC) × 3
-                $bufferStock = ($maxAMC - $amc) * 3;
-                $bufferStock = round(max(0, $bufferStock), 2);
-                
-                // Calculate reorder level: (AMC × 3) + Buffer Stock
-                $reorderLevel = ($amc * 3) + $bufferStock;
-                $reorderLevel = round($reorderLevel, 2);
+            if ($result['amc'] > 0) {
+                $amc = $result['amc'];
+                $safetyStock = $this->calculateBufferStock();
+                $reorderLevel = $this->calculateReorderLevel();
                 
                 return [
                     'amc' => $amc,
-                    'buffer_stock' => $bufferStock,
+                    'buffer_stock' => $safetyStock,
                     'reorder_level' => $reorderLevel
                 ];
-            } else {
-                return [
-                    'amc' => 0,
-                    'buffer_stock' => 0,
-                    'reorder_level' => 0
-                ];
             }
-
+            
+            return [
+                'amc' => 0,
+                'buffer_stock' => 0,
+                'reorder_level' => 0
+            ];
         } catch (\Exception $e) {
             return [
                 'amc' => 0,
@@ -594,21 +248,18 @@ class Product extends Model
         // Check if completely out of stock first
         if ($totalQuantity <= 0) {
             $status = 'out_of_stock';
+        } elseif ($metrics['amc'] > 0 && $totalQuantity > ($metrics['amc'] * 8)) {
+            // Over-stock for Warehouse is > AMC X 8
+            $status = 'over_stock';
         } elseif ($reorderLevel <= 0) {
-            // No reorder level set, default to in stock
             $status = 'in_stock';
         } else {
-            // Calculate the low stock threshold (reorder level + 30%)
-            $lowStockThreshold = $reorderLevel * 1.3;
+            // Low-stock = Reorder Level – 30%
+            $lowStockThreshold = $reorderLevel * 0.7;
             
-            if ($totalQuantity <= $reorderLevel) {
-                // Items at or below reorder level (1 to 9,000 in your example)
-                $status = 'low_stock_reorder_level';
-            } elseif ($totalQuantity <= $lowStockThreshold) {
-                // Items between reorder level and reorder level + 30% (9,001 to 11,700 in your example)
+            if ($totalQuantity <= $lowStockThreshold) {
                 $status = 'low_stock';
             } else {
-                // Items above reorder level + 30% (above 11,700 in your example)
                 $status = 'in_stock';
             }
         }

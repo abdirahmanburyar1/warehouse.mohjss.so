@@ -110,7 +110,7 @@ class WarehouseAmcCalculationService
      * $monthsData must be ordered newest first: [['month' => 'Y-m', 'consumption' => float], ...]
      *
      * @param array $monthsData
-     * @return array ['amc' => float, 'selectedMonths' => [], 'totalMonths' => int, 'calculation' => string]
+     * @return array ['amc' => float, 'max_mc' => float, 'selectedMonths' => [], 'totalMonths' => int, 'calculation' => string]
      */
     public function calculateAmcFromMonthlyData(array $monthsData): array
     {
@@ -131,6 +131,7 @@ class WarehouseAmcCalculationService
         if ($monthsCount === 0) {
             return [
                 'amc' => 0,
+                'max_mc' => 0,
                 'selectedMonths' => [],
                 'totalMonths' => 0,
                 'calculation' => 'No warehouse consumption data available'
@@ -225,6 +226,7 @@ class WarehouseAmcCalculationService
 
         return [
             'amc' => round($amc, 2),
+            'max_mc' => count($selectedMonths) > 0 ? max(array_column($selectedMonths, 'consumption')) : 0,
             'selectedMonths' => $selectedMonths,
             'totalMonths' => $monthsCount,
             'calculation' => $calculation
