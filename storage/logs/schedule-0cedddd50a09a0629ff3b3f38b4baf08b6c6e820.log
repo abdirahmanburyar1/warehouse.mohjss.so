@@ -1,0 +1,16 @@
+Starting maintenance schedule generation...
+
+In Connection.php line 825:
+                                                                               
+  SQLSTATE[42S02]: Base table or view not found: 1146 Table 'mohjss_db.asset_  
+  maintenance' doesn't exist (Connection: mysql, SQL: select * from `asset_ma  
+  intenance` where `maintenance_range` > 0 and `completed_date` is not null a  
+  nd `asset_maintenance`.`deleted_at` is null)                                 
+                                                                               
+
+In Connection.php line 407:
+                                                                               
+  SQLSTATE[42S02]: Base table or view not found: 1146 Table 'mohjss_db.asset_  
+  maintenance' doesn't exist                                                   
+                                                                               
+

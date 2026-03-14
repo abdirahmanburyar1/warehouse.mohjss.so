@@ -1,0 +1,18 @@
+Generating monthly inventory report for 2026-02
+Starting monthly inventory report generation for 2026-02
+Processing date: 2026-02
+Checking for existing report...
+Creating new report...
+Report saved with ID: 22
+Checking for required reports for 2026-02...
+Found required reports. Proceeding with inventory report generation...
+Found 6 received items
+Found 7 issued items
+Processing 27 unique product-warehouse-batch combinations
+Processed 10/27 combinations
+Processed 20/27 combinations
+Completed processing. Items generated: 6
+Generated 6 items
+Email notification skipped for testing
+Monthly inventory report generated successfully for 2026-02
+An email notification has been sent to abdirahman.buryar@gmail.com
