@@ -254,11 +254,14 @@ class Product extends Model
         } elseif ($reorderLevel <= 0) {
             $status = 'in_stock';
         } else {
-            // Low-stock = Reorder Level – 30%
+            // Low Stock = 0 < Total Qty ≤ (Reorder Level * 0.7) (Critical)
             $lowStockThreshold = $reorderLevel * 0.7;
             
             if ($totalQuantity <= $lowStockThreshold) {
                 $status = 'low_stock';
+            } elseif ($totalQuantity <= $reorderLevel) {
+                // Reorder Level = (Reorder Level * 0.7) < Total Qty ≤ Reorder Level
+                $status = 'reorder_level';
             } else {
                 $status = 'in_stock';
             }

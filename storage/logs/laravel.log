@@ -409,3 +409,122 @@
 [2026-03-15 01:00:19] production.INFO: Users query result: {"total_users":9,"current_page_users":9,"user_organizations":["PSI","MoH"]} 
 [2026-03-15 01:00:37] production.INFO: UserObserver: User updated {"user_id":4,"changed_fields":{"facility_id":965,"updated_at":"2026-03-15 01:00:37"},"dirty_fields":{"facility_id":965,"updated_at":"2026-03-15 01:00:37"}} 
 [2026-03-15 01:00:37] production.INFO: UserObserver: Permission timestamp not changed  
+[2026-03-15 01:10:03] production.ERROR: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'mohjss_db.asset_maintenance' doesn't exist (Connection: mysql, SQL: select * from `asset_maintenance` where `maintenance_range` > 0 and `completed_date` is not null and `asset_maintenance`.`deleted_at` is null) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'mohjss_db.asset_maintenance' doesn't exist (Connection: mysql, SQL: select * from `asset_maintenance` where `maintenance_range` > 0 and `completed_date` is not null and `asset_maintenance`.`deleted_at` is null) at /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Connection.php:825)
+[stacktrace]
+#0 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Connection.php(779): Illuminate\\Database\\Connection->runQueryCallback()
+#1 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Connection.php(398): Illuminate\\Database\\Connection->run()
+#2 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3106): Illuminate\\Database\\Connection->select()
+#3 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3091): Illuminate\\Database\\Query\\Builder->runSelect()
+#4 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3676): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#5 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3090): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#6 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(811): Illuminate\\Database\\Query\\Builder->get()
+#7 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(793): Illuminate\\Database\\Eloquent\\Builder->getModels()
+#8 /var/www/warehouse.mohjss.so/app/Console/Commands/GenerateMaintenanceSchedules.php(26): Illuminate\\Database\\Eloquent\\Builder->get()
+#9 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): App\\Console\\Commands\\GenerateMaintenanceSchedules->handle()
+#10 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#11 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure()
+#12 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#13 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Container.php(696): Illuminate\\Container\\BoundMethod::call()
+#14 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Command.php(213): Illuminate\\Container\\Container->call()
+#15 /var/www/warehouse.mohjss.so/vendor/symfony/console/Command/Command.php(279): Illuminate\\Console\\Command->execute()
+#16 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Command.php(182): Symfony\\Component\\Console\\Command\\Command->run()
+#17 /var/www/warehouse.mohjss.so/vendor/symfony/console/Application.php(1094): Illuminate\\Console\\Command->run()
+#18 /var/www/warehouse.mohjss.so/vendor/symfony/console/Application.php(342): Symfony\\Component\\Console\\Application->doRunCommand()
+#19 /var/www/warehouse.mohjss.so/vendor/symfony/console/Application.php(193): Symfony\\Component\\Console\\Application->doRun()
+#20 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run()
+#21 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle()
+#22 /var/www/warehouse.mohjss.so/artisan(16): Illuminate\\Foundation\\Application->handleCommand()
+#23 {main}
+
+[previous exception] [object] (PDOException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'mohjss_db.asset_maintenance' doesn't exist at /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Connection.php:407)
+[stacktrace]
+#0 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Connection.php(407): PDO->prepare()
+#1 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Connection.php(812): Illuminate\\Database\\Connection->Illuminate\\Database\\{closure}()
+#2 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Connection.php(779): Illuminate\\Database\\Connection->runQueryCallback()
+#3 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Connection.php(398): Illuminate\\Database\\Connection->run()
+#4 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3106): Illuminate\\Database\\Connection->select()
+#5 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3091): Illuminate\\Database\\Query\\Builder->runSelect()
+#6 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3676): Illuminate\\Database\\Query\\Builder->Illuminate\\Database\\Query\\{closure}()
+#7 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Query/Builder.php(3090): Illuminate\\Database\\Query\\Builder->onceWithColumns()
+#8 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(811): Illuminate\\Database\\Query\\Builder->get()
+#9 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Database/Eloquent/Builder.php(793): Illuminate\\Database\\Eloquent\\Builder->getModels()
+#10 /var/www/warehouse.mohjss.so/app/Console/Commands/GenerateMaintenanceSchedules.php(26): Illuminate\\Database\\Eloquent\\Builder->get()
+#11 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): App\\Console\\Commands\\GenerateMaintenanceSchedules->handle()
+#12 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#13 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure()
+#14 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#15 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Container.php(696): Illuminate\\Container\\BoundMethod::call()
+#16 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Command.php(213): Illuminate\\Container\\Container->call()
+#17 /var/www/warehouse.mohjss.so/vendor/symfony/console/Command/Command.php(279): Illuminate\\Console\\Command->execute()
+#18 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Command.php(182): Symfony\\Component\\Console\\Command\\Command->run()
+#19 /var/www/warehouse.mohjss.so/vendor/symfony/console/Application.php(1094): Illuminate\\Console\\Command->run()
+#20 /var/www/warehouse.mohjss.so/vendor/symfony/console/Application.php(342): Symfony\\Component\\Console\\Application->doRunCommand()
+#21 /var/www/warehouse.mohjss.so/vendor/symfony/console/Application.php(193): Symfony\\Component\\Console\\Application->doRun()
+#22 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run()
+#23 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle()
+#24 /var/www/warehouse.mohjss.so/artisan(16): Illuminate\\Foundation\\Application->handleCommand()
+#25 {main}
+"} 
+[2026-03-15 01:10:03] production.ERROR: Expected response code "250" but got code "554", with message "554 5.7.1 Disabled by user from hPanel". {"exception":"[object] (Symfony\\Component\\Mailer\\Exception\\UnexpectedResponseException(code: 554): Expected response code \"250\" but got code \"554\", with message \"554 5.7.1 Disabled by user from hPanel\". at /var/www/warehouse.mohjss.so/vendor/symfony/mailer/Transport/Smtp/SmtpTransport.php:342)
+[stacktrace]
+#0 /var/www/warehouse.mohjss.so/vendor/symfony/mailer/Transport/Smtp/SmtpTransport.php(198): Symfony\\Component\\Mailer\\Transport\\Smtp\\SmtpTransport->assertResponseCode()
+#1 /var/www/warehouse.mohjss.so/vendor/symfony/mailer/Transport/Smtp/EsmtpTransport.php(134): Symfony\\Component\\Mailer\\Transport\\Smtp\\SmtpTransport->executeCommand()
+#2 /var/www/warehouse.mohjss.so/vendor/symfony/mailer/Transport/Smtp/SmtpTransport.php(234): Symfony\\Component\\Mailer\\Transport\\Smtp\\EsmtpTransport->executeCommand()
+#3 /var/www/warehouse.mohjss.so/vendor/symfony/mailer/Transport/AbstractTransport.php(69): Symfony\\Component\\Mailer\\Transport\\Smtp\\SmtpTransport->doSend()
+#4 /var/www/warehouse.mohjss.so/vendor/symfony/mailer/Transport/Smtp/SmtpTransport.php(138): Symfony\\Component\\Mailer\\Transport\\AbstractTransport->send()
+#5 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Mail/Mailer.php(585): Symfony\\Component\\Mailer\\Transport\\Smtp\\SmtpTransport->send()
+#6 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Mail/Mailer.php(332): Illuminate\\Mail\\Mailer->sendSymfonyMessage()
+#7 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Mail/Mailer.php(224): Illuminate\\Mail\\Mailer->send()
+#8 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Scheduling/Event.php(459): Illuminate\\Mail\\Mailer->raw()
+#9 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Scheduling/Event.php(427): Illuminate\\Console\\Scheduling\\Event->emailOutput()
+#10 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate\\Console\\Scheduling\\Event->Illuminate\\Console\\Scheduling\\{closure}()
+#11 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#12 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(83): Illuminate\\Container\\Util::unwrapIfClosure()
+#13 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#14 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Container.php(696): Illuminate\\Container\\BoundMethod::call()
+#15 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Scheduling/Event.php(714): Illuminate\\Container\\Container->call()
+#16 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate\\Console\\Scheduling\\Event->Illuminate\\Console\\Scheduling\\{closure}()
+#17 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#18 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(83): Illuminate\\Container\\Util::unwrapIfClosure()
+#19 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#20 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Container.php(696): Illuminate\\Container\\BoundMethod::call()
+#21 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Scheduling/Event.php(250): Illuminate\\Container\\Container->call()
+#22 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Scheduling/Event.php(222): Illuminate\\Console\\Scheduling\\Event->callAfterCallbacks()
+#23 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Scheduling/Event.php(137): Illuminate\\Console\\Scheduling\\Event->finish()
+#24 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Scheduling/ScheduleRunCommand.php(194): Illuminate\\Console\\Scheduling\\Event->run()
+#25 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/View/Components/Task.php(40): Illuminate\\Console\\Scheduling\\ScheduleRunCommand->Illuminate\\Console\\Scheduling\\{closure}()
+#26 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/View/Components/Factory.php(60): Illuminate\\Console\\View\\Components\\Task->render()
+#27 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Scheduling/ScheduleRunCommand.php(188): Illuminate\\Console\\View\\Components\\Factory->__call()
+#28 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Scheduling/ScheduleRunCommand.php(133): Illuminate\\Console\\Scheduling\\ScheduleRunCommand->runEvent()
+#29 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(36): Illuminate\\Console\\Scheduling\\ScheduleRunCommand->handle()
+#30 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Util.php(43): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#31 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(95): Illuminate\\Container\\Util::unwrapIfClosure()
+#32 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/BoundMethod.php(35): Illuminate\\Container\\BoundMethod::callBoundMethod()
+#33 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Container/Container.php(696): Illuminate\\Container\\BoundMethod::call()
+#34 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Command.php(213): Illuminate\\Container\\Container->call()
+#35 /var/www/warehouse.mohjss.so/vendor/symfony/console/Command/Command.php(279): Illuminate\\Console\\Command->execute()
+#36 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Console/Command.php(182): Symfony\\Component\\Console\\Command\\Command->run()
+#37 /var/www/warehouse.mohjss.so/vendor/symfony/console/Application.php(1094): Illuminate\\Console\\Command->run()
+#38 /var/www/warehouse.mohjss.so/vendor/symfony/console/Application.php(342): Symfony\\Component\\Console\\Application->doRunCommand()
+#39 /var/www/warehouse.mohjss.so/vendor/symfony/console/Application.php(193): Symfony\\Component\\Console\\Application->doRun()
+#40 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Foundation/Console/Kernel.php(198): Symfony\\Component\\Console\\Application->run()
+#41 /var/www/warehouse.mohjss.so/vendor/laravel/framework/src/Illuminate/Foundation/Application.php(1235): Illuminate\\Foundation\\Console\\Kernel->handle()
+#42 /var/www/warehouse.mohjss.so/artisan(16): Illuminate\\Foundation\\Application->handleCommand()
+#43 {main}
+"} 
+[2026-03-15 01:33:28] production.INFO: Users query result: {"total_users":9,"current_page_users":9,"user_organizations":["PSI","MoH"]} 
+[2026-03-15 01:33:38] production.INFO: UserObserver: User updated {"user_id":4,"changed_fields":{"facility_id":968,"updated_at":"2026-03-15 01:33:38"},"dirty_fields":{"facility_id":968,"updated_at":"2026-03-15 01:33:38"}} 
+[2026-03-15 01:33:38] production.INFO: UserObserver: Permission timestamp not changed  
+[2026-03-15 01:33:39] production.INFO: Users query result: {"total_users":9,"current_page_users":9,"user_organizations":["PSI","MoH"]} 
+[2026-03-15 01:41:22] production.INFO: UserObserver: User updated {"user_id":4,"changed_fields":{"facility_id":965,"updated_at":"2026-03-15 01:41:22"},"dirty_fields":{"facility_id":965,"updated_at":"2026-03-15 01:41:22"}} 
+[2026-03-15 01:41:22] production.INFO: UserObserver: Permission timestamp not changed  
+[2026-03-15 01:42:09] production.INFO: Users query result: {"total_users":9,"current_page_users":9,"user_organizations":["PSI","MoH"]} 
+[2026-03-15 01:43:11] production.INFO: Deleted imported facility file: tmp/rLLaNpBOof3lTdve6UKB9KbJJs0doqkNyujTlHh2.xlsx  
+[2026-03-15 02:03:44] production.INFO: Deleted imported facility file: tmp/C3sfN3epKNI4ksazJ1sccuu5xqTWFygAbjJ7ppIj.xlsx  
+[2026-03-15 11:20:03] production.INFO: Expiry notification running: sending at configured time. {"send_time":"11:20","app_timezone":"Africa/Mogadishu"} 
+[2026-03-15 11:20:03] production.INFO: Expiry notification sent. {"to":"abdirahman.buryar@gmail.com"} 
+[2026-03-15 11:20:03] production.INFO: Expiry notification sent. {"to":"hagaajiyeapp@gmail.com"} 
+[2026-03-15 11:20:03] production.INFO: Expiry notification sent. {"to":"gambool212@gmail.com"} 
+[2026-03-15 11:20:03] production.INFO: Expiry notification sent. {"to":"aquatrack.somalia@gmail.com"} 
+[2026-03-15 11:20:03] production.INFO: Expiry notification sent. {"to":"sinujiifhcsupply@gmail.com"} 
+[2026-03-15 11:20:03] production.INFO: Expiry notifications completed. {"recipients":5} 

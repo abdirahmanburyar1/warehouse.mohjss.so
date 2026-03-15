@@ -1,0 +1,8 @@
+Starting inventory cleanup...
+Found 2 inventory items with quantity = 0
+Deleted 2 empty inventory items
+Found 4 inventories with no items
+Deleted 4 empty inventories
+Found 0 inventories where all items have quantity = 0
+Inventory cleanup completed successfully!
+Total items/inventories that would be affected: 6

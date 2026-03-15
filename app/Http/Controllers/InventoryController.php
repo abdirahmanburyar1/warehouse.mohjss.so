@@ -151,13 +151,17 @@ class InventoryController extends Controller
 									if ($reorderLevel <= 0) {
 										return $totalQuantity > 0;
 									}
-									$lowStockThreshold = $reorderLevel * 0.7;
-									return $totalQuantity > $lowStockThreshold;
+									return $totalQuantity > $reorderLevel;
 									
 								case 'low_stock':
 									if ($reorderLevel <= 0) return false;
 									$lowStockThreshold = $reorderLevel * 0.7;
 									return $totalQuantity > 0 && $totalQuantity <= $lowStockThreshold;
+
+								case 'reorder_level':
+									if ($reorderLevel <= 0) return false;
+									// Reorder Level = 0 < Total Qty ≤ Reorder Level (Broad range)
+									return $totalQuantity > 0 && $totalQuantity <= $reorderLevel;
 									
 								case 'out_of_stock':
 									return $totalQuantity <= 0;
@@ -327,6 +331,7 @@ class InventoryController extends Controller
 				[ 'status' => 'low_stock', 'count' => 0 ],
 				[ 'status' => 'out_of_stock', 'count' => 0 ],
 				[ 'status' => 'over_stock', 'count' => 0 ],
+				[ 'status' => 'reorder_level', 'count' => 0 ],
 			];
 
 			// Calculate status counts for all products using the same logic as main query
@@ -339,16 +344,24 @@ class InventoryController extends Controller
 						$statusCounts[2]['count']++; // out_of_stock
 					} elseif ($product->amc > 0 && $totalQuantity > ($product->amc * 8)) {
 						$statusCounts[3]['count']++; // over_stock
-					} elseif ($reorderLevel <= 0) {
-						$statusCounts[0]['count']++; // in_stock
 					} else {
-						// Low-stock = Reorder Level – 30%
-						$lowStockThreshold = $reorderLevel * 0.7;
-						
-						if ($totalQuantity <= $lowStockThreshold) {
-							$statusCounts[1]['count']++; // low_stock
-						} else {
-							$statusCounts[0]['count']++; // in_stock
+						if ($reorderLevel > 0) {
+							$lowStockThreshold = $reorderLevel * 0.7;
+							
+							if ($totalQuantity <= $lowStockThreshold) {
+								$statusCounts[1]['count']++; // low_stock
+							}
+							
+							if ($totalQuantity <= $reorderLevel) {
+								$statusCounts[4]['count']++; // reorder_level
+							}
+						}
+
+						if ($reorderLevel <= 0 || $totalQuantity > $reorderLevel) {
+							// Check to ensure not also overstock (though nested in else, double check amc)
+							if (!($product->amc > 0 && $totalQuantity > ($product->amc * 8))) {
+								$statusCounts[0]['count']++; // in_stock
+							}
 						}
 					}
 				} catch (\Exception $e) {
