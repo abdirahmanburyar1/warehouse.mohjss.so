@@ -13,8 +13,10 @@ class EmailNotificationSettingController extends Controller
     public function index()
     {
         $expirySetting = null;
+        $lowStockSetting = null;
         if (Schema::hasTable('email_notification_settings')) {
             $expirySetting = EmailNotificationSetting::expiryItems();
+            $lowStockSetting = EmailNotificationSetting::lowStockItems();
         }
 
         $roles = Role::orderBy('name')->get();
@@ -31,9 +33,17 @@ class EmailNotificationSettingController extends Controller
             'expiring_1_year_interval_days' => (int) ($c['expiring_1_year_interval_days'] ?? 14),
         ];
 
+        $lc = $lowStockSetting ? ($lowStockSetting->config ?? []) : [];
+        $lowStockItemsConfig = [
+            'enabled' => $lowStockSetting ? $lowStockSetting->enabled : false,
+            'role_ids' => is_array($lc['role_ids'] ?? null) ? $lc['role_ids'] : [],
+            'send_time' => $lc['send_time'] ?? '09:00',
+        ];
+
         return Inertia::render('Settings/EmailNotification/Index', [
             'roles' => $roles,
             'expiryItems' => $expiryItemsConfig,
+            'lowStockItems' => $lowStockItemsConfig,
         ]);
     }
 
@@ -53,6 +63,11 @@ class EmailNotificationSettingController extends Controller
             'expiry_items.send_time' => 'required|string|regex:/^\d{1,2}:\d{2}$/',
             'expiry_items.expiring_6_months_interval_days' => 'required|integer|min:1|max:365',
             'expiry_items.expiring_1_year_interval_days' => 'required|integer|min:1|max:365',
+
+            'low_stock_items.enabled' => 'boolean',
+            'low_stock_items.role_ids' => 'array',
+            'low_stock_items.role_ids.*' => 'exists:roles,id',
+            'low_stock_items.send_time' => 'required|string|regex:/^\d{1,2}:\d{2}$/',
         ]);
 
         $data = $validated['expiry_items'] ?? [];
@@ -75,6 +90,25 @@ class EmailNotificationSettingController extends Controller
                     'send_time' => $sendTime,
                     'expiring_6_months_interval_days' => (int) ($data['expiring_6_months_interval_days'] ?? 4),
                     'expiring_1_year_interval_days' => (int) ($data['expiring_1_year_interval_days'] ?? 14),
+                ],
+            ]
+        );
+
+        $lowStockData = $validated['low_stock_items'] ?? [];
+        $lowStockEnabled = (bool) ($lowStockData['enabled'] ?? false);
+        $lowStockRoleIds = array_values(array_filter(array_map('intval', $lowStockData['role_ids'] ?? [])));
+        $lowStockSendTime = preg_match('/^\d{1,2}:\d{2}$/', $lowStockData['send_time'] ?? '') ? $lowStockData['send_time'] : '09:00';
+        if (strlen($lowStockSendTime) === 4) {
+            $lowStockSendTime = '0' . $lowStockSendTime;
+        }
+
+        EmailNotificationSetting::updateOrCreate(
+            ['key' => 'low_stock_items'],
+            [
+                'enabled' => $lowStockEnabled,
+                'config' => [
+                    'role_ids' => $lowStockRoleIds,
+                    'send_time' => $lowStockSendTime,
                 ],
             ]
         );

@@ -35,7 +35,7 @@ class LowStockNotification extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Low Stock Notification - PSI - Nugal DAMAL CAAFIMAAD',
+            subject: 'Reorder Level Alert',
         );
     }
 

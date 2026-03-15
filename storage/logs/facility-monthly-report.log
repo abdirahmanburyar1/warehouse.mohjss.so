@@ -1,0 +1,7 @@
+
+In SendLowStockNotification.php line 29:
+                                                                               
+  syntax error, unexpected variable "$allProducts", expecting "function" or "  
+  const"                                                                       
+                                                                               
+

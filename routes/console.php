@@ -26,7 +26,7 @@ $emailOnFailure(Schedule::command('assets:notify-warranty-expiring')->daily());
 $emailOnFailure(Schedule::command('assets:generate-maintenance-schedules')->dailyAt('01:10'));
 $emailOnFailure(Schedule::command('assets:notify-maintenance-due')->dailyAt('08:00'));
 $emailOnFailure(Schedule::command('inventory:generate-report')->monthlyOn(1, '00:01'));
-$emailOnFailure(Schedule::command('inventory:notify-low-stock')->twiceDaily(9, 15));
+$emailOnFailure(Schedule::command('inventory:notify-low-stock')->everyMinute());
 $emailOnFailure(Schedule::command('inventory:check-low-stock')->everyFiveMinutes());
 // Expiry items: run every minute; command exits early if not the configured send time
 $emailOnFailure(Schedule::command('inventory:notify-expiry-items')->everyMinute());

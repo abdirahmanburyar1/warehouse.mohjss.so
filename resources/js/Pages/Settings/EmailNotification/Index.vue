@@ -126,6 +126,63 @@
                     </div>
                 </div>
 
+                <!-- Reorder level items (Low stock) -->
+                <div class="bg-white rounded-xl border border-slate-200/80 shadow-sm overflow-hidden">
+                    <div class="p-4 sm:p-6 border-b border-slate-100 bg-slate-50/50">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <h2 class="text-base font-semibold text-slate-900">Reorder level items</h2>
+                                <p class="mt-0.5 text-sm text-slate-500">Send a daily email for items at or below reorder level. Choose who receives (by role) and what time to send.</p>
+                            </div>
+                            <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                                <input
+                                    v-model="form.low_stock_items.enabled"
+                                    type="checkbox"
+                                    class="sr-only peer"
+                                />
+                                <div class="w-11 h-6 bg-slate-200 peer-focus:ring-2 peer-focus:ring-slate-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-slate-900"></div>
+                                <span class="ms-3 text-sm font-medium text-slate-700">Enable</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="p-4 sm:p-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Notify users with these roles</label>
+                            <Multiselect
+                                v-model="form.low_stock_items.roles"
+                                :options="roles"
+                                :multiple="true"
+                                :searchable="true"
+                                :close-on-select="false"
+                                track-by="id"
+                                label="name"
+                                placeholder="Select roles"
+                                class="mt-1"
+                            />
+                            <p class="mt-1 text-xs text-slate-500">Users who have at least one of these roles (and are active) will receive the reorder level alert email.</p>
+                        </div>
+                        <div class="space-y-4 rounded-lg bg-slate-50 border border-slate-200 p-4">
+                            <p class="font-medium text-slate-700 text-sm">Programmable schedule</p>
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div>
+                                    <label for="low_stock_send_time" class="block text-xs font-medium text-slate-600 mb-1">Send time (daily)</label>
+                                    <input
+                                        id="low_stock_send_time"
+                                        v-model="form.low_stock_items.send_time"
+                                        type="text"
+                                        inputmode="numeric"
+                                        placeholder="e.g. 09:00"
+                                        maxlength="5"
+                                        class="block w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:ring-2 focus:ring-slate-400/50 focus:border-slate-400 font-mono"
+                                        @blur="form.low_stock_items.send_time = normalizeTime(form.low_stock_items.send_time)"
+                                    />
+                                    <p class="mt-0.5 text-xs text-slate-500">24-hour format (e.g. 09:00 or 15:30).</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex items-center gap-3">
                     <button
                         type="submit"
@@ -170,6 +227,14 @@ const props = defineProps({
             expiring_1_year_interval_days: 14,
         }),
     },
+    lowStockItems: {
+        type: Object,
+        default: () => ({
+            enabled: false,
+            role_ids: [],
+            send_time: '09:00',
+        }),
+    },
 });
 
 const saving = ref(false);
@@ -209,6 +274,13 @@ const form = ref({
         expiring_6_months_interval_days: Math.max(1, Math.min(365, parseInt(props.expiryItems.expiring_6_months_interval_days, 10) || 4)),
         expiring_1_year_interval_days: Math.max(1, Math.min(365, parseInt(props.expiryItems.expiring_1_year_interval_days, 10) || 14)),
     },
+    low_stock_items: {
+        enabled: !!props.lowStockItems.enabled,
+        roles: (props.lowStockItems.role_ids || []).length
+            ? props.roles.filter((r) => props.lowStockItems.role_ids.includes(r.id))
+            : [],
+        send_time: normalizeTime(props.lowStockItems.send_time),
+    },
 });
 
 watch(() => [props.expiryItems, props.roles], () => {
@@ -223,6 +295,13 @@ watch(() => [props.expiryItems, props.roles], () => {
         send_time: normalizeTime(props.expiryItems.send_time),
         expiring_6_months_interval_days: Math.max(1, Math.min(365, parseInt(props.expiryItems.expiring_6_months_interval_days, 10) || 4)),
         expiring_1_year_interval_days: Math.max(1, Math.min(365, parseInt(props.expiryItems.expiring_1_year_interval_days, 10) || 14)),
+    };
+    form.value.low_stock_items = {
+        enabled: !!props.lowStockItems.enabled,
+        roles: (props.lowStockItems.role_ids || []).length
+            ? props.roles.filter((r) => props.lowStockItems.role_ids.includes(r.id))
+            : [],
+        send_time: normalizeTime(props.lowStockItems.send_time),
     };
 }, { deep: true });
 
@@ -240,6 +319,11 @@ function submit() {
             send_time: normalizeTime(form.value.expiry_items.send_time),
             expiring_6_months_interval_days: Math.max(1, Math.min(365, parseInt(form.value.expiry_items.expiring_6_months_interval_days, 10) || 4)),
             expiring_1_year_interval_days: Math.max(1, Math.min(365, parseInt(form.value.expiry_items.expiring_1_year_interval_days, 10) || 14)),
+        },
+        low_stock_items: {
+            enabled: form.value.low_stock_items.enabled,
+            role_ids: (form.value.low_stock_items.roles || []).map((r) => (r && typeof r === 'object' && 'id' in r ? r.id : r)),
+            send_time: normalizeTime(form.value.low_stock_items.send_time),
         },
     };
     router.put(route('settings.email-notifications.update'), payload, {

@@ -19,8 +19,8 @@ class Kernel extends ConsoleKernel
         $schedule->command('inventory:generate-report')->monthlyOn(1, '00:01');
         // Generate AMC records on the first day of each month at 00:01 AM
         $schedule->command('warehouse:generate-amc')->monthlyOn(1, '00:01');
-        // Send low stock notification emails twice a day (9 AM and 3 PM)
-        $schedule->command('inventory:notify-low-stock')->twiceDaily(9, 15);
+        // Send low stock notification emails based on programmable schedule. Command exits if time doesn't match.
+        $schedule->command('inventory:notify-low-stock')->everyMinute();
         $schedule->command('inventory:check-low-stock')->everyFiveMinutes();
         // Expiry items: run every minute so the programmable send time (e.g. 13:10) can be hit; command exits immediately if time doesn't match
         $schedule->command('inventory:notify-expiry-items')->everyMinute();

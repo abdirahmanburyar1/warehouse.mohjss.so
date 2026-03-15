@@ -83,13 +83,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($lowStockItems as $item)
+                    <?php $__currentLoopData = $lowStockItems; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $item): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                     <tr>
-                        <td>{{ $item->product->name }}</td>
-                        <td>{{ number_format($item->quantity) }} {{ $item->uom }}</td>
-                        <td>{{ number_format($item->current_reorder_level ?? 0) }} {{ $item->uom }}</td>
+                        <td><?php echo e($item->product->name); ?></td>
+                        <td><?php echo e(number_format($item->quantity)); ?> <?php echo e($item->uom); ?></td>
+                        <td><?php echo e(number_format($item->current_reorder_level ?? 0)); ?> <?php echo e($item->uom); ?></td>
                     </tr>
-                    @endforeach
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </tbody>
             </table>
             
@@ -100,8 +100,9 @@
         
         <div class="footer">
             <p>This is an automated message. Please do not reply to this email.</p>
-            <p>&copy; {{ date('Y') }} Warehouse Management System</p>
+            <p>&copy; <?php echo e(date('Y')); ?> Warehouse Management System</p>
         </div>
     </div>
 </body>
 </html>
+<?php /**PATH /var/www/warehouse.mohjss.so/resources/views/emails/low-stock-notification.blade.php ENDPATH**/ ?>

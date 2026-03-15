@@ -24,7 +24,7 @@
     <div class="container">
         <div class="header">
             <h1>Expiry Items Notification</h1>
-            <p>Warehouse Management System - Jubaland</p>
+            <p>Warehouse Inventory Management System - Jubaland</p>
         </div>
         <div class="content">
             <p>Hello,</p>
@@ -122,7 +122,7 @@
             @endif
 
             <p>Please review and take appropriate action (disposal, transfer, or use) for these items.</p>
-            <p>Thank you,<br>Warehouse Management System - Jubaland</p>
+            <p>Thank you,<br>Warehouse Inventory Management System - Jubaland</p>
         </div>
         <div class="footer">
             <p>This is an automated message. Please do not reply to this email.</p>
