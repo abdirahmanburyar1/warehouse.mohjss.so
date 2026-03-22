@@ -4772,3 +4772,389 @@
   2026-03-22 15:55:09 Running ['artisan' facility:generate-monthly-report]  385.26ms DONE
   ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
 
+
+  2026-03-22 15:56:02 Running ['artisan' inventory:notify-low-stock]  428.04ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 15:56:02 Running ['artisan' inventory:notify-expiry-items]  422.38ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 15:56:03 Running ['artisan' report:monthly-received-quantities]  415.56ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 15:56:03 Running ['artisan' report:issue-quantities]  363.94ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 15:56:03 Running ['artisan' consumption:generate] . 429.57ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 15:56:04 Running ['artisan' inventory:generate-monthly-report]  397.42ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 15:56:04 Running ['artisan' orders:generate-quarterly]  383.33ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 15:56:05 Running ['artisan' warehouse:generate-amc]  361.36ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 15:56:05 Running ['artisan' facility:generate-monthly-report]  379.01ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 15:57:02 Running ['artisan' inventory:notify-low-stock]  410.72ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 15:57:02 Running ['artisan' inventory:notify-expiry-items]  392.88ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 15:57:03 Running ['artisan' report:monthly-received-quantities]  380.46ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 15:57:03 Running ['artisan' report:issue-quantities]  419.28ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 15:57:03 Running ['artisan' consumption:generate] . 396.46ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 15:57:04 Running ['artisan' inventory:generate-monthly-report]  404.33ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 15:57:04 Running ['artisan' orders:generate-quarterly]  367.67ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 15:57:05 Running ['artisan' warehouse:generate-amc]  394.53ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 15:57:05 Running ['artisan' facility:generate-monthly-report]  377.34ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 15:58:02 Running ['artisan' inventory:notify-low-stock]  397.56ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 15:58:02 Running ['artisan' inventory:notify-expiry-items]  400.83ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 15:58:03 Running ['artisan' report:monthly-received-quantities]  414.21ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 15:58:03 Running ['artisan' report:issue-quantities]  392.90ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 15:58:03 Running ['artisan' consumption:generate] . 396.12ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 15:58:04 Running ['artisan' inventory:generate-monthly-report]  394.93ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 15:58:04 Running ['artisan' orders:generate-quarterly]  411.66ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 15:58:05 Running ['artisan' warehouse:generate-amc]  393.60ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 15:58:05 Running ['artisan' facility:generate-monthly-report]  364.78ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 15:59:02 Running ['artisan' inventory:notify-low-stock]  385.03ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 15:59:02 Running ['artisan' inventory:notify-expiry-items]  379.05ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 15:59:03 Running ['artisan' report:monthly-received-quantities]  350.82ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 15:59:03 Running ['artisan' report:issue-quantities]  363.61ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 15:59:03 Running ['artisan' consumption:generate] . 380.23ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 15:59:04 Running ['artisan' inventory:generate-monthly-report]  358.42ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 15:59:04 Running ['artisan' orders:generate-quarterly]  401.67ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 15:59:05 Running ['artisan' warehouse:generate-amc]  364.69ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 15:59:05 Running ['artisan' facility:generate-monthly-report]  368.40ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:00:02 Running ['artisan' inventory:notify-low-stock] . 1s DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:00:04 Running ['artisan' inventory:check-low-stock]  605.56ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:check-low-stock > 'storage/logs/schedule-7b34c52322cd68fa71ba6b2e88e9b1f9e126a33f.log' 2>&1  
+  2026-03-22 16:00:05 Running ['artisan' inventory:notify-expiry-items]  542.54ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:00:05 Running ['artisan' report:monthly-received-quantities]  546.58ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:00:06 Running ['artisan' report:issue-quantities]  554.47ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:00:06 Running ['artisan' consumption:generate] . 676.88ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:00:07 Running ['artisan' inventory:generate-monthly-report]  438.74ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:00:07 Running ['artisan' orders:generate-quarterly]  438.83ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:00:08 Running ['artisan' warehouse:generate-amc]  418.18ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:00:08 Running ['artisan' facility:generate-monthly-report]  460.67ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:01:01 Running ['artisan' inventory:notify-low-stock]  434.98ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:01:02 Running ['artisan' inventory:notify-expiry-items]  402.21ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:01:02 Running ['artisan' report:monthly-received-quantities]  377.08ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:01:03 Running ['artisan' report:issue-quantities]  385.03ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:01:03 Running ['artisan' consumption:generate] . 399.77ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:01:03 Running ['artisan' inventory:generate-monthly-report]  384.01ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:01:04 Running ['artisan' orders:generate-quarterly]  390.59ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:01:04 Running ['artisan' warehouse:generate-amc]  419.96ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:01:05 Running ['artisan' facility:generate-monthly-report]  368.06ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:02:01 Running ['artisan' inventory:notify-low-stock]  465.81ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:02:02 Running ['artisan' inventory:notify-expiry-items]  411.99ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:02:02 Running ['artisan' report:monthly-received-quantities]  393.73ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:02:03 Running ['artisan' report:issue-quantities]  406.12ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:02:03 Running ['artisan' consumption:generate] . 412.32ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:02:04 Running ['artisan' inventory:generate-monthly-report]  381.91ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:02:04 Running ['artisan' orders:generate-quarterly]  388.94ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:02:04 Running ['artisan' warehouse:generate-amc]  379.48ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:02:05 Running ['artisan' facility:generate-monthly-report]  378.21ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:03:02 Running ['artisan' inventory:notify-low-stock]  456.06ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:03:02 Running ['artisan' inventory:notify-expiry-items]  403.16ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:03:02 Running ['artisan' report:monthly-received-quantities]  408.39ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:03:03 Running ['artisan' report:issue-quantities]  408.37ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:03:03 Running ['artisan' consumption:generate] . 404.12ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:03:04 Running ['artisan' inventory:generate-monthly-report]  372.26ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:03:04 Running ['artisan' orders:generate-quarterly]  379.72ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:03:04 Running ['artisan' warehouse:generate-amc]  371.04ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:03:05 Running ['artisan' facility:generate-monthly-report]  385.10ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:04:02 Running ['artisan' inventory:notify-low-stock]  457.68ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:04:02 Running ['artisan' inventory:notify-expiry-items]  424.41ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:04:03 Running ['artisan' report:monthly-received-quantities]  419.97ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:04:03 Running ['artisan' report:issue-quantities]  360.45ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:04:03 Running ['artisan' consumption:generate] . 392.26ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:04:04 Running ['artisan' inventory:generate-monthly-report]  390.54ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:04:04 Running ['artisan' orders:generate-quarterly]  364.14ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:04:05 Running ['artisan' warehouse:generate-amc]  363.38ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:04:05 Running ['artisan' facility:generate-monthly-report]  366.10ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:05:02 Running ['artisan' inventory:notify-low-stock]  458.60ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:05:02 Running ['artisan' inventory:check-low-stock]  425.44ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:check-low-stock > 'storage/logs/schedule-7b34c52322cd68fa71ba6b2e88e9b1f9e126a33f.log' 2>&1  
+  2026-03-22 16:05:03 Running ['artisan' inventory:notify-expiry-items]  426.33ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:05:03 Running ['artisan' report:monthly-received-quantities]  428.13ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:05:03 Running ['artisan' report:issue-quantities]  403.24ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:05:04 Running ['artisan' consumption:generate] . 380.11ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:05:04 Running ['artisan' inventory:generate-monthly-report]  395.23ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:05:05 Running ['artisan' orders:generate-quarterly]  409.19ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:05:05 Running ['artisan' warehouse:generate-amc]  413.22ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:05:05 Running ['artisan' facility:generate-monthly-report]  416.42ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:06:01 Running ['artisan' inventory:notify-low-stock]  440.04ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:06:02 Running ['artisan' inventory:notify-expiry-items]  393.38ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:06:02 Running ['artisan' report:monthly-received-quantities]  368.81ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:06:03 Running ['artisan' report:issue-quantities]  373.33ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:06:03 Running ['artisan' consumption:generate] . 362.17ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:06:03 Running ['artisan' inventory:generate-monthly-report]  388.23ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:06:04 Running ['artisan' orders:generate-quarterly]  400.63ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:06:04 Running ['artisan' warehouse:generate-amc]  388.84ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:06:05 Running ['artisan' facility:generate-monthly-report]  415.19ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:07:01 Running ['artisan' inventory:notify-low-stock]  416.14ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:07:02 Running ['artisan' inventory:notify-expiry-items]  396.83ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:07:02 Running ['artisan' report:monthly-received-quantities]  388.99ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:07:03 Running ['artisan' report:issue-quantities]  371.09ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:07:03 Running ['artisan' consumption:generate] . 366.70ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:07:03 Running ['artisan' inventory:generate-monthly-report]  356.48ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:07:04 Running ['artisan' orders:generate-quarterly]  346.40ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:07:04 Running ['artisan' warehouse:generate-amc]  369.74ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:07:04 Running ['artisan' facility:generate-monthly-report]  364.91ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:08:01 Running ['artisan' inventory:notify-low-stock]  455.92ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:08:02 Running ['artisan' inventory:notify-expiry-items]  404.04ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:08:02 Running ['artisan' report:monthly-received-quantities]  392.23ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:08:03 Running ['artisan' report:issue-quantities]  437.91ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:08:03 Running ['artisan' consumption:generate] . 425.66ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:08:03 Running ['artisan' inventory:generate-monthly-report]  369.58ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:08:04 Running ['artisan' orders:generate-quarterly]  373.30ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:08:04 Running ['artisan' warehouse:generate-amc]  369.79ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:08:05 Running ['artisan' facility:generate-monthly-report]  400.90ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:09:02 Running ['artisan' inventory:notify-low-stock]  501.06ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:09:02 Running ['artisan' inventory:notify-expiry-items]  455.29ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:09:03 Running ['artisan' report:monthly-received-quantities]  402.12ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:09:03 Running ['artisan' report:issue-quantities]  371.58ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:09:03 Running ['artisan' consumption:generate] . 382.23ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:09:04 Running ['artisan' inventory:generate-monthly-report]  380.16ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:09:04 Running ['artisan' orders:generate-quarterly]  371.35ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:09:05 Running ['artisan' warehouse:generate-amc]  358.27ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:09:05 Running ['artisan' facility:generate-monthly-report]  358.68ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:10:02 Running ['artisan' inventory:notify-low-stock]  516.81ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:10:02 Running ['artisan' inventory:check-low-stock]  472.25ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:check-low-stock > 'storage/logs/schedule-7b34c52322cd68fa71ba6b2e88e9b1f9e126a33f.log' 2>&1  
+  2026-03-22 16:10:03 Running ['artisan' inventory:notify-expiry-items]  446.39ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:10:03 Running ['artisan' report:monthly-received-quantities]  445.25ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:10:04 Running ['artisan' report:issue-quantities]  405.28ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:10:04 Running ['artisan' consumption:generate] . 420.74ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:10:05 Running ['artisan' inventory:generate-monthly-report]  428.16ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:10:05 Running ['artisan' orders:generate-quarterly]  399.02ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:10:05 Running ['artisan' warehouse:generate-amc]  405.15ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:10:06 Running ['artisan' facility:generate-monthly-report]  411.30ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:11:02 Running ['artisan' inventory:notify-low-stock]  425.62ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:11:02 Running ['artisan' inventory:notify-expiry-items]  376.07ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:11:03 Running ['artisan' report:monthly-received-quantities]  400.71ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:11:03 Running ['artisan' report:issue-quantities]  381.59ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:11:03 Running ['artisan' consumption:generate] . 395.57ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:11:04 Running ['artisan' inventory:generate-monthly-report]  421.20ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:11:04 Running ['artisan' orders:generate-quarterly]  387.91ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:11:05 Running ['artisan' warehouse:generate-amc]  394.29ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:11:05 Running ['artisan' facility:generate-monthly-report]  407.50ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:12:02 Running ['artisan' inventory:notify-low-stock]  439.15ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:12:02 Running ['artisan' inventory:notify-expiry-items]  431.84ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:12:03 Running ['artisan' report:monthly-received-quantities]  417.43ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:12:03 Running ['artisan' report:issue-quantities]  389.35ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:12:04 Running ['artisan' consumption:generate] . 407.32ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:12:04 Running ['artisan' inventory:generate-monthly-report]  410.05ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:12:04 Running ['artisan' orders:generate-quarterly]  401.10ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:12:05 Running ['artisan' warehouse:generate-amc]  391.76ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:12:05 Running ['artisan' facility:generate-monthly-report]  389.15ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:13:01 Running ['artisan' inventory:notify-low-stock]  455.72ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:13:01 Running ['artisan' inventory:notify-expiry-items]  423.70ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:13:02 Running ['artisan' report:monthly-received-quantities]  388.85ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:13:02 Running ['artisan' report:issue-quantities]  382.50ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:13:03 Running ['artisan' consumption:generate] . 359.31ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:13:03 Running ['artisan' inventory:generate-monthly-report]  353.08ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:13:03 Running ['artisan' orders:generate-quarterly]  372.45ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:13:04 Running ['artisan' warehouse:generate-amc]  361.73ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:13:04 Running ['artisan' facility:generate-monthly-report]  379.05ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
+
+  2026-03-22 16:14:01 Running ['artisan' inventory:notify-low-stock]  440.37ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-low-stock > 'storage/logs/schedule-b256a1b5d610ee8e596ffc68fceeae2b2e9aaf19.log' 2>&1  
+  2026-03-22 16:14:01 Running ['artisan' inventory:notify-expiry-items]  464.64ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:notify-expiry-items > 'storage/logs/schedule-39fbfa9f80cd1ea198a380594a9343debb28de93.log' 2>&1  
+  2026-03-22 16:14:02 Running ['artisan' report:monthly-received-quantities]  402.88ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:monthly-received-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:14:02 Running ['artisan' report:issue-quantities]  382.17ms DONE
+  ⇂ '/usr/bin/php' 'artisan' report:issue-quantities >> 'storage/logs/monthly-reports.log' 2>&1  
+  2026-03-22 16:14:03 Running ['artisan' consumption:generate] . 423.32ms DONE
+  ⇂ '/usr/bin/php' 'artisan' consumption:generate >> 'storage/logs/monthly-consumption.log' 2>&1  
+  2026-03-22 16:14:03 Running ['artisan' inventory:generate-monthly-report]  373.73ms DONE
+  ⇂ '/usr/bin/php' 'artisan' inventory:generate-monthly-report >> 'storage/logs/monthly-inventory-report.log' 2>&1  
+  2026-03-22 16:14:04 Running ['artisan' orders:generate-quarterly]  420.54ms DONE
+  ⇂ '/usr/bin/php' 'artisan' orders:generate-quarterly >> 'storage/logs/quarterly-orders.log' 2>&1  
+  2026-03-22 16:14:04 Running ['artisan' warehouse:generate-amc]  425.25ms DONE
+  ⇂ '/usr/bin/php' 'artisan' warehouse:generate-amc >> 'storage/logs/warehouse-amc.log' 2>&1  
+  2026-03-22 16:14:04 Running ['artisan' facility:generate-monthly-report]  422.22ms DONE
+  ⇂ '/usr/bin/php' 'artisan' facility:generate-monthly-report >> 'storage/logs/facility-monthly-report.log' 2>&1  
+
