@@ -20,7 +20,7 @@ class LowStockAlert implements ShouldBroadcast
     /**
      * Create a new event instance.
      */
-    public function __construct(Inventory $inventory)
+    public function __construct(Inventory $inventory = null)
     {
         $this->inventory = $inventory;
     }

@@ -67,11 +67,15 @@ class SendLowStockNotification extends Command
 
             // Find items at or below reorder level (formula according to InventoryController/Product)
             if ($reorderLevel > 0 && $totalQty <= $reorderLevel) {
-                 foreach ($product->items as $item) {
-                     // Attach reorder_level to item for the blade view
-                     $item->current_reorder_level = $reorderLevel;
-                     $itemsToNotify->push($item);
-                }
+                // Get UOM from first item if available, else from dosage name
+                $uom = $product->items->first()?->uom ?? ($product->dosage->name ?? '');
+                
+                $itemsToNotify->push((object)[
+                    'product' => $product,
+                    'quantity' => $totalQty,
+                    'uom' => $uom,
+                    'current_reorder_level' => $reorderLevel
+                ]);
             }
         }
 
