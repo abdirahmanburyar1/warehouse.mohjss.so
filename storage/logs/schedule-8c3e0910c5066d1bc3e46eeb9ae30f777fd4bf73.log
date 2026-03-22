@@ -3,8 +3,8 @@ In Connection.php line 825:
                                                                                
   SQLSTATE[42S22]: Column not found: 1054 Unknown column 'asset_warranty_end'  
    in 'where clause' (Connection: mysql, SQL: select * from `assets` where `a  
-  sset_warranty_end` is not null and date(`asset_warranty_end`) > 2026-03-15   
-  and date(`asset_warranty_end`) <= 2026-04-14 and `assets`.`deleted_at` is n  
+  sset_warranty_end` is not null and date(`asset_warranty_end`) > 2026-03-22   
+  and date(`asset_warranty_end`) <= 2026-04-21 and `assets`.`deleted_at` is n  
   ull)                                                                         
                                                                                
 

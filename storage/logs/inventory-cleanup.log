@@ -6,3 +6,9 @@ Deleted 4 empty inventories
 Found 0 inventories where all items have quantity = 0
 Inventory cleanup completed successfully!
 Total items/inventories that would be affected: 6
+Starting inventory cleanup...
+Found 0 inventory items with quantity = 0
+Found 0 inventories with no items
+Found 0 inventories where all items have quantity = 0
+Inventory cleanup completed successfully!
+No cleanup needed - all inventories are in good condition!
