@@ -18,9 +18,15 @@ class FacilityInventoryController extends Controller
             abort(403, 'You do not have permission to access Facility Inventory upload.');
         }
 
-        $facilities = Facility::select('id', 'name', 'facility_type')
-            ->where('is_active', true)
-            ->orderBy('name')
+        $user = auth()->user();
+        $facilitiesQuery = Facility::select('id', 'name', 'facility_type')
+            ->where('is_active', true);
+
+        if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
+            $facilitiesQuery->where('region', $user->warehouse->region);
+        }
+
+        $facilities = $facilitiesQuery->orderBy('name')
             ->get();
 
         return Inertia::render('FacilityInventory/Index', [
@@ -42,6 +48,14 @@ class FacilityInventoryController extends Controller
             'facility_id' => 'required|integer|exists:facilities,id',
             'file' => 'required|file|mimes:xlsx,xls,csv|max:51200',
         ]);
+
+        $user = auth()->user();
+        if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
+            $facility = Facility::find($request->facility_id);
+            if ($facility && $facility->region !== $user->warehouse->region) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access to this facility.'], 403);
+            }
+        }
 
         $file = $request->file('file');
 
@@ -111,11 +125,18 @@ class FacilityInventoryController extends Controller
             abort(403, 'You do not have permission to download facility inventory template.');
         }
 
-        $request->validate([
-            'facility_id' => 'required|integer|exists:facilities,id',
-        ]);
+        $facilityId = (int) $request->facility_id;
+        $user = auth()->user();
+        $facilityQuery = Facility::where('id', $facilityId);
 
-        $facility = Facility::find($request->facility_id);
+        if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
+            $facilityQuery->where('region', $user->warehouse->region);
+        }
+
+        $facility = $facilityQuery->first();
+        if (!$facility) {
+             abort(403, 'Unauthorized access to this facility.');
+        }
         $filename = 'facility_inventory_template_' . Str::slug($facility->name ?? 'facility') . '_' . now()->format('Y-m-d') . '.xlsx';
 
         return Excel::download(

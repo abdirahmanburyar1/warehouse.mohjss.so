@@ -51,7 +51,8 @@ class SupplyController extends Controller
      */
     public function index(Request $request)
     {
-        $purchaseOrders = PurchaseOrder::with('supplier')
+        $purchaseOrders = PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)
+            ->with('supplier')
             ->withSum('items', 'total_cost')
             ->when($request->filled('search'), function($query) use ($request) {
                 $search = $request->search;
@@ -87,16 +88,18 @@ class SupplyController extends Controller
 
         // Get statistics for the cards (all purchase orders)
         $stats = [
-            'total_items' => PurchaseOrder::count(),
-            'total_cost' => PurchaseOrder::join('purchase_order_items', 'purchase_orders.id', '=', 'purchase_order_items.purchase_order_id')
+            'total_items' => PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->count(),
+            'total_cost' => PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->join('purchase_order_items', 'purchase_orders.id', '=', 'purchase_order_items.purchase_order_id')
                 ->sum('purchase_order_items.total_cost'),
             'lead_times' => [
                 'max' => round($leadTimes->max_lead_time ?? 0, 1) . ' Months',
                 'avg' => round($leadTimes->avg_lead_time ?? 0, 1) . ' Months',
                 'low' => round($leadTimes->low_lead_time ?? 0, 1) . ' Months',
             ],
-            'pending_orders' => PurchaseOrder::where('status', 'pending')->count(),
-            'back_orders' => PackingListDifference::count(), // Count the number of back orders instead of summing quantities
+            'pending_orders' => PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->where('status', 'pending')->count(),
+            'back_orders' => PackingListDifference::whereHas('packingListItem.packingList', function($q) {
+                $q->where('warehouse_id', auth()->user()->warehouse_id);
+            })->count(), // Count the number of back orders instead of summing quantities
         ];
 
         $purchaseOrders = $purchaseOrders->paginate($request->input('per_page', 25), ['*'], 'page', $request->input('page', 1))
@@ -133,7 +136,8 @@ class SupplyController extends Controller
         }
         $packingList = PackingList::with('purchaseOrder.supplier','items.product.category','items.product.dosage','documents.uploader','confirmedBy','approvedBy','rejectedBy','reviewedBy','backOrder')
         ->where('id', $id)
-        ->first();
+        ->where('warehouse_id', auth()->user()->warehouse_id)
+        ->firstOrFail();
         return inertia("Supplies/ShowPK", [
             'packing_list' => $packingList
         ]);
@@ -143,7 +147,8 @@ class SupplyController extends Controller
         if (!auth()->user()->hasPermission('packing-list-create')) {
             abort(403, 'Unauthorized: You do not have permission to create packing lists.');
         }
-        $purchaseOrders = PurchaseOrder::where('status', 'approved')
+        $purchaseOrders = PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)
+            ->where('status', 'approved')
             ->whereDoesntHave('packingLists')
             ->select('id','po_number','supplier_id','po_date','po_number','status')
             ->with(['supplier'])
@@ -153,7 +158,7 @@ class SupplyController extends Controller
         return inertia("Supplies/PackingList", [
             'purchaseOrders' => $purchaseOrders,
             'warehouses' => $warehouses,
-            'locations' => Location::get(),
+            'locations' => Location::where('warehouse', auth()->user()->load('warehouse')->warehouse->name ?? '')->get(),
         ]);
     }
 
@@ -161,7 +166,7 @@ class SupplyController extends Controller
     {
         try {
             // Check if packing list exists
-            $packingList = PackingList::find($id);
+            $packingList = PackingList::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
             if (!$packingList) {
                 return response()->json(['error' => 'Packing list not found'], 404);
             }
@@ -1331,6 +1336,7 @@ class SupplyController extends Controller
                     'po_date' => $validated['po_date'],
                     'expected_date' => $validated['expected_date'] ?? null,
                     'supplier_id' => $validated['supplier_id'],
+                    'warehouse_id' => auth()->user()->warehouse_id,
                     'created_by' => auth()->id()
                 ]);
 
@@ -1476,7 +1482,7 @@ class SupplyController extends Controller
                 return response()->json('Unauthorized: You do not have permission to review purchase orders', 403);
             }
             
-            $po = PurchaseOrder::findOrFail($id);
+            $po = PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
             $po->reviewed_by = auth()->id();
             $po->reviewed_at = now();
             $po->status = "reviewed";
@@ -1513,7 +1519,7 @@ class SupplyController extends Controller
             ]);
 
             return DB::transaction(function () use ($id, $validated) {
-                $po = PurchaseOrder::findOrFail($id);
+                $po = PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
                 
                 if (!$po->reviewed_by || !$po->reviewed_at) {
                     return response()->json('Purchase order must be reviewed before it can be rejected', 422);
@@ -1593,7 +1599,7 @@ class SupplyController extends Controller
         DB::beginTransaction();
         try {
             // Adjust inventory
-           $po = PurchaseOrder::find($id);
+           $po = PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
            if (in_array(strtolower($po->status ?? ''), ['approved', 'completed'])) {
             return response()->json('Approved or completed purchase orders cannot be deleted.', 403);
            }
@@ -1613,7 +1619,7 @@ class SupplyController extends Controller
     public function uploadDocument(Request $request, $id)
     {
         try {
-            $po = PurchaseOrder::find($id);
+            $po = PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
             if (!$po) {
                 return response()->json('Purchase order not found', 404);
             }
@@ -1848,7 +1854,7 @@ class SupplyController extends Controller
             ]);
 
             return DB::transaction(function () use ($validated, $id) {
-                $po = PurchaseOrder::findOrFail($id);
+                $po = PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
                 
                 // Approved and completed POs cannot be edited
                 if (in_array(strtolower($po->status ?? ''), ['approved', 'completed'])) {
@@ -1863,6 +1869,7 @@ class SupplyController extends Controller
                     'po_date' => $validated['po_date'],
                     'expected_date' => $validated['expected_date'] ?? null,
                     'notes' => $validated['notes'],
+                    'warehouse_id' => auth()->user()->warehouse_id,
                     'updated_by' => auth()->id()
                 ]);
 
@@ -1944,7 +1951,7 @@ class SupplyController extends Controller
 
     public function deletePurchaseOrder(Request $request, $id){
         try {
-            $po = PurchaseOrder::find($id);
+            $po = PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
             if($po->status != 'pending'){
                 return response()->json("This $po->po_number already approved and it can not be deleted", 500);
             }
@@ -2009,6 +2016,7 @@ class SupplyController extends Controller
             'backOrder'
         ])
         ->select('packing_lists.*')
+        ->where('packing_lists.warehouse_id', auth()->user()->warehouse_id)
         ->selectRaw('
             CASE 
                 WHEN (
@@ -2234,7 +2242,7 @@ class SupplyController extends Controller
                 ]);
 
                 // Update main packing list
-                $packingList = PackingList::findOrFail($request->id);
+                $packingList = PackingList::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($request->id);
                 $packingList->update([
                     'pk_date' => $request->pk_date,
                     'ref_no' => $request->ref_no,
@@ -2369,7 +2377,7 @@ class SupplyController extends Controller
                 'status' => 'required|in:reviewed',
             ]);
 
-            $packingList = PackingList::findOrFail($request->id);
+            $packingList = PackingList::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($request->id);
 
             if ($packingList->reviewed_at) {
                 return response()->json('Packing list has already been reviewed', 422);
@@ -2427,7 +2435,7 @@ class SupplyController extends Controller
                 'rejection_reason' => 'required|string|max:1000',
             ]);
 
-            $packingList = PackingList::findOrFail($request->id);
+            $packingList = PackingList::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($request->id);
 
             if (!$packingList->reviewed_at) {
                 return response()->json('Packing list must be reviewed before it can be rejected', 422);
@@ -2467,7 +2475,9 @@ class SupplyController extends Controller
             'items' => 'required|array',
         ]);
 
-        $packingList = PackingList::with('items.purchaseOrderItem')->findOrFail($request->id);
+        $packingList = PackingList::with('items.purchaseOrderItem')
+            ->where('warehouse_id', auth()->user()->warehouse_id)
+            ->findOrFail($request->id);
 
         if (!$packingList->reviewed_at) {
             return response()->json('Packing list must be reviewed before it can be approved', 422);
@@ -2567,7 +2577,7 @@ class SupplyController extends Controller
     public function update(Request $request, $id)
     {
         try {
-            $packingList = PackingList::findOrFail($id);
+            $packingList = PackingList::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
 
             $validated = $request->validate([
                 'batch_number' => 'required|string',
@@ -2664,7 +2674,7 @@ class SupplyController extends Controller
     public function uploadPackingListDocument(Request $request, $id)
     {
         try {
-            $packingList = PackingList::find($id);
+            $packingList = PackingList::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
             if (!$packingList) {
                 return response()->json('Packing list not found', 404);
             }

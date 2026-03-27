@@ -1,16 +1,25 @@
 
-In Connection.php line 825:
-                                                                               
-  SQLSTATE[42S22]: Column not found: 1054 Unknown column 'asset_warranty_end'  
-   in 'where clause' (Connection: mysql, SQL: select * from `assets` where `a  
-  sset_warranty_end` is not null and date(`asset_warranty_end`) > 2026-03-25   
-  and date(`asset_warranty_end`) <= 2026-04-24 and `assets`.`deleted_at` is n  
-  ull)                                                                         
-                                                                               
+   Illuminate\Database\QueryException 
 
-In Connection.php line 407:
-                                                                               
-  SQLSTATE[42S22]: Column not found: 1054 Unknown column 'asset_warranty_end'  
-   in 'where clause'                                                           
-                                                                               
+  SQLSTATE[42S22]: Column not found: 1054 Unknown column 'asset_warranty_end' in 'where clause' (Connection: mysql, SQL: select * from `assets` where `asset_warranty_end` is not null and date(`asset_warranty_end`) > 2026-03-27 and date(`asset_warranty_end`) <= 2026-04-26 and `assets`.`deleted_at` is null)
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:825
+    821▕                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    822▕                 );
+    823▕             }
+    824▕ 
+  ➜ 825▕             throw new QueryException(
+    826▕                 $this->getName(), $query, $this->prepareBindings($bindings), $e
+    827▕             );
+    828▕         }
+    829▕     }
+
+      [2m+11 vendor frames [22m
+
+  12  app/Console/Commands/NotifyAssetWarrantyExpiring.php:24
+      Illuminate\Database\Eloquent\Builder::get()
+      [2m+13 vendor frames [22m
+
+  26  artisan:16
+      Illuminate\Foundation\Application::handleCommand(Object(Symfony\Component\Console\Input\ArgvInput))
 

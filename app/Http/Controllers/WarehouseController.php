@@ -63,6 +63,7 @@ class WarehouseController extends Controller
             'manager_email' => 'nullable|email|max:255',
             'manager_phone' => 'nullable|string|max:50',
             'status' => 'string|max:50',
+            'type' => 'required|string|in:central,regional',
         ]);
 
             $warehouse = Warehouse::updateOrCreate(
@@ -76,6 +77,7 @@ class WarehouseController extends Controller
                     'manager_phone' => $request->manager_phone,
                     'manager_email' => $request->manager_email,
                     'status' => $request->status ?? 'active',
+                    'type' => $request->type ?? 'regional',
                 ]
             );
 

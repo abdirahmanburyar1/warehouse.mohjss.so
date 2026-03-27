@@ -234,8 +234,10 @@ class DashboardController extends Controller
      */
     private function regularDashboard(Request $request)
     {
-        // Get warehouse count and add it first
+        $user = auth()->user();
+        // Get warehouse count
         $warehouseCount = Warehouse::count();
+
         // Warehouse entry: use full label (no abbreviation) and actual count of warehouses
         $warehouseData = collect([
             [
@@ -246,17 +248,15 @@ class DashboardController extends Controller
             ]
         ]);
 
-        // Get distinct facility types and their counts (all types)
-        // Facility types and their counts, read dynamically from facilities table
-        $facilityTypes = Facility::select('facility_type', DB::raw('count(*) as count'))
-            ->whereNotNull('facility_type')
+        // Get distinct facility types and their counts
+        $typeQuery = Facility::select('facility_type', DB::raw('count(*) as count'));
+        $facilityTypes = $typeQuery->whereNotNull('facility_type')
             ->where('facility_type', '!=', '')
             ->groupBy('facility_type')
             ->orderBy('count', 'desc')
             ->get()
             ->map(function ($type) {
                 return [
-                    // Use full facility type name as label (no abbreviation)
                     'label' => $type->facility_type,
                     'fullName' => $type->facility_type,
                     'value' => $type->count,
@@ -270,9 +270,11 @@ class DashboardController extends Controller
         $filter = $request->input('order_filter', 'PO'); // default to PO
 
         $orderCounts = [
-            'PKL' => PackingList::count(),
-            'PO'  => PurchaseOrder::where('status', 'approved')->count(),
-            'BO'  => BackOrder::count(),
+            'PKL' => PackingList::when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count(),
+            'PO'  => PurchaseOrder::where('status', 'approved')->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count(),
+            'BO'  => BackOrder::when($user->warehouse_id, function($q) use ($user) {
+                $q->whereHas('packingList', fn($sq) => $sq->where('warehouse_id', $user->warehouse_id));
+            })->count(),
         ];
 
         // Product category counts - dynamically read from database
@@ -283,27 +285,31 @@ class DashboardController extends Controller
         }
 
         // Transfer received count
-        $transferReceivedCount = Transfer::where('status', 'received')->count();
+        $transferReceivedCount = Transfer::where('status', 'received')
+            ->when($user->warehouse_id, fn($q) => $q->where('to_warehouse_id', $user->warehouse_id))
+            ->count();
 
         // User and Warehouse counts
-        $userCount = User::count();
+        // User and Warehouse counts
+        $userCount = User::when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count();
         $warehouseCount = Warehouse::count();
 
         // Order status statistics
         $orderStats = [
-            'pending' => Order::where('status', 'pending')->count(),
-            'reviewed' => Order::where('status', 'reviewed')->count(),
-            'approved' => Order::where('status', 'approved')->count(),
-            'in_process' => Order::where('status', 'in_process')->count(),
-            'dispatched' => Order::where('status', 'dispatched')->count(),
-            'received' => Order::where('status', 'received')->count(),
-            'rejected' => Order::where('status', 'rejected')->count(),
+            'pending' => Order::where('status', 'pending')->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count(),
+            'reviewed' => Order::where('status', 'reviewed')->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count(),
+            'approved' => Order::where('status', 'approved')->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count(),
+            'in_process' => Order::where('status', 'in_process')->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count(),
+            'dispatched' => Order::where('status', 'dispatched')->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count(),
+            'received' => Order::where('status', 'received')->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count(),
+            'rejected' => Order::where('status', 'rejected')->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count(),
         ];
 
         // Total cost of approved purchase orders
         $totalApprovedPOCost = DB::table('purchase_order_items')
             ->join('purchase_orders', 'purchase_order_items.purchase_order_id', '=', 'purchase_orders.id')
             ->where('purchase_orders.status', 'approved')
+            ->when($user->warehouse_id, fn($q) => $q->where('purchase_orders.warehouse_id', $user->warehouse_id))
             ->sum('purchase_order_items.total_cost');
 
         // Get all suppliers first
@@ -318,6 +324,7 @@ class DashboardController extends Controller
                 ->join('purchase_order_items as poi', 'pli.po_item_id', '=', 'poi.id')
                 ->join('purchase_orders as po', 'poi.purchase_order_id', '=', 'po.id')
                 ->where('po.supplier_id', $supplier->id)
+                ->when($user->warehouse_id, fn($q) => $q->where('pl.warehouse_id', $user->warehouse_id))
                 ->select(
                     DB::raw('SUM(poi.quantity) as total_ordered'),
                     DB::raw('SUM(pli.quantity) as total_received')
@@ -341,16 +348,23 @@ class DashboardController extends Controller
         // Calculate overall average fulfillment
         $overallFulfillment = $fulfillmentData->avg('fulfillment_percentage') ?? 0;
 
-        // Check if we have any data in the related tables
-        $packingListItemsCount = DB::table('packing_list_items')->count();
-        $purchaseOrderItemsCount = DB::table('purchase_order_items')->count();
-        $packingListsCount = DB::table('packing_lists')->count();
-        $purchaseOrdersCount = DB::table('purchase_orders')->count();
+        // Check if we have any data in the related tables (scoped)
+        $packingListItemsCount = DB::table('packing_list_items')
+            ->join('packing_lists', 'packing_list_items.packing_list_id', '=', 'packing_lists.id')
+            ->when($user->warehouse_id, fn($q) => $q->where('packing_lists.warehouse_id', $user->warehouse_id))
+            ->count();
+        $purchaseOrderItemsCount = DB::table('purchase_order_items')
+            ->join('purchase_orders', 'purchase_order_items.purchase_order_id', '=', 'purchase_orders.id')
+            ->when($user->warehouse_id, fn($q) => $q->where('purchase_orders.warehouse_id', $user->warehouse_id))
+            ->count();
+        $packingListsCount = PackingList::when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count();
+        $purchaseOrdersCount = PurchaseOrder::when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))->count();
 
         // Delayed = expected_date has passed but order is not yet delivered/received
         $ordersDelayedCount = \App\Models\Order::whereNotNull('expected_date')
             ->where('expected_date', '<', Carbon::now()->toDateString())
             ->whereNotIn('status', ['delivered', 'received', 'rejected'])
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
             ->count();
 
         // Issued Quantity Data for Warehouse Tab
@@ -400,14 +414,17 @@ class DashboardController extends Controller
 
         $expiredCount = \App\Models\InventoryItem::where('quantity', '>', 0)
             ->where('expiry_date', '<', $now)
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
             ->count();
         $expiring6MonthsCount = \App\Models\InventoryItem::where('quantity', '>', 0)
             ->where('expiry_date', '>=', $now)
             ->where('expiry_date', '<=', $sixMonthsFromNow)
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
             ->count();
         $expiring1YearCount = \App\Models\InventoryItem::where('quantity', '>', 0)
             ->where('expiry_date', '>=', $now)
             ->where('expiry_date', '<=', $oneYearFromNow)
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
             ->count();
 
         $expiredStats = [
@@ -483,9 +500,10 @@ class DashboardController extends Controller
     public function warehouseTracertItems(Request $request)
     {
         try {
+            $user = auth()->user();
             $type = $request->type ?? 'beginning_balance';
             $month = $request->month ?? now()->subMonth()->format('Y-m');
-            $warehouseId = $request->warehouse_id;
+            $warehouseId = $user->warehouse_id ?: $request->warehouse_id;
             
             // Validate the type is one of the allowed columns
             $allowedTypes = ['beginning_balance', 'received_quantity', 'issued_quantity', 'closing_balance'];
@@ -521,7 +539,7 @@ class DashboardController extends Controller
                 if ($inventoryReport) {
                     $query = $inventoryReport->items()->where('product_id', $product->id);
                     
-                    // Apply warehouse filter if provided
+                    // Apply warehouse filter
                     if ($warehouseId) {
                         $query->where('warehouse_id', $warehouseId);
                     }
@@ -613,9 +631,14 @@ class DashboardController extends Controller
             }
             
             // Get facilities list for frontend
-            $facilities = Facility::select('id', 'name', 'facility_type')
-                ->orderBy('name')
-                ->get();
+            $user = auth()->user();
+            $facilitiesQuery = Facility::select('id', 'name', 'facility_type');
+            
+            if ($user->warehouse_id && $user->warehouse->region) {
+                $facilitiesQuery->where('region', trim($user->warehouse->region));
+            }
+
+            $facilities = $facilitiesQuery->orderBy('name')->get();
             
             // Build query for facility monthly reports
             $query = FacilityMonthlyReport::where('report_period', $month)
@@ -623,12 +646,24 @@ class DashboardController extends Controller
                 
             // Filter by facility if specified, otherwise get all facilities
             if ($facilityId) {
+                // SECURITY: Verify facility is in region
+                if ($user->warehouse_id && $user->warehouse->region) {
+                    $exists = Facility::where('id', $facilityId)->where('region', trim($user->warehouse->region))->exists();
+                    if (!$exists) {
+                        return response()->json(['success' => false, 'message' => 'Unauthorized: Facility is outside your region'], 403);
+                    }
+                }
                 $query->where('facility_id', $facilityId);
                 $facilityReports = [$query->first()];
                 $selectedFacilityName = $facilityReports[0]->facility->name ?? 'Unknown Facility';
             } else {
+                // If no facility specified but regional user, must restrict to regional facilities
+                if ($user->warehouse_id && $user->warehouse->region) {
+                    $regionalFacilityIds = Facility::where('region', trim($user->warehouse->region))->pluck('id')->toArray();
+                    $query->whereIn('facility_id', $regionalFacilityIds);
+                }
                 $facilityReports = $query->get()->toArray();
-                $selectedFacilityName = 'All Facilities';
+                $selectedFacilityName = 'Filtered Facilities';
             }
             
             // Filter out null reports and check if we have any data
@@ -963,11 +998,23 @@ class DashboardController extends Controller
 
     private function getAssetStatistics()
     {
+        $user = auth()->user();
         // Define the main categories we want to track
         $mainCategories = ['Furniture', 'IT', 'Medical equipment', 'Vehicles'];
         
         // Get all assets with their asset items and categories
-        $assets = \App\Models\Asset::with(['assetItems.category'])->get();
+        $assetQuery = \App\Models\Asset::with(['assetItems.category']);
+        if ($user->warehouse_id) {
+            $warehouse = $user->warehouse;
+            if ($warehouse && $warehouse->type === 'regional' && $warehouse->region) {
+                // Map warehouse region string to Region ID for assets
+                $region = \App\Models\Region::where('name', $warehouse->region)->first();
+                if ($region) {
+                    $assetQuery->where('region_id', $region->id);
+                }
+            }
+        }
+        $assets = $assetQuery->get();
         
         // Initialize counts
         $categoryCounts = [
@@ -1160,6 +1207,7 @@ class DashboardController extends Controller
      */
     private function calculateDashboardInventoryStatusCounts(): array
     {
+        $user = auth()->user();
         try {
             $inventoryItemColumns = ['id', 'product_id', 'warehouse_id', 'quantity', 'location', 'batch_number', 'expiry_date', 'uom', 'unit_cost', 'total_cost'];
             if (Schema::hasColumn('inventory_items', 'source')) {
@@ -1167,7 +1215,12 @@ class DashboardController extends Controller
             }
 
             $products = Product::with([
-                'items' => fn($q) => $q->select($inventoryItemColumns),
+                'items' => function($q) use ($user, $inventoryItemColumns) {
+                    $q->select($inventoryItemColumns);
+                    if ($user->warehouse_id) {
+                        $q->where('warehouse_id', $user->warehouse_id);
+                    }
+                },
             ])->get();
 
             $productIds = $products->pluck('id')->toArray();
@@ -1228,7 +1281,10 @@ class DashboardController extends Controller
         // 1. ORDER WORKFLOW TASKS - Next Stage Actions
         
         // Orders waiting for review (pending -> reviewed)
-        $ordersPendingReview = Order::where('status', 'pending')->count();
+        $user = auth()->user();
+        $ordersPendingReview = Order::where('status', 'pending')
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
+            ->count();
         if ($ordersPendingReview > 0) {
             $tasks[] = [
                 'id' => 'orders_pending_review',
@@ -1247,7 +1303,9 @@ class DashboardController extends Controller
         }
 
         // Orders waiting for approval (reviewed -> approved)
-        $ordersPendingApproval = Order::where('status', 'reviewed')->count();
+        $ordersPendingApproval = Order::where('status', 'reviewed')
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
+            ->count();
         if ($ordersPendingApproval > 0) {
             $tasks[] = [
                 'id' => 'orders_pending_approval',
@@ -1284,8 +1342,10 @@ class DashboardController extends Controller
             ];
         }
 
-        // Orders ready for dispatch (in_process -> dispatched)
-        $ordersReadyForDispatch = Order::where('status', 'in_process')->count();
+        // Orders waiting for dispatch (in_process -> dispatched)
+        $ordersReadyForDispatch = Order::where('status', 'in_process')
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
+            ->count();
         if ($ordersReadyForDispatch > 0) {
             $tasks[] = [
                 'id' => 'orders_ready_dispatch',
@@ -1306,14 +1366,25 @@ class DashboardController extends Controller
         // 2. ASSET WORKFLOW TASKS - Next Stage Actions
         
         // Assets waiting for review (pending_approval -> reviewed)
-        $assetsPendingReview = \App\Models\Asset::pendingApproval()->count();
-        if ($assetsPendingReview > 0) {
+        $assetsPendingReview = \App\Models\Asset::pendingApproval();
+        if ($user->warehouse_id) {
+            $warehouse = $user->warehouse;
+            if ($warehouse && $warehouse->type === 'regional' && $warehouse->region) {
+                $region = \App\Models\Region::where('name', $warehouse->region)->first();
+                if ($region) {
+                    $assetsPendingReview->where('region_id', $region->id);
+                }
+            }
+        }
+        $assetsPendingReviewCount = $assetsPendingReview->count();
+        
+        if ($assetsPendingReviewCount > 0) {
             $tasks[] = [
                 'id' => 'assets_pending_review',
                 'type' => 'workflow',
                 'title' => 'Assets Awaiting Review',
-                'description' => "{$assetsPendingReview} assets ready to move to review stage",
-                'count' => $assetsPendingReview,
+                'description' => "{$assetsPendingReviewCount} assets ready to move to review stage",
+                'count' => $assetsPendingReviewCount,
                 'priority' => 'high',
                 'icon' => 'cube',
                 'color' => 'yellow',
@@ -1325,14 +1396,28 @@ class DashboardController extends Controller
         }
 
         // Assets waiting for approval (reviewed -> approved)
-        $assetsPendingApproval = \App\Models\Asset::whereNotNull('reviewed_at')->whereNull('approved_at')->whereNull('rejected_at')->count();
-        if ($assetsPendingApproval > 0) {
+        $assetsPendingApproval = \App\Models\Asset::whereNotNull('reviewed_at')
+            ->whereNull('approved_at')
+            ->whereNull('rejected_at');
+            
+        if ($user->warehouse_id) {
+            $warehouse = $user->warehouse;
+            if ($warehouse && $warehouse->type === 'regional' && $warehouse->region) {
+                $region = \App\Models\Region::where('name', $warehouse->region)->first();
+                if ($region) {
+                    $assetsPendingApproval->where('region_id', $region->id);
+                }
+            }
+        }
+        $assetsPendingApprovalCount = $assetsPendingApproval->count();
+        
+        if ($assetsPendingApprovalCount > 0) {
             $tasks[] = [
                 'id' => 'assets_pending_approval',
                 'type' => 'workflow',
                 'title' => 'Assets Ready for Approval',
-                'description' => "{$assetsPendingApproval} reviewed assets waiting for final approval",
-                'count' => $assetsPendingApproval,
+                'description' => "{$assetsPendingApprovalCount} reviewed assets waiting for final approval",
+                'count' => $assetsPendingApprovalCount,
                 'priority' => 'high',
                 'icon' => 'check-circle',
                 'color' => 'green',
@@ -1346,7 +1431,9 @@ class DashboardController extends Controller
         // 3. TRANSFER WORKFLOW TASKS - Next Stage Actions
         
         // Transfers waiting for approval (pending -> approved)
-        $transfersPendingApproval = Transfer::where('status', 'pending')->count();
+        $transfersPendingApproval = Transfer::where('status', 'pending')
+            ->when($user->warehouse_id, fn($q) => $q->where('to_warehouse_id', $user->warehouse_id))
+            ->count();
         if ($transfersPendingApproval > 0) {
             $tasks[] = [
                 'id' => 'transfers_pending_approval',
@@ -1365,7 +1452,9 @@ class DashboardController extends Controller
         }
 
         // Transfers ready for dispatch (approved -> dispatched)
-        $transfersReadyForDispatch = Transfer::where('status', 'approved')->count();
+        $transfersReadyForDispatch = Transfer::where('status', 'approved')
+            ->when($user->warehouse_id, fn($q) => $q->where('from_warehouse_id', $user->warehouse_id))
+            ->count();
         if ($transfersReadyForDispatch > 0) {
             $tasks[] = [
                 'id' => 'transfers_ready_dispatch',
@@ -1390,6 +1479,7 @@ class DashboardController extends Controller
             ->whereHas('inventory.product.reorderLevel', function($query) {
                 $query->whereRaw('inventory_items.quantity <= (reorder_levels.reorder_level * 0.7)');
             })
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
             ->count();
         
         if ($lowStockItems > 0) {
@@ -1410,7 +1500,9 @@ class DashboardController extends Controller
         }
 
         // Out of stock items that need urgent attention
-        $outOfStockItems = \App\Models\InventoryItem::where('quantity', 0)->count();
+        $outOfStockItems = \App\Models\InventoryItem::where('quantity', 0)
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
+            ->count();
         if ($outOfStockItems > 0) {
             $tasks[] = [
                 'id' => 'out_of_stock_urgent',
@@ -1433,6 +1525,7 @@ class DashboardController extends Controller
         // Purchase orders ready for packing
         $posReadyForPacking = PurchaseOrder::where('status', 'approved')
             ->whereDoesntHave('packingLists')
+            ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
             ->count();
         
         if ($posReadyForPacking > 0) {
@@ -1457,7 +1550,9 @@ class DashboardController extends Controller
         // LMIS reports awaiting review
         $lmisReportsPendingReview = 0;
         if (\Illuminate\Support\Facades\Schema::hasTable('facility_monthly_reports')) {
-            $lmisReportsPendingReview = \App\Models\FacilityMonthlyReport::where('status', 'submitted')->count();
+            $lmisReviewQuery = \App\Models\FacilityMonthlyReport::where('status', 'submitted');
+            $lmisReviewQuery->whereHas('facility', fn($q) => $this->applyRegionalFilter($q));
+            $lmisReportsPendingReview = $lmisReviewQuery->count();
         }
         if ($lmisReportsPendingReview > 0) {
             $tasks[] = [
@@ -1479,7 +1574,9 @@ class DashboardController extends Controller
         // LMIS reports awaiting approval
         $lmisReportsPendingApproval = 0;
         if (\Illuminate\Support\Facades\Schema::hasTable('facility_monthly_reports')) {
-            $lmisReportsPendingApproval = \App\Models\FacilityMonthlyReport::where('status', 'reviewed')->count();
+            $lmisApprovalQuery = \App\Models\FacilityMonthlyReport::where('status', 'reviewed');
+            $lmisApprovalQuery->whereHas('facility', fn($q) => $this->applyRegionalFilter($q));
+            $lmisReportsPendingApproval = $lmisApprovalQuery->count();
         }
         if ($lmisReportsPendingApproval > 0) {
             $tasks[] = [
@@ -1499,9 +1596,11 @@ class DashboardController extends Controller
         }
 
         // LMIS reports pending submission
-        $lmisReportsPendingSubmission = \App\Models\Facility::whereDoesntHave('monthlyReports', function($query) {
+        $lmisSubmissionQuery = \App\Models\Facility::whereDoesntHave('monthlyReports', function($query) {
             $query->where('report_period', now()->format('Y-m'));
-        })->count();
+        });
+        $this->applyRegionalFilter($lmisSubmissionQuery);
+        $lmisReportsPendingSubmission = $lmisSubmissionQuery->count();
         
         if ($lmisReportsPendingSubmission > 0) {
             $tasks[] = [
@@ -1532,5 +1631,22 @@ class DashboardController extends Controller
         return $tasks;
     }
 
+    /**
+     * Apply regional filtering to a query if the user belongs to a regional warehouse.
+     *
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    private function applyRegionalFilter($query)
+    {
+        $user = auth()->user();
+        if ($user && $user->warehouse_id) {
+            $warehouse = Warehouse::find($user->warehouse_id);
+            if ($warehouse && $warehouse->type === 'regional' && $warehouse->region) {
+                $query->where('region', $warehouse->region);
+            }
+        }
+        return $query;
+    }
 
 }

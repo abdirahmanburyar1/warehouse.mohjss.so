@@ -38,7 +38,8 @@ class ReceivedBackorderController extends Controller
             abort(403, 'You do not have permission to view received backorders.');
         }
 
-        $query = ReceivedBackorder::with([
+        $query = ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)
+            ->with([
             'receivedBy', 'reviewedBy', 'approvedBy', 'rejectedBy', 'backOrder', 'warehouse', 'facility',
             'packingList:id,packing_list_number',
             'transfer:id,transferID',
@@ -90,17 +91,21 @@ class ReceivedBackorderController extends Controller
 
         // Get statistics
         $stats = [
-            'total' => ReceivedBackorder::count(),
-            'pending' => ReceivedBackorder::where('status', 'pending')->count(),
-            'reviewed' => ReceivedBackorder::where('status', 'reviewed')->count(),
-            'approved' => ReceivedBackorder::where('status', 'approved')->count(),
-            'rejected' => ReceivedBackorder::where('status', 'rejected')->count(),
-            'total_quantity' => \App\Models\ReceivedBackorderItem::sum('quantity'),
-            'total_cost' => \App\Models\ReceivedBackorderItem::sum('total_cost'),
+            'total' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->count(),
+            'pending' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->where('status', 'pending')->count(),
+            'reviewed' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->where('status', 'reviewed')->count(),
+            'approved' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->where('status', 'approved')->count(),
+            'rejected' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->where('status', 'rejected')->count(),
+            'total_quantity' => \App\Models\ReceivedBackorderItem::whereHas('receivedBackorder', function($q) {
+                $q->where('warehouse_id', auth()->user()->warehouse_id);
+            })->sum('quantity'),
+            'total_cost' => \App\Models\ReceivedBackorderItem::whereHas('receivedBackorder', function($q) {
+                $q->where('warehouse_id', auth()->user()->warehouse_id);
+            })->sum('total_cost'),
         ];
 
         // Get warehouses and facilities for filters
-        $warehouses = Warehouse::pluck('name')->toArray();
+        $warehouses = Warehouse::where('id', auth()->user()->warehouse_id)->pluck('name')->toArray();
         $facilities = Facility::pluck('name')->toArray();
 
         return Inertia::render('Supplies/ReceivedBackorder', [
@@ -122,7 +127,7 @@ class ReceivedBackorderController extends Controller
         }
 
         $products = Product::select('id', 'name', 'productID')->get();
-        $warehouses = Warehouse::select('id', 'name')->get();
+        $warehouses = Warehouse::where('id', auth()->user()->warehouse_id)->select('id', 'name')->get();
         $locations = Location::select('id', 'location')->get();
         $facilities = Facility::select('id', 'name')->get();
 
@@ -179,6 +184,7 @@ class ReceivedBackorderController extends Controller
 
             $validated['received_by'] = auth()->id();
             $validated['status'] = 'pending';
+            $validated['warehouse_id'] = auth()->user()->warehouse_id;
 
             // Handle file uploads
             $attachments = [];
@@ -227,6 +233,10 @@ class ReceivedBackorderController extends Controller
             abort(403, 'You do not have permission to view this received backorder.');
         }
 
+        if ($receivedBackorder->warehouse_id != auth()->user()->warehouse_id) {
+            abort(403, 'Unauthorized.');
+        }
+
         $receivedBackorder->load([
             'items.product',
             'receivedBy',
@@ -254,6 +264,10 @@ class ReceivedBackorderController extends Controller
     {
         if (!auth()->user()->hasPermission('received-backorder-create')) {
             abort(403, 'You do not have permission to delete received backorders.');
+        }
+
+        if ($receivedBackorder->warehouse_id != auth()->user()->warehouse_id) {
+            abort(403, 'Unauthorized.');
         }
 
         try {
@@ -288,6 +302,10 @@ class ReceivedBackorderController extends Controller
     {
         if (!auth()->user()->hasPermission('received-backorder-review')) {
             abort(403, 'You do not have permission to review received backorders.');
+        }
+
+        if ($receivedBackorder->warehouse_id != auth()->user()->warehouse_id) {
+            abort(403, 'Unauthorized.');
         }
 
         $validated = $request->validate([
@@ -327,6 +345,10 @@ class ReceivedBackorderController extends Controller
     {
         if (!auth()->user()->hasPermission('received-backorder-approve')) {
             abort(403, 'You do not have permission to approve received backorders.');
+        }
+
+        if ($receivedBackorder->warehouse_id != auth()->user()->warehouse_id) {
+            abort(403, 'Unauthorized.');
         }
 
         $validated = $request->validate([

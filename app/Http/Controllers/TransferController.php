@@ -220,7 +220,27 @@ class TransferController extends Controller
                 // Other Transfers: where user's warehouse is neither source nor destination
                 $query->where('from_warehouse_id', '!=', $currentWarehouse?->id)
                       ->where('to_warehouse_id', '!=', $currentWarehouse?->id);
+                
+                // If regional user, restrict "Other" to their region
+                if ($currentUser->warehouse_id && $currentUser->warehouse->type === 'regional' && $currentUser->warehouse->region) {
+                    $region = $currentUser->warehouse->region;
+                    $query->where(function($q) use ($region) {
+                        $q->whereHas('fromWarehouse', fn($subQ) => $subQ->where('region', $region))
+                          ->orWhereHas('toWarehouse', fn($subQ) => $subQ->where('region', $region))
+                          ->orWhereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
+                          ->orWhereHas('toFacility', fn($subQ) => $subQ->where('region', $region));
+                    });
+                }
             }
+        } elseif ($currentUser->warehouse_id && $currentUser->warehouse->type === 'regional' && $currentUser->warehouse->region) {
+             // If no tab selected and regional user, scope to their region globally
+             $region = $currentUser->warehouse->region;
+             $query->where(function($q) use ($region) {
+                $q->whereHas('fromWarehouse', fn($subQ) => $subQ->where('region', $region))
+                  ->orWhereHas('toWarehouse', fn($subQ) => $subQ->where('region', $region))
+                  ->orWhereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
+                  ->orWhereHas('toFacility', fn($subQ) => $subQ->where('region', $region));
+            });
         }
         
         // Filter by status (second level tab)
@@ -389,7 +409,25 @@ class TransferController extends Controller
             } elseif ($request->direction_tab === 'other') {
                 $statisticsQuery->where('from_warehouse_id', '!=', $currentWarehouse?->id)
                                ->where('to_warehouse_id', '!=', $currentWarehouse?->id);
+                
+                if ($currentUser->warehouse_id && $currentUser->warehouse->type === 'regional' && $currentUser->warehouse->region) {
+                    $region = $currentUser->warehouse->region;
+                    $statisticsQuery->where(function($q) use ($region) {
+                        $q->whereHas('fromWarehouse', fn($subQ) => $subQ->where('region', $region))
+                          ->orWhereHas('toWarehouse', fn($subQ) => $subQ->where('region', $region))
+                          ->orWhereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
+                          ->orWhereHas('toFacility', fn($subQ) => $subQ->where('region', $region));
+                    });
+                }
             }
+        } elseif ($currentUser->warehouse_id && $currentUser->warehouse->type === 'regional' && $currentUser->warehouse->region) {
+             $region = $currentUser->warehouse->region;
+             $statisticsQuery->where(function($q) use ($region) {
+                $q->whereHas('fromWarehouse', fn($subQ) => $subQ->where('region', $region))
+                  ->orWhereHas('toWarehouse', fn($subQ) => $subQ->where('region', $region))
+                  ->orWhereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
+                  ->orWhereHas('toFacility', fn($subQ) => $subQ->where('region', $region));
+            });
         }
         
         // Apply region/district filtering to statistics if present
@@ -540,7 +578,9 @@ class TransferController extends Controller
                 'from_facility',
                 'to_facility'
             ]),
-            'regions' => Region::pluck('name')->toArray()
+            'regions' => ($currentUser->warehouse_id && $currentUser->warehouse->type === 'regional' && $currentUser->warehouse->region) 
+                ? [$currentUser->warehouse->region] 
+                : Region::pluck('name')->toArray()
         ]);
     }
 
@@ -792,6 +832,23 @@ class TransferController extends Controller
                 'receivedBy'
             ])
             ->first();
+
+            if (!$transfer) {
+                abort(404, 'Transfer not found');
+            }
+
+            $user = auth()->user();
+            if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
+                $region = $user->warehouse->region;
+                $isAuthorized = ($transfer->fromWarehouse?->region === $region) || 
+                                ($transfer->toWarehouse?->region === $region) || 
+                                ($transfer->fromFacility?->region === $region) || 
+                                ($transfer->toFacility?->region === $region);
+                
+                if (!$isAuthorized) {
+                    abort(403, 'Unauthorized access to this transfer.');
+                }
+            }
 
             // Get drivers with their companies
             $drivers = Driver::with('company')->where('is_active', true)->get();

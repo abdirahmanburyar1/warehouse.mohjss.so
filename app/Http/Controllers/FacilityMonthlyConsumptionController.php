@@ -24,8 +24,14 @@ class FacilityMonthlyConsumptionController extends Controller
         $currentYear = now()->year;
         $years = range($currentYear - 3, $currentYear + 1);
 
-        $facilities = Facility::select(['id', 'name', 'facility_type'])
-            ->orderBy('name')
+        $user = auth()->user();
+        $facilitiesQuery = Facility::select(['id', 'name', 'facility_type']);
+
+        if ($user->warehouse_id && $user->warehouse->region) {
+            $facilitiesQuery->where('region', trim($user->warehouse->region));
+        }
+
+        $facilities = $facilitiesQuery->orderBy('name')
             ->get()
             ->values();
 
@@ -50,7 +56,14 @@ class FacilityMonthlyConsumptionController extends Controller
         $facilityId = (int) $request->facility_id;
         $year = (int) $request->year;
 
-        $facility = Facility::select(['id', 'name', 'facility_type'])->find($facilityId);
+        $user = auth()->user();
+        $facilityQuery = Facility::select(['id', 'name', 'facility_type'])->where('id', $facilityId);
+        
+        if ($user->warehouse_id && $user->warehouse->region) {
+            $facilityQuery->where('region', trim($user->warehouse->region));
+        }
+        
+        $facility = $facilityQuery->first();
         if (!$facility) {
             return response()->json([
                 'success' => false,
@@ -147,7 +160,20 @@ class FacilityMonthlyConsumptionController extends Controller
         ]);
 
         try {
+            $user = auth()->user();
             $facilityId = (int) $request->facility_id;
+
+            // SECURITY: Ensure user has access to the facility
+            if ($user->warehouse_id && $user->warehouse->region) {
+                $exists = Facility::where('id', $facilityId)->where('region', trim($user->warehouse->region))->exists();
+                if (!$exists) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Unauthorized: Facility is outside your region.',
+                    ], 403);
+                }
+            }
+            
             $file = $request->file('file');
 
             $importId = (string) Str::uuid();
@@ -243,7 +269,15 @@ class FacilityMonthlyConsumptionController extends Controller
             'year' => 'nullable|integer',
         ]);
 
-        $facility = Facility::select(['id', 'name', 'facility_type'])->findOrFail((int) $request->facility_id);
+        $user = auth()->user();
+        $facilityId = (int) $request->facility_id;
+        $facilityQuery = Facility::select(['id', 'name', 'facility_type'])->where('id', $facilityId);
+
+        if ($user->warehouse_id && $user->warehouse->region) {
+            $facilityQuery->where('region', trim($user->warehouse->region));
+        }
+
+        $facility = $facilityQuery->firstOrFail();
         $year = (int) ($request->query('year') ?? now()->year);
 
         $monthYears = [];

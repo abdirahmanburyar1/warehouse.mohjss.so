@@ -50,13 +50,15 @@ class InventoryController extends Controller
 				$inventoryItemColumns[] = 'source';
 			}
 
+			$user = auth()->user();
 			// Base query with relationships - optimized
 			$productQuery = Product::query()
 				->with([
 					'category:id,name',
 					'dosage:id,name',
-					'items' => function($query) use ($inventoryItemColumns, $request) {
+					'items' => function($query) use ($inventoryItemColumns, $request, $user) {
 						$query->select($inventoryItemColumns)
+							  ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
 							  ->with('warehouse:id,name');
 						
 						if ($request->filled('sub_warehouse')) {
@@ -246,13 +248,15 @@ class InventoryController extends Controller
 				$inventoryItemColumns[] = 'source';
 			}
 
+			$user = auth()->user();
 			// Use the same query structure as the main index method
 			$productQuery = Product::query()
 				->with([
 					'category:id,name',
 					'dosage:id,name',
-					'items' => function($query) use ($inventoryItemColumns, $request) {
+					'items' => function($query) use ($inventoryItemColumns, $request, $user) {
 						$query->select($inventoryItemColumns)
+							  ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id))
 							  ->with('warehouse:id,name');
 						
 						if ($request->filled('sub_warehouse')) {
@@ -405,10 +409,11 @@ class InventoryController extends Controller
 		}
 		try {
 		   
+		$user = auth()->user();
 		$validated = $request->validate([
 			'id' => 'nullable|exists:inventories,id',
 			'product_id' => 'required|exists:products,id',
-			'warehouse_id' => 'required|exists:warehouses,id',
+			'warehouse_id' => ($user->warehouse_id ? 'nullable|' : 'required|') . 'exists:warehouses,id',
 			'quantity' => 'required|numeric|min:0',
 			'manufacturing_date' => 'nullable|date',
 			'expiry_date' => 'nullable|date|after:manufacturing_date',
@@ -418,11 +423,11 @@ class InventoryController extends Controller
 			'is_active' => 'boolean',
 		]);
 
-		$isNew = !$request->id;
+		$warehouseId = $user->warehouse_id ?: $validated['warehouse_id'];
 		
 		$inventory = Inventory::updateOrCreate(
 			['id' => $request->id],
-			$validated
+			array_merge($validated, ['warehouse_id' => $warehouseId])
 		);
 
 		// event(new InventoryUpdated());
@@ -442,6 +447,10 @@ class InventoryController extends Controller
 		if (!auth()->user()->hasPermission('inventory-view') && !auth()->user()->hasPermission('inventory-manage') && !auth()->user()->isAdmin()) {
 			return response()->json(['success' => false, 'message' => 'You do not have permission to view inventory.'], 403);
 		}
+		$user = auth()->user();
+		if ($user->warehouse_id && $inventory->warehouse_id !== $user->warehouse_id) {
+			return response()->json(['success' => false, 'message' => 'Unauthorized access to this inventory record.'], 403);
+		}
 		$inventory->load(['product.category', 'product.dosage']);
 		return response()->json([
 			'success' => true,
@@ -458,6 +467,10 @@ class InventoryController extends Controller
 			return response()->json(['success' => false, 'message' => 'You do not have permission to delete inventory.'], 403);
 		}
 		try {
+			$user = auth()->user();
+			if ($user->warehouse_id && $inventory->warehouse_id !== $user->warehouse_id) {
+				return response()->json(['success' => false, 'message' => 'Unauthorized access to this inventory record.'], 403);
+			}
 			$inventory->delete();
 			event(new InventoryEvent());
 			Log::info('Successfully dispatched InventoryEvent for deleted inventory ID: ' . $inventory->id);
@@ -475,7 +488,8 @@ class InventoryController extends Controller
 			return response()->json([], 403);
 		}
 		try {
-			$warehouse = $request->input('warehouse');
+			$user = auth()->user();
+			$warehouse = $user->warehouse_id ? $user->warehouse->name : $request->input('warehouse');
 			
 			if (!$warehouse) {
 				return response()->json([], 200);
@@ -509,7 +523,11 @@ class InventoryController extends Controller
 		]);
 
 		try {
+			$user = auth()->user();
 			$inventoryItem = InventoryItem::findOrFail($request->inventory_item_id);
+			if ($user->warehouse_id && $inventoryItem->warehouse_id !== $user->warehouse_id) {
+				return response()->json(['success' => false, 'message' => 'Unauthorized access to this inventory item.'], 403);
+			}
 			$inventoryItem->update([
 				'location' => $request->location
 			]);

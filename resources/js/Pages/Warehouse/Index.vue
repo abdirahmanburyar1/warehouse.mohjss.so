@@ -100,6 +100,7 @@
                             <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;">District</th>
                             <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;">Manager</th>
                             <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;">Status</th>
+                            <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;">Type</th>
                             <th class="px-3 py-2 text-xs font-bold rounded-tr-lg" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;">Actions</th>
                     </tr>
                     </thead>
@@ -151,6 +152,17 @@
                                         }"
                                     >
                                         {{ warehouse.status }}
+                                    </span>
+                                </td>
+                                <td class="px-3 py-2 text-xs align-middle">
+                                    <span
+                                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+                                        :class="{
+                                            'bg-blue-100 text-blue-800': warehouse.type === 'central',
+                                            'bg-purple-100 text-purple-800': warehouse.type === 'regional'
+                                        }"
+                                    >
+                                        {{ warehouse.type }}
                                     </span>
                                 </td>
                                 <td class="px-3 py-2 text-xs align-middle">

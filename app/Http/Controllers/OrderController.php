@@ -57,6 +57,11 @@ class OrderController extends Controller
             
             $order = Order::findOrFail($request->order_id);
             
+            $user = auth()->user();
+            if ($user->warehouse_id && $order->warehouse_id !== $user->warehouse_id) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access to this order.'], 403);
+            }
+
             // Update order status to rejected
             $order->status = 'rejected';
             $order->rejected_by = auth()->id();
@@ -83,9 +88,14 @@ class OrderController extends Controller
         if (!auth()->user()->hasPermission('order-view') && !auth()->user()->hasPermission('order-manage') && !auth()->user()->isAdmin()) {
             abort(403, 'You do not have permission to access the orders module.');
         }
+        $user = auth()->user();
         $facility = $request->facility;
         $facilityLocation = $request->facilityLocation;
         $query = Order::query();
+
+        if ($user->warehouse_id) {
+            $query->where('warehouse_id', $user->warehouse_id);
+        }
 
         if($request->filled('search')){
             $query->where('order_number', 'like', "%{$request->search}%");
@@ -125,7 +135,7 @@ class OrderController extends Controller
             $query->where('order_type', 'like', "%{$request->orderType}%");
         }
         
-        $query->with(['facility.handledby:id,name', 'user']);
+        $query->with(['facility.handledby:id,name', 'user', 'senderWarehouse', 'warehouse']);
 
         $query->orderBy('order_date', 'desc');
 
@@ -133,8 +143,12 @@ class OrderController extends Controller
             ->withQueryString();
         $orders->setPath(url()->current()); // Force Laravel to use full URLs
         // Get order statistics from orders table
-        $stats = DB::table('orders')
-            ->select('status', DB::raw('count(*) as count'))
+        $statsQuery = DB::table('orders');
+        if ($user->warehouse_id) {
+            $statsQuery->where('warehouse_id', $user->warehouse_id);
+        }
+
+        $stats = $statsQuery->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->get()
             ->mapWithKeys(function ($item) {
@@ -156,7 +170,18 @@ class OrderController extends Controller
 
         $stats = array_merge($defaultStats, $stats);
 
-        $facilities = Facility::pluck('name')->toArray();
+        $facilitiesQuery = Facility::query();
+        $regionsQuery = Region::query();
+        
+        if ($user->warehouse_id) {
+            $region = $user->warehouse->region;
+            if ($region) {
+                $facilitiesQuery->where('region', $region);
+                $regionsQuery->where('name', $region);
+            }
+        }
+
+        $facilities = $facilitiesQuery->pluck('name')->toArray();
         $facilityLocations = District::select('id','name')->pluck('name')->toArray();
         
         return Inertia::render('Order/Index', [
@@ -165,7 +190,7 @@ class OrderController extends Controller
             'stats' => $stats,
             'facilities' => $facilities,
             'facilityLocations' => $facilityLocations,
-            'regions' => Region::pluck('name')->toArray()
+            'regions' => $regionsQuery->pluck('name')->toArray()
         ]);
     }
 
@@ -181,14 +206,18 @@ class OrderController extends Controller
             if (!$user->hasPermission('order-create') && !$user->hasPermission('order-manage') && !$user->isAdmin()) {
                 return response()->json('You do not have permission to create orders', 403);
             }
+            // Central Warehouse cannot create orders
+            if ($user->warehouse_id && $user->warehouse && $user->warehouse->type === 'central') {
+                return response()->json('Central Warehouse cannot create orders. It only receives orders from regional warehouses and facilities.', 403);
+            }
         }
         try {
             $validated = $request->validate([
                 'warehouse_id' => 'required|exists:warehouses,id',
-                'facility_id' => 'required|exists:facilities,id',
+                'facility_id' => 'nullable|exists:facilities,id',
                 'order_date' => 'required|date',
                 'expected_date' => 'nullable|date|after_or_equal:order_date',
-                'notes' => 'nullable|string',
+                'note' => 'nullable|string',
                 'items' => 'required|array|min:1',
                 'items.*.id' => 'nullable|exists:order_items,id',
                 'items.*.product_id' => 'required|exists:products,id',
@@ -197,17 +226,26 @@ class OrderController extends Controller
 
             DB::beginTransaction();
 
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                // For Central Warehouse, we just ensure the warehouse_id is set correctly if it's not already
+                if (empty($validated['warehouse_id'])) {
+                    $validated['warehouse_id'] = $user->warehouse_id;
+                }
+            }
+
             // Create or update order
             $order = Order::updateOrCreate(
                 ['id' => $request->id],
                 [
-                    'warehouse_id' => $validated['warehouse_id'],
-                    'facility_id' => $validated['facility_id'],
+                    'warehouse_id' => $validated['warehouse_id'] ?? $user->warehouse_id,
+                    'sender_warehouse_id' => $validated['sender_warehouse_id'] ?? null,
+                    'facility_id' => $validated['facility_id'] ?? null,
                     'user_id' => auth()->id(),
                     'order_number' => $request->id ? Order::find($request->id)->order_number : 'ORD-' . strtoupper(uniqid()),
                     'status' => $request->id ? Order::find($request->id)->status : 'pending',
                     'number_items' => collect($validated['items'])->sum('quantity'),
-                    'notes' => $validated['notes'] ?? null,
+                    'note' => $validated['note'] ?? null,
                     'order_date' => $validated['order_date'],
                     'expected_date' => $validated['expected_date'] ?? null,
                 ]
@@ -288,7 +326,11 @@ class OrderController extends Controller
                     'status' => 'required|string'
                 ]);
 
-                $order = Order::with('dispatch')->find($request->order_id);
+                $order = Order::with('dispatch', 'facility')->find($request->order_id);
+                $user = auth()->user();
+                if ($user->warehouse_id && $order->warehouse_id !== $user->warehouse_id) {
+                    throw new \Exception('Unauthorized access to this order.', 403);
+                }
                 $order->dispatch()->create([
                     'order_id' => $request->order_id,
                     'dispatch_date' => $request->dispatch_date,
@@ -317,6 +359,10 @@ class OrderController extends Controller
             abort(403, 'You do not have permission to delete orders.');
         }
         try {
+            $user = auth()->user();
+            if ($user->warehouse_id && $order->warehouse_id !== $user->warehouse_id) {
+                 return back()->with('error', 'Unauthorized access to this order.');
+            }
             if ($order->status !== 'pending') {
                 return back()->with('error', 'Only pending orders can be deleted.');
             }
@@ -404,6 +450,10 @@ class OrderController extends Controller
             
             $order = $orderItem->order;
             
+            $user = auth()->user();
+            if ($user->warehouse_id && $order->warehouse_id !== $user->warehouse_id) {
+                 return response()->json(['success' => false, 'message' => 'Unauthorized access to this order.'], 403);
+            }
 
             if($orderItem->quantity <= 0) {
                 $orderItem->quantity = $request->quantity;

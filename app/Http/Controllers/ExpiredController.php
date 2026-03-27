@@ -38,6 +38,11 @@ class ExpiredController extends Controller
     
         $query->with(['product.dosage:id,name', 'product.category:id,name', 'warehouse']);
     
+        $user = auth()->user();
+        if ($user->warehouse_id) {
+            $query->where('warehouse_id', $user->warehouse_id);
+        }
+    
         $query->where('quantity', '>', 0)
               ->where(function($q) use ($today, $oneYearFromNow) {
                   $q->where('expiry_date', '<=', $oneYearFromNow)
@@ -181,6 +186,12 @@ class ExpiredController extends Controller
             // Create a separate query for summary calculation without pagination
             $summaryQuery = InventoryItem::query();
             $summaryQuery->with(['product.dosage:id,name', 'product.category:id,name', 'warehouse']);
+            
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                $summaryQuery->where('warehouse_id', $user->warehouse_id);
+            }
+            
             $summaryQuery->where('quantity', '>', 0)
                   ->where(function($q) use ($today, $oneYearFromNow) {
                       $q->where('expiry_date', '<=', $oneYearFromNow)
@@ -291,6 +302,11 @@ class ExpiredController extends Controller
             // Get the inventory to include its number in the note
             $inventory = InventoryItem::with('warehouse')->find($request->id);
             
+            // SECURITY: Ensure user owns the inventory item being disposed
+            if (auth()->user()->warehouse_id && (int)$inventory->warehouse_id !== (int)auth()->user()->warehouse_id) {
+                abort(403, 'Unauthorized access to this inventory item.');
+            }
+            
             // Generate note based on condition and source
             $note = "FROM INVENTORY";
             if ($request->note && $request->note !== 'undefined' && trim($request->note) !== '') {
@@ -377,6 +393,16 @@ class ExpiredController extends Controller
         }
         if ($request->isMethod('get')) {
             $inv = InventoryItem::with('product','warehouse')->find($inventory);
+            
+            if (!$inv) {
+                return redirect()->route('expired.index')->with('error', 'Inventory not found');
+            }
+
+            // SECURITY: Ensure user owns the inventory item being transferred
+            if (auth()->user()->warehouse_id && (int)$inv->warehouse_id !== (int)auth()->user()->warehouse_id) {
+                abort(403, 'Unauthorized access to this inventory item.');
+            }
+
             $facilities = Facility::with('eligibleProducts:id')
                 ->where('is_active', true)
                 ->orderBy('name')
@@ -393,9 +419,6 @@ class ExpiredController extends Controller
                 ->values()
                 ->toArray();
             $transferID = Transfer::generateTransferId();
-            if (!$inv) {
-                return redirect()->route('expired.index')->with('error', 'Inventory not found');
-            }
 
             return inertia("Expired/Transfer", [
                 "inventory" => $inv,
@@ -427,6 +450,14 @@ class ExpiredController extends Controller
                     return response()->json([
                         'message' => 'The destination facility can only receive products that are eligible for its facility type. This item is not eligible.',
                     ], 422);
+                }
+                
+                // SECURITY: If regional user, ensure facility belongs to their region
+                if (auth()->user()->warehouse_id && auth()->user()->warehouse->region) {
+                    if (trim($facility->region) !== trim(auth()->user()->warehouse->region)) {
+                        DB::rollBack();
+                        return response()->json(['message' => 'Unauthorized facility selection.'], 403);
+                    }
                 }
             }
 

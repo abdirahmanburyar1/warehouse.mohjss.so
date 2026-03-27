@@ -27,7 +27,7 @@ class PurchaseOrderController extends Controller
 {
     public function index(Request $request)
     {
-        $query = PurchaseOrder::query()
+        $query = PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)
             ->with(['supplier', 'po_items', 'creator', 'updater']);
 
         // Apply search filter
@@ -108,6 +108,7 @@ class PurchaseOrderController extends Controller
                     'status' => 'pending',
                     'created_by' => $request->input('id') ? Auth::id() : Auth::id(),
                     'updated_by' => $request->input('id') ? Auth::id() : null,
+                    'warehouse_id' => auth()->user()->warehouse_id,
                 ]
             );
 
@@ -127,6 +128,9 @@ class PurchaseOrderController extends Controller
     public function destroy(PurchaseOrder $purchaseOrder)
     {
         try {
+            if ($purchaseOrder->warehouse_id != auth()->user()->warehouse_id) {
+                return response()->json('Unauthorized', 403);
+            }
             $purchaseOrder->delete();
             return response()->json('Purchase order deleted successfully', 200);
         } catch (\Throwable $e) {
@@ -137,6 +141,9 @@ class PurchaseOrderController extends Controller
     public function show(PurchaseOrder $purchaseOrder)
     {
         try {
+            if ($purchaseOrder->warehouse_id != auth()->user()->warehouse_id) {
+                return response()->json('Unauthorized', 403);
+            }
             $purchaseOrder->load(['items.product', 'supplier']);
             
             return inertia('PurchaseOrder/Show', [
@@ -204,6 +211,7 @@ class PurchaseOrderController extends Controller
                     ]);
             }
         ])
+            ->where('warehouse_id', auth()->user()->warehouse_id)
             ->findOrFail($id);
 
         // Transform PO items while preserving original data
@@ -257,7 +265,7 @@ class PurchaseOrderController extends Controller
             'purchase_order' => $purchaseOrder,
             'packingLists' => $flattenedItems->values()->all(),
             'warehouses' => Warehouse::get(),
-            'purchase_orders' => PurchaseOrder::with(['po_items', 'items', 'packingLists'])->get()
+            'purchase_orders' => PurchaseOrder::where('warehouse_id', auth()->user()->warehouse_id)->with(['po_items', 'items', 'packingLists'])->get()
         ]);
     }
 
@@ -280,7 +288,9 @@ class PurchaseOrderController extends Controller
                     'product_id' => $item['product_id'],
                     'purchase_order_id' => $item['purchase_order_id'],
                     'type' => $item['type'],
-                ])->first();
+                ])->whereHas('purchaseOrder', function($q) {
+                    $q->where('warehouse_id', auth()->user()->warehouse_id);
+                })->first();
 
                 if ($item['quantity'] == 0) {
                     // Delete if exists and quantity is 0
@@ -482,7 +492,8 @@ class PurchaseOrderController extends Controller
                 'created_by' => Auth::id(),
                 'packing_list_number' => $packingListNumber,
                 'packing_date' => Carbon::now()->toDateString(),
-                'status' => 'pending'
+                'status' => 'pending',
+                'warehouse_id' => auth()->user()->warehouse_id,
             ]);
 
             return response()->json([
@@ -498,6 +509,9 @@ class PurchaseOrderController extends Controller
     {
         try {
             $items = PurchaseOrderItem::where('packing_list_id', $id)
+                ->whereHas('purchaseOrder', function($q) {
+                    $q->where('warehouse_id', auth()->user()->warehouse_id);
+                })
                 ->with('product:id,name')
                 ->get()
                 ->map(function ($item) {
@@ -537,6 +551,7 @@ class PurchaseOrderController extends Controller
                 'created_by' => Auth::id(),
                 'packing_list_number' => $packingListNumber,
                 'packing_date' => Carbon::now()->toDateString(),
+                'warehouse_id' => auth()->user()->warehouse_id,
             ]);
 
             // Create a Received Goods Note
@@ -570,6 +585,11 @@ class PurchaseOrderController extends Controller
                 'items.*' => 'exists:purchase_order_items,id',
                 'status' => 'required|in:verified,approved'
             ]);
+
+            $po = PurchaseOrder::findOrFail($purchaseOrder);
+            if ($po->warehouse_id != auth()->user()->warehouse_id) {
+                return response()->json('Unauthorized', 403);
+            }
 
             $items = DB::table('purchase_order_items')
                 ->whereIn('id', $request->items)
@@ -663,6 +683,11 @@ class PurchaseOrderController extends Controller
                 'location' => 'nullable|string'
             ]);
 
+            $po = PurchaseOrder::findOrFail($purchaseOrder);
+            if ($po->warehouse_id != auth()->user()->warehouse_id) {
+                return response()->json('Unauthorized', 403);
+            }
+
             DB::table('purchase_order_items')
                 ->where('id', $request->id)
                 ->where('purchase_order_id', $purchaseOrder)
@@ -688,6 +713,11 @@ class PurchaseOrderController extends Controller
                 'id' => 'required|exists:purchase_order_items,id'
             ]);
 
+            $po = PurchaseOrder::findOrFail($purchaseOrder);
+            if ($po->warehouse_id != auth()->user()->warehouse_id) {
+                return response()->json('Unauthorized', 403);
+            }
+
             DB::table('purchase_order_items')
                 ->where('id', $request->id)
                 ->where('purchase_order_id', $purchaseOrder)
@@ -709,6 +739,11 @@ class PurchaseOrderController extends Controller
             $request->validate([
                 'id' => 'required|exists:purchase_order_items,id'
             ]);
+
+            $po = PurchaseOrder::findOrFail($purchaseOrder);
+            if ($po->warehouse_id != auth()->user()->warehouse_id) {
+                return response()->json('Unauthorized', 403);
+            }
 
             $item = DB::table('purchase_order_items')
                 ->where('id', $request->id)

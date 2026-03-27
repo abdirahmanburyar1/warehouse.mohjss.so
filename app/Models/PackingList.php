@@ -25,6 +25,7 @@ class PackingList extends Model
         'rejected_at',
         'rejected_by',
         'rejection_reason',
+        'warehouse_id',
     ];
 
     protected $casts = [
@@ -33,6 +34,7 @@ class PackingList extends Model
         'reviewed_at' => 'datetime',
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
+        'warehouse_id' => 'integer',
     ];
 
     public function items(){

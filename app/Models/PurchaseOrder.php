@@ -29,6 +29,7 @@ class PurchaseOrder extends Model
         'reviewed_at',
         'created_by',
         'updated_by',
+        'warehouse_id',
     ];
 
     protected $casts = [
@@ -37,6 +38,7 @@ class PurchaseOrder extends Model
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
         'reviewed_at' => 'datetime',
+        'warehouse_id' => 'integer',
     ];
 
     public function approvedBy(){
@@ -84,6 +86,11 @@ class PurchaseOrder extends Model
     public function packingLists()
     {
         return $this->hasMany(PackingList::class, 'purchase_order_id');
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     public function receivedGoodsNotes()

@@ -49,9 +49,20 @@ class MohInventoryController extends Controller
                 ])->with('error', 'MOH Inventory tables are missing. Please run the MOH inventory migrations.');
             }
 
+            $user = auth()->user();
             // Get non-approved MOH inventories for the select dropdown
-            $nonApprovedInventories = MohInventory::whereNull('approved_at')
-                ->with([
+            $nonApprovedQuery = MohInventory::whereNull('approved_at');
+            
+            if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
+                $region = $user->warehouse->region;
+                $nonApprovedQuery->where(function($q) use ($region) {
+                    $q->whereHas('mohInventoryItems', function($sq) use ($region) {
+                        $sq->whereHas('warehouse', fn($w) => $w->where('region', $region));
+                    })->orWhere('created_by', auth()->id());
+                });
+            }
+            
+            $nonApprovedInventories = $nonApprovedQuery->with([
                     'mohInventoryItems.product.category:id,name',
                     'mohInventoryItems.product.dosage:id,name',
                     'mohInventoryItems.warehouse:id,name',
@@ -65,14 +76,25 @@ class MohInventoryController extends Controller
             // Get selected MOH inventory details if ID is provided
             $selectedInventory = null;
             if ($request->filled('inventory_id')) {
-                $selectedInventory = MohInventory::with([
+                $selectedInventoryQuery = MohInventory::with([
                     'mohInventoryItems.product.category:id,name',
                     'mohInventoryItems.product.dosage:id,name',
                     'mohInventoryItems.warehouse:id,name',
                     'reviewer:id,name',
                     'approver:id,name',
                     'rejected:id,name'
-                ])->find($request->inventory_id);
+                ]);
+                
+                if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
+                    $region = $user->warehouse->region;
+                    $selectedInventoryQuery->where(function($q) use ($region) {
+                        $q->whereHas('mohInventoryItems', function($sq) use ($region) {
+                            $sq->whereHas('warehouse', fn($w) => $w->where('region', $region));
+                        })->orWhere('created_by', auth()->id());
+                    });
+                }
+                
+                $selectedInventory = $selectedInventoryQuery->find($request->inventory_id);
             }
 
             // Get filter options
@@ -402,6 +424,16 @@ class MohInventoryController extends Controller
         }
 
         try {
+            $user = auth()->user();
+            if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
+                $region = $user->warehouse->region;
+                $hasRegionalAccess = $mohInventory->mohInventoryItems()->whereHas('warehouse', fn($q) => $q->where('region', $region))->exists() 
+                                    || $mohInventory->created_by === $user->id;
+                if (!$hasRegionalAccess) {
+                    return response()->json(['success' => false, 'message' => 'Unauthorized access to this MOH inventory status change.'], 403);
+                }
+            }
+
             switch ($status) {
                 case 'reviewed':
                     $mohInventory->update([
@@ -461,6 +493,10 @@ class MohInventoryController extends Controller
     {
         if (!auth()->user()->hasPermission('moh-inventory-create') && !auth()->user()->isAdmin()) {
             return response()->json(['success' => false, 'message' => 'You do not have permission to edit MOH inventory items.'], 403);
+        }
+        $user = auth()->user();
+        if ($user->warehouse_id && $mohInventoryItem->warehouse_id !== $user->warehouse_id) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized access to this MOH inventory item.'], 403);
         }
         try {
             $request->validate([

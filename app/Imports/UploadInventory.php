@@ -62,9 +62,13 @@ class UploadInventory implements
 
             // Warehouse: support new template column, but fallback to legacy warehouse_id=1
             $warehouseName = $row['warehouse'] ?? $row['Warehouse'] ?? $row['WAREHOUSE'] ?? null;
-            $warehouseId = 1;
-            $warehouseDisplayName = null;
-            if ($warehouseName !== null && $warehouseName !== '') {
+            $user = auth()->user();
+            
+            // SECURITY: If user is assigned to a specific warehouse (regional user), force that warehouse
+            if ($user && $user->warehouse_id) {
+                $warehouseId = $user->warehouse_id;
+                $warehouseDisplayName = $user->warehouse->name;
+            } elseif ($warehouseName !== null && $warehouseName !== '') {
                 $warehouseDisplayName = trim(preg_replace('/\s+/', ' ', (string) $warehouseName));
                 $warehouse = Warehouse::where('name', $warehouseDisplayName)->first();
                 if (!$warehouse) {
@@ -72,6 +76,7 @@ class UploadInventory implements
                 }
                 $warehouseId = $warehouse->id;
             } else {
+                $warehouseId = 1; // Default/Central fallback if no warehouse specified and user is admin
                 $warehouse = Warehouse::find($warehouseId);
                 $warehouseDisplayName = $warehouse?->name;
             }

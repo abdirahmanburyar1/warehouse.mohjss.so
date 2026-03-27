@@ -42,14 +42,26 @@ class LiquidateDisposalController extends Controller
             ->withQueryString();
 
         // Get statistics
+        $user = auth()->user();
+        $isRegional = (bool)$user->warehouse_id;
+        $warehouseName = $user->warehouse->name ?? null;
+
+        $liquidateBase = Liquidate::query();
+        $disposalBase = Disposal::query();
+
+        if ($isRegional) {
+            $liquidateBase->whereHas('items', fn($q) => $q->where('warehouse', $warehouseName));
+            $disposalBase->whereHas('items', fn($q) => $q->where('warehouse', $warehouseName));
+        }
+
         $stats = [
-            'liquidate' => Liquidate::count(),
-            'disposal' => Disposal::count(),
-            'all' => Liquidate::count() + Disposal::count(),
-            'pending' => Liquidate::where('status', 'pending')->count() + Disposal::where('status', 'pending')->count(),
-            'reviewed' => Liquidate::where('status', 'reviewed')->count() + Disposal::where('status', 'reviewed')->count(),
-            'approved' => Liquidate::where('status', 'approved')->count() + Disposal::where('status', 'approved')->count(),
-            'rejected' => Liquidate::where('status', 'rejected')->count() + Disposal::where('status', 'rejected')->count(),
+            'liquidate' => (clone $liquidateBase)->count(),
+            'disposal' => (clone $disposalBase)->count(),
+            'all' => (clone $liquidateBase)->count() + (clone $disposalBase)->count(),
+            'pending' => (clone $liquidateBase)->where('status', 'pending')->count() + (clone $disposalBase)->where('status', 'pending')->count(),
+            'reviewed' => (clone $liquidateBase)->where('status', 'reviewed')->count() + (clone $disposalBase)->where('status', 'reviewed')->count(),
+            'approved' => (clone $liquidateBase)->where('status', 'approved')->count() + (clone $disposalBase)->where('status', 'approved')->count(),
+            'rejected' => (clone $liquidateBase)->where('status', 'rejected')->count() + (clone $disposalBase)->where('status', 'rejected')->count(),
         ];
 
         return inertia('LiquidateDisposal/Index', [
@@ -75,6 +87,12 @@ class LiquidateDisposalController extends Controller
             'transfer:id,transferID',
             'order:id,order_number',
         ])->withCount('items')->withSum('items', 'total_cost')->latest('liquidate_id');
+
+        // SECURITY: If regional user, restrict to their warehouse
+        $user = auth()->user();
+        if ($user->warehouse_id) {
+            $liquidates->whereHas('items', fn($q) => $q->where('warehouse', $user->warehouse->name));
+        }
 
         // Search filter
         if ($request->has('search') && $request->search) {
@@ -118,6 +136,12 @@ class LiquidateDisposalController extends Controller
             'transfer:id,transferID',
             'order:id,order_number',
         ])->latest('disposal_id');
+
+        // SECURITY: If regional user, restrict to their warehouse
+        $user = auth()->user();
+        if ($user->warehouse_id) {
+            $disposals->whereHas('items', fn($q) => $q->where('warehouse', $user->warehouse->name));
+        }
 
         // Search filter
         if ($request->has('search') && $request->search) {
@@ -166,6 +190,15 @@ class LiquidateDisposalController extends Controller
             'order:id,order_number',
         ])->findOrFail($id);
 
+        // SECURITY: Ensure user has access to this liquidation
+        $user = auth()->user();
+        if ($user->warehouse_id) {
+            $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
+            if (!$hasAccess) {
+                abort(403, 'Unauthorized access to this liquidation.');
+            }
+        }
+
         $liquidate->setAttribute('source_display', $this->resolveSourceDisplayForLiquidate($liquidate));
         $liquidate->setAttribute('liquidated_by_name', $liquidate->liquidatedBy?->name);
 
@@ -195,6 +228,15 @@ class LiquidateDisposalController extends Controller
             'order:id,order_number',
         ])->findOrFail($id);
 
+        // SECURITY: Ensure user has access to this disposal
+        $user = auth()->user();
+        if ($user->warehouse_id) {
+            $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
+            if (!$hasAccess) {
+                abort(403, 'Unauthorized access to this disposal.');
+            }
+        }
+
         $disposal->setAttribute('source_display', $this->resolveSourceDisplayForDisposal($disposal));
         $disposal->setAttribute('disposed_by_name', $disposal->disposedBy?->name);
 
@@ -215,6 +257,14 @@ class LiquidateDisposalController extends Controller
         try {
             $liquidate = Liquidate::findOrFail($id);
             
+            // SECURITY: Ensure user has access
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
+                if (!$hasAccess) {
+                    return response()->json(['message' => 'Unauthorized access to this liquidation.'], 403);
+                }
+            }
             $liquidate->status = 'reviewed';
             $liquidate->reviewed_at = now();
             $liquidate->reviewed_by = Auth::id();
@@ -259,6 +309,14 @@ class LiquidateDisposalController extends Controller
         try {
             $liquidate = Liquidate::findOrFail($id);
             
+            // SECURITY: Ensure user has access
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
+                if (!$hasAccess) {
+                    return response()->json(['message' => 'Unauthorized access to this liquidation.'], 403);
+                }
+            }
             $liquidate->status = 'approved';
             $liquidate->approved_at = now();
             $liquidate->approved_by = Auth::id();
@@ -290,6 +348,14 @@ class LiquidateDisposalController extends Controller
         try {
             $liquidate = Liquidate::findOrFail($id);
             
+            // SECURITY: Ensure user has access
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
+                if (!$hasAccess) {
+                    return response()->json(['message' => 'Unauthorized access to this liquidation.'], 403);
+                }
+            }
             $liquidate->status = 'rejected';
             $liquidate->rejected_at = now();
             $liquidate->rejected_by = Auth::id();
@@ -319,6 +385,14 @@ class LiquidateDisposalController extends Controller
         try {
             $liquidate = Liquidate::findOrFail($id);
             
+            // SECURITY: Ensure user has access
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
+                if (!$hasAccess) {
+                    return response()->json(['message' => 'Unauthorized access to this liquidation.'], 403);
+                }
+            }
             $liquidate->status = 'pending';
             $liquidate->approved_by = null;
             $liquidate->approved_at = null;
@@ -346,6 +420,15 @@ class LiquidateDisposalController extends Controller
 
         try {
             $disposal = Disposal::findOrFail($id);
+            
+            // SECURITY: Ensure user has access
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
+                if (!$hasAccess) {
+                    return response()->json(['message' => 'Unauthorized access to this disposal.'], 403);
+                }
+            }
             
             if ($disposal->status !== 'pending') {
                 return response()->json([
@@ -397,6 +480,15 @@ class LiquidateDisposalController extends Controller
         try {
             $disposal = Disposal::findOrFail($id);
             
+            // SECURITY: Ensure user has access
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
+                if (!$hasAccess) {
+                    return response()->json(['message' => 'Unauthorized access to this disposal.'], 403);
+                }
+            }
+            
             if (!in_array($disposal->status, ['reviewed', 'rejected'])) {
                 return response()->json([
                     'message' => 'Only reviewed or rejected disposals can be approved'
@@ -434,6 +526,15 @@ class LiquidateDisposalController extends Controller
         try {
             $disposal = Disposal::findOrFail($id);
             
+            // SECURITY: Ensure user has access
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
+                if (!$hasAccess) {
+                    return response()->json(['message' => 'Unauthorized access to this disposal.'], 403);
+                }
+            }
+            
             if ($disposal->status !== 'reviewed') {
                 return response()->json([
                     'message' => 'Only reviewed disposals can be rejected'
@@ -468,6 +569,15 @@ class LiquidateDisposalController extends Controller
 
         try {
             $disposal = Disposal::findOrFail($id);
+            
+            // SECURITY: Ensure user has access
+            $user = auth()->user();
+            if ($user->warehouse_id) {
+                $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
+                if (!$hasAccess) {
+                    return response()->json(['message' => 'Unauthorized access to this disposal.'], 403);
+                }
+            }
             
             if ($disposal->status !== 'approved') {
                 return response()->json([

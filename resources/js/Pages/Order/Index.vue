@@ -299,7 +299,13 @@
                                             class="px-2 py-2 text-left text-xs font-bold uppercase border-b"
                                             style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;"
                                         >
-                                            Facility
+                                            From
+                                        </th>
+                                        <th
+                                            class="px-2 py-2 text-left text-xs font-bold uppercase border-b"
+                                            style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;"
+                                        >
+                                            To
                                         </th>
                                         <th
                                             class="px-2 py-2 text-left text-xs font-bold uppercase border-b"
@@ -336,7 +342,7 @@
                                 <tbody class="bg-white">
                                     <tr v-if="orders.data?.length === 0">
                                         <td
-                                            colspan="7"
+                                            colspan="8"
                                             class="px-2 py-2 text-center text-sm text-gray-600 border-b"
                                             style="border-bottom: 1px solid #B7C6E6;"
                                         >
@@ -358,7 +364,10 @@
                                             <Link :href="route('orders.show', order.id)">{{ order.order_number }}</Link>
                                         </td>
                                         <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900 border-b" style="border-bottom: 1px solid #B7C6E6;">
-                                            {{ order.facility?.name }}
+                                            {{ order.facility?.name || order.sender_warehouse?.name || 'Central' }}
+                                        </td>
+                                        <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900 border-b" style="border-bottom: 1px solid #B7C6E6;">
+                                            {{ order.warehouse?.name || 'Central' }}
                                         </td>
                                         <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-600 border-b" style="border-bottom: 1px solid #B7C6E6;">
                                             {{ order.order_type }}

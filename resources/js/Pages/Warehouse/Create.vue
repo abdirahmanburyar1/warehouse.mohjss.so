@@ -148,6 +148,18 @@
                             <option value="inactive">Inactive</option>
                         </select>
                     </div>
+                    <div>
+                        <label for="type">Warehouse Type <span class="text-red-500">*</span></label>
+                        <select
+                            id="type"
+                            v-model="form.type"
+                            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                            required
+                        >
+                            <option value="regional">Regional</option>
+                            <option value="central">Central</option>
+                        </select>
+                    </div>
                 </div>
                 <div class="flex justify-end mt-3 gap-2">
                     <!-- exit btn -->
@@ -285,6 +297,7 @@ const form = ref({
     status: "active",
     district: "",
     region: "",
+    type: "regional",
 });
 
 async function handleRegionSelect(option) {

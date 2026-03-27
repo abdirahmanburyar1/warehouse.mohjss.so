@@ -19,10 +19,13 @@ class Order extends Model
 
     protected $fillable = [
         'facility_id',
+        'warehouse_id',
+        'sender_warehouse_id',
+        'user_id',
         'order_type',
         'order_number',
         'status',
-        'notes',
+        'note',
         'order_date',
         'expected_date',
         'dispatched_by',
@@ -98,5 +101,15 @@ class Order extends Model
     public function receivedBy()
     {
         return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function warehouse()
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
+    public function senderWarehouse()
+    {
+        return $this->belongsTo(Warehouse::class, 'sender_warehouse_id');
     }
 }

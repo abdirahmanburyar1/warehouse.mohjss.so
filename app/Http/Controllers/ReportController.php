@@ -76,8 +76,9 @@ class ReportController extends Controller
     public function facilitiesList(Request $request)
     {
         $perPage = (int) ($request->per_page ?? 25);
-        $query = Facility::query()
-            ->when($request->filled('search'), function ($q) use ($request) {
+        $query = Facility::query();
+        $this->applyRegionalFilter($query);
+        $query->when($request->filled('search'), function ($q) use ($request) {
                 $q->where(function ($q2) use ($request) {
                     $q2->where('name', 'like', '%'.$request->search.'%')
                         ->orWhere('facility_type', 'like', '%'.$request->search.'%')
@@ -110,17 +111,25 @@ class ReportController extends Controller
         $facilities = $query->orderBy('name')->paginate($perPage, ['*'], 'page', $request->page ?? 1);
         $facilities->setPath(url()->current());
 
+        $user = Auth::user();
+        $isRegional = $user && $user->warehouse_id && $user->warehouse->type === 'regional';
+        $userRegion = $isRegional ? $user->warehouse->region : null;
+
+        $summaryQuery = Facility::query();
+        $this->applyRegionalFilter($summaryQuery);
+
         $summary = [
-            'total_facilities' => Facility::count(),
+            'total_facilities' => $summaryQuery->count(),
             'by_status' => [
-                'Active' => Facility::where('is_active', true)->count(),
-                'Inactive' => Facility::where('is_active', false)->count(),
+                'Active' => (clone $summaryQuery)->where('is_active', true)->count(),
+                'Inactive' => (clone $summaryQuery)->where('is_active', false)->count(),
             ],
-            'by_district' => Facility::select('district')->distinct()->pluck('district')->filter()->keyBy(fn ($d) => $d)->map(fn () => 1)->toArray(),
-            'by_type' => Facility::select('facility_type')->distinct()->pluck('facility_type')->filter()->keyBy(fn ($t) => $t)->map(fn () => 1)->toArray(),
+            'by_district' => (clone $summaryQuery)->select('district')->distinct()->pluck('district')->filter()->keyBy(fn ($d) => $d)->map(fn () => 1)->toArray(),
+            'by_type' => (clone $summaryQuery)->select('facility_type')->distinct()->pluck('facility_type')->filter()->keyBy(fn ($t) => $t)->map(fn () => 1)->toArray(),
         ];
 
         $regions = Facility::whereNotNull('region')->where('region', '!=', '')->distinct()->orderBy('region')->pluck('region')->toArray();
+
         $districts = District::orderBy('name')->pluck('name')->toArray();
         $facilityTypes = FacilityType::where('is_active', true)->pluck('name')->toArray();
 
@@ -200,10 +209,21 @@ class ReportController extends Controller
 
     public function inventoryReportsUnified(Request $request)
     {
+        $user = Auth::user();
+
         $regions = Region::orderBy('name')->get(['id', 'name']);
+
         $districts = District::orderBy('name')->get(['id', 'name', 'region']);
-        $warehouses = Warehouse::orderBy('name')->get(['id', 'name', 'region', 'district']);
-        $facilities = Facility::orderBy('name')->get(['id', 'name', 'region', 'district']);
+
+        $warehousesQuery = Warehouse::query();
+        if ($user && $user->warehouse_id && $user->warehouse->type === 'regional') {
+            $warehousesQuery->where('id', $user->warehouse_id);
+        }
+        $warehouses = $warehousesQuery->orderBy('name')->get(['id', 'name', 'region', 'district']);
+
+        $facilitiesQuery = Facility::query();
+        $this->applyRegionalFilter($facilitiesQuery);
+        $facilities = $facilitiesQuery->orderBy('name')->get(['id', 'name', 'region', 'district']);
         $reportTypes = [
             ['value' => 'warehouse_inventory', 'label' => 'Warehouse Inventory Report'],
             ['value' => 'facility_monthly_consumption', 'label' => 'Facility LMIS report'],
@@ -627,6 +647,13 @@ class ReportController extends Controller
     public function updateInventoryReportItem(Request $request, int $id)
     {
         $item = InventoryReportItem::with('report')->findOrFail($id);
+        
+        $user = Auth::user();
+        if ($user && $user->warehouse_id && $user->warehouse->type === 'regional') {
+            if ($item->warehouse_id !== $user->warehouse_id) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+        }
         $validated = $request->validate([
             'adjustment_neg' => 'nullable|integer|min:0',
             'adjustment_pos' => 'nullable|integer|min:0',
@@ -669,6 +696,18 @@ class ReportController extends Controller
     public function updateInventoryReport(Request $request, int $id)
     {
         $report = InventoryReport::findOrFail($id);
+        
+        $user = Auth::user();
+        if ($user && $user->warehouse_id && $user->warehouse->type === 'regional') {
+            // Check if any of the report's items belong to another warehouse? 
+            // Or since regions only have their own items in THEIR view, check if they are trying to reach something they shouldn't.
+            // Actually, if they are regional, they should only be able to see items from THEIR warehouse.
+            // We can check if any items for this report exist for their warehouse.
+            $exists = $report->items()->where('warehouse_id', $user->warehouse_id)->exists();
+            if (!$exists) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+        }
         $validated = $request->validate([
             'stockout_days' => 'nullable|integer|min:0|max:366',
             'months_of_stock' => 'nullable|string|max:255',
@@ -700,12 +739,23 @@ class ReportController extends Controller
      */
     private function resolveWarehouseIdsFromFilters(Request $request): array
     {
+        $user = Auth::user();
+        $isRegional = $user && $user->warehouse_id && $user->warehouse->type === 'regional';
+
+        // If regional, they can only see their own warehouse
+        if ($isRegional) {
+            return [(int) $user->warehouse_id];
+        }
+
         if ($request->filled('warehouse_id')) {
             return [(int) $request->warehouse_id];
         }
+
+        // Return empty if no filters applied (show all)
         if (!$request->filled('region_id') && !$request->filled('district_id')) {
             return [];
         }
+
         $query = Warehouse::query();
         if ($request->filled('region_id')) {
             $regionName = Region::find($request->region_id)?->name;
@@ -727,13 +777,19 @@ class ReportController extends Controller
      */
     private function resolveFacilityIdsFromFilters(Request $request): array
     {
+        $user = Auth::user();
+        $isRegional = $user && $user->warehouse_id && $user->warehouse->type === 'regional';
+
         if ($request->filled('facility_id')) {
-            return [(int) $request->facility_id];
+            $facilityId = (int) $request->facility_id;
+            $query = Facility::where('id', $facilityId);
+            $this->applyRegionalFilter($query);
+            return $query->exists() ? [$facilityId] : [];
         }
-        if (!$request->filled('region_id') && !$request->filled('district_id')) {
-            return [];
-        }
+
         $query = Facility::query();
+        $this->applyRegionalFilter($query);
+
         if ($request->filled('region_id')) {
             $regionName = Region::find($request->region_id)?->name;
             if ($regionName) {
@@ -746,6 +802,12 @@ class ReportController extends Controller
                 $query->where('district', $districtName);
             }
         }
+
+        // If no filters and NOT regional, return [] (show all)
+        if (!$request->filled('region_id') && !$request->filled('district_id') && !$isRegional) {
+            return [];
+        }
+
         return $query->pluck('id')->toArray();
     }
 
@@ -1009,16 +1071,24 @@ class ReportController extends Controller
         })->whereNotNull('warehouse')->distinct()->pluck('warehouse')->filter()->values()->toArray();
         $allWarehouseNames = array_values(array_unique(array_merge($warehouseNamesFromLiq, $warehouseNamesFromDisp, $warehouseNamesFromItems)));
 
-        // Facility names: only when user explicitly selected a facility (don't load facility data otherwise)
+        $user = Auth::user();
+        $isRegional = $user && $user->warehouse_id && $user->warehouse->type === 'regional';
+        
+        // Use isolated resolution methods
+        $warehouseIds = $this->resolveWarehouseIdsFromFilters($request);
+        $facilityIds = $this->resolveFacilityIdsFromFilters($request);
+
         $filterWarehouseName = null;
         $filterFacilityName = null;
-        if ($request->filled('warehouse_id')) {
-            $w = Warehouse::find($request->warehouse_id);
-            $filterWarehouseName = $w?->name;
+
+        if ($request->filled('warehouse_id') && in_array((int)$request->warehouse_id, $warehouseIds)) {
+            $filterWarehouseName = Warehouse::find($request->warehouse_id)?->name;
+        } elseif ($isRegional) {
+            $filterWarehouseName = $user->warehouse?->name;
         }
-        if ($request->filled('facility_id')) {
-            $f = Facility::find($request->facility_id);
-            $filterFacilityName = $f?->name;
+
+        if ($request->filled('facility_id') && in_array((int)$request->facility_id, $facilityIds)) {
+            $filterFacilityName = Facility::find($request->facility_id)?->name;
         }
 
         $allFacilityNames = [];
@@ -1033,9 +1103,8 @@ class ReportController extends Controller
             $allWarehouseNames = in_array($filterWarehouseName, $allWarehouseNames, true) ? [$filterWarehouseName] : [];
         }
 
-        // When no warehouse/facility filter, optionally restrict warehouses by region/district
-        if ($filterWarehouseName === null && $filterFacilityName === null) {
-            $warehouseIds = $this->resolveWarehouseIdsFromFilters($request);
+        // When no specific warehouse filter (and not regional which forces one), optionally restrict by region/district
+        if (!$request->filled('warehouse_id') && !$isRegional && $filterFacilityName === null) {
             if (!empty($warehouseIds)) {
                 $namesInRegion = Warehouse::whereIn('id', $warehouseIds)->pluck('name')->toArray();
                 $allWarehouseNames = array_values(array_intersect($allWarehouseNames, $namesInRegion));
@@ -1295,8 +1364,8 @@ class ReportController extends Controller
             }
         }
 
-        // Warehouse path: one row per selected warehouse
-        $warehouseIds = $request->filled('warehouse_id') ? [(int) $request->warehouse_id] : [];
+        // Warehouse path: one row per selected warehouse (scoped)
+        $warehouseIds = $this->resolveWarehouseIdsFromFilters($request);
         foreach (Warehouse::whereIn('id', $warehouseIds)->orderBy('name')->get(['id', 'name']) as $warehouse) {
             $baseQuery = InventoryItem::query()
                 ->where('warehouse_id', $warehouse->id)
@@ -1341,6 +1410,10 @@ class ReportController extends Controller
      */
     private function resolveDistrictsFromFilters(Request $request)
     {
+        $user = Auth::user();
+        $isRegional = $user && $user->warehouse_id && $user->warehouse->type === 'regional';
+        $userRegion = $isRegional ? $user->warehouse->region : null;
+
         $query = District::query()->orderBy('name');
         if ($request->filled('district_id')) {
             $query->where('id', $request->district_id);
@@ -1351,7 +1424,30 @@ class ReportController extends Controller
                 $query->where('region', $regionName);
             }
         }
+
+        if ($isRegional && $userRegion) {
+            $query->where('region', $userRegion);
+        }
+
         return $query->get();
+    }
+
+    /**
+     * Apply regional filtering to a facility query if the user belongs to a regional warehouse.
+     * 
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    private function applyRegionalFilter($query)
+    {
+        $user = Auth::user();
+        if ($user && $user->warehouse_id) {
+            $warehouse = Warehouse::find($user->warehouse_id);
+            if ($warehouse && $warehouse->type === 'regional' && $warehouse->region) {
+                $query->where('region', $warehouse->region);
+            }
+        }
+        return $query;
     }
 
     /** Facility type labels for Facilities Report (order and canonical names). */

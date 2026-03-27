@@ -24,6 +24,7 @@ class Warehouse extends Model
         'manager_phone',
         'manager_email',
         'status',
+        'type',
     ];
     
 }
