@@ -46,6 +46,7 @@ class Asset extends Model
         'rejected_by',
         'rejected_at',
         'rejection_reason',
+        'sub_location_id'
     ];
 
     protected $casts = [
@@ -74,6 +75,11 @@ class Asset extends Model
     public function assetItems(): HasMany
     {
         return $this->hasMany(AssetItem::class);
+    }
+
+    public function assetApprovalItems(): HasMany
+    {
+        return $this->hasMany(AssetApprovalItem::class);
     }
 
     public function documents(): HasMany

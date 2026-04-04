@@ -11,6 +11,7 @@ class ReorderLevel extends Model
 
     protected $fillable = [
         'product_id',
+        'warehouse_id',
         'amc',
         'lead_time',
         'reorder_level'

@@ -269,7 +269,7 @@
                     <div class="flex flex-col">
                         <button 
                             @click="reviewReceivedBackorder()" 
-                            :disabled="isType.is_reviewing || receivedBackorder.status !== 'pending' || !$page.props.auth.can.received_backorder_review"
+                            :disabled="isType.is_reviewing || receivedBackorder.status !== 'pending' || !props.receivedBackorder.can_review"
                             :class="[
                                 receivedBackorder.status === 'pending'
                                     ? 'bg-yellow-500 hover:bg-yellow-600'
@@ -304,7 +304,7 @@
                     <div class="flex flex-col">
                         <button 
                             @click="approveReceivedBackorder()" 
-                            :disabled="isType.is_approve || receivedBackorder.status !== 'reviewed' || !$page.props.auth.can.received_backorder_approve"
+                            :disabled="isType.is_approve || receivedBackorder.status !== 'reviewed' || !props.receivedBackorder.can_approve"
                             :class="[
                                 receivedBackorder.status === 'reviewed'
                                 ? 'bg-yellow-500 hover:bg-yellow-600'
@@ -351,7 +351,7 @@
                     <div class="flex flex-col">
                         <button 
                             @click="rejectReceivedBackorder()" 
-                            :disabled="isType.is_reject || !$page.props.auth.can.received_backorder_reject"
+                            :disabled="isType.is_reject || !props.receivedBackorder.can_reject"
                             class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px] bg-red-500 hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             <img src="/assets/images/rejected.png" class="w-5 h-5 mr-2" alt="Reject" />

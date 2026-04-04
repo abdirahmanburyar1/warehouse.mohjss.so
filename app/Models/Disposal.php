@@ -13,9 +13,17 @@ class Disposal extends Model
         parent::boot();
 
         static::creating(function ($disposal) {
-            $latestDisposal = static::latest()->first();
+            $latestDisposal = static::orderBy('id', 'desc')->first();
             $nextId = $latestDisposal ? intval(substr($latestDisposal->disposal_id, -7)) + 1 : 1;
-            $disposal->disposal_id = str_pad($nextId, 7, '0', STR_PAD_LEFT);
+            
+            $generatedId = str_pad($nextId, 7, '0', STR_PAD_LEFT);
+            while (static::where('disposal_id', $generatedId)->exists()) {
+                $nextId++;
+                $generatedId = str_pad($nextId, 7, '0', STR_PAD_LEFT);
+            }
+            
+            $disposal->disposal_id = $generatedId;
+            $disposal->status = 'pending';
         });
     }
 
@@ -37,7 +45,9 @@ class Disposal extends Model
         'rejected_by',
         'rejected_at',
         'rejection_reason',
+        'warehouse_id',
         'back_order_id',
+        'inventory_adjustment_id',
     ];
 
     /**
@@ -120,5 +130,21 @@ class Disposal extends Model
     public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
+    }
+
+    /**
+     * Get the inventory adjustment associated with this disposal
+     */
+    public function inventoryAdjustment(): BelongsTo
+    {
+        return $this->belongsTo(InventoryAdjustment::class);
+    }
+
+    /**
+     * Get the approvals for this disposal
+     */
+    public function approvals()
+    {
+        return $this->hasMany(\App\Models\Approval::class, 'model_id')->where('model', 'disposal');
     }
 }

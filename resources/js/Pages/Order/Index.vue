@@ -305,12 +305,6 @@
                                             class="px-2 py-2 text-left text-xs font-bold uppercase border-b"
                                             style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;"
                                         >
-                                            To
-                                        </th>
-                                        <th
-                                            class="px-2 py-2 text-left text-xs font-bold uppercase border-b"
-                                            style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;"
-                                        >
                                             Order Type
                                         </th>
                                         <th
@@ -325,12 +319,7 @@
                                         >
                                             Expected Date
                                         </th>
-                                        <th
-                                            class="px-2 py-2 text-left text-xs font-bold uppercase border-b"
-                                            style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;"
-                                        >
-                                            Handled By
-                                        </th>
+
                                         <th
                                             class="px-2 py-2 text-left text-xs font-bold uppercase border-b rounded-tr-lg"
                                             style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;"
@@ -342,7 +331,7 @@
                                 <tbody class="bg-white">
                                     <tr v-if="orders.data?.length === 0">
                                         <td
-                                            colspan="8"
+                                            colspan="7"
                                             class="px-2 py-2 text-center text-sm text-gray-600 border-b"
                                             style="border-bottom: 1px solid #B7C6E6;"
                                         >
@@ -352,9 +341,10 @@
                                     <tr
                                         v-for="order in orders.data"
                                         :key="order.id"
-                                        class="border-b"
+                                        @click="router.get(route('orders.show', order.id))"
+                                        class="border-b cursor-pointer"
                                         :class="{
-                                            'hover:bg-gray-50': true,
+                                            'hover:bg-blue-50': true,
                                             'text-red-500':
                                                 order.status === 'rejected',
                                         }"
@@ -366,9 +356,6 @@
                                         <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900 border-b" style="border-bottom: 1px solid #B7C6E6;">
                                             {{ order.facility?.name || order.sender_warehouse?.name || 'Central' }}
                                         </td>
-                                        <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-900 border-b" style="border-bottom: 1px solid #B7C6E6;">
-                                            {{ order.warehouse?.name || 'Central' }}
-                                        </td>
                                         <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-600 border-b" style="border-bottom: 1px solid #B7C6E6;">
                                             {{ order.order_type }}
                                         </td>
@@ -378,9 +365,7 @@
                                         <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-600 border-b" style="border-bottom: 1px solid #B7C6E6;">
                                             {{ formatDate(order.expected_date) }}
                                         </td>
-                                        <td class="px-2 py-2 whitespace-nowrap text-xs text-gray-600 border-b" style="border-bottom: 1px solid #B7C6E6;">
-                                            {{ order.facility?.handledby?.name || "Not assigned" }}
-                                        </td>
+
                                         <td class="px-2 py-2 whitespace-nowrap border-b" style="border-bottom: 1px solid #B7C6E6;">
                                             <div class="flex items-center gap-2">
                                                 <!-- Status Progress Icons - Only show actions taken -->

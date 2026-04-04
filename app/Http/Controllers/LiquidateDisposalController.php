@@ -31,37 +31,38 @@ class LiquidateDisposalController extends Controller
         $dateTo = $request->filled('date_to') ? $request->date_to : now()->endOfMonth()->format('Y-m-d');
         $request->merge(['date_from' => $dateFrom, 'date_to' => $dateTo]);
 
-        // Get liquidations
+        // Get filter-aware base queries for accurate statistics
+        $liquidateBaseForStats = $this->getLiquidatesQuery($request, true); // true = skip current status filter
+        $disposalBaseForStats = $this->getDisposalsQuery($request, true);   // true = skip current status filter
+
+        // Get paginated results with current status filter applied
         $liquidates = $this->getLiquidatesQuery($request);
         $liquidates = $liquidates->paginate($request->input('per_page', 25), ['*'], 'page', $request->input('page', 1))
             ->withQueryString();
 
-        // Get disposals
         $disposals = $this->getDisposalsQuery($request);
         $disposals = $disposals->paginate($request->input('per_page', 25), ['*'], 'page', $request->input('page', 1))
             ->withQueryString();
 
-        // Get statistics
-        $user = auth()->user();
-        $isRegional = (bool)$user->warehouse_id;
-        $warehouseName = $user->warehouse->name ?? null;
-
-        $liquidateBase = Liquidate::query();
-        $disposalBase = Disposal::query();
-
-        if ($isRegional) {
-            $liquidateBase->whereHas('items', fn($q) => $q->where('warehouse', $warehouseName));
-            $disposalBase->whereHas('items', fn($q) => $q->where('warehouse', $warehouseName));
-        }
-
+        // Calculate statistics that match the filtered view
         $stats = [
-            'liquidate' => (clone $liquidateBase)->count(),
-            'disposal' => (clone $disposalBase)->count(),
-            'all' => (clone $liquidateBase)->count() + (clone $disposalBase)->count(),
-            'pending' => (clone $liquidateBase)->where('status', 'pending')->count() + (clone $disposalBase)->where('status', 'pending')->count(),
-            'reviewed' => (clone $liquidateBase)->where('status', 'reviewed')->count() + (clone $disposalBase)->where('status', 'reviewed')->count(),
-            'approved' => (clone $liquidateBase)->where('status', 'approved')->count() + (clone $disposalBase)->where('status', 'approved')->count(),
-            'rejected' => (clone $liquidateBase)->where('status', 'rejected')->count() + (clone $disposalBase)->where('status', 'rejected')->count(),
+            'liquidate' => (clone $liquidateBaseForStats)->count(),
+            'disposal' => (clone $disposalBaseForStats)->count(),
+        ];
+
+        // Per-tab stats so the status sub-tabs show context-appropriate counts
+        $liquidateStats = [
+            'all' => (clone $liquidateBaseForStats)->count(),
+            'pending' => (clone $liquidateBaseForStats)->where('status', 'pending')->count(),
+            'reviewed' => (clone $liquidateBaseForStats)->where('status', 'reviewed')->count(),
+            'approved' => (clone $liquidateBaseForStats)->where('status', 'approved')->count(),
+        ];
+
+        $disposalStats = [
+            'all' => (clone $disposalBaseForStats)->count(),
+            'pending' => (clone $disposalBaseForStats)->where('status', 'pending')->count(),
+            'reviewed' => (clone $disposalBaseForStats)->where('status', 'reviewed')->count(),
+            'approved' => (clone $disposalBaseForStats)->where('status', 'approved')->count(),
         ];
 
         return inertia('LiquidateDisposal/Index', [
@@ -69,29 +70,44 @@ class LiquidateDisposalController extends Controller
             'disposals' => DisposalResource::collection($disposals),
             'filters' => $request->only('search', 'per_page', 'page', 'source', 'date_from', 'date_to', 'status'),
             'stats' => $stats,
+            'liquidateStats' => $liquidateStats,
+            'disposalStats' => $disposalStats,
         ]);
     }
 
     /**
      * Get liquidations query with filters
      */
-    private function getLiquidatesQuery(Request $request)
+    private function getLiquidatesQuery(Request $request, $skipStatusFilter = false)
     {
         $liquidates = Liquidate::query()->with([
             'liquidatedBy:id,name',
             'approvedBy:id,name',
             'reviewedBy:id,name',
-            'rejectedBy:id,name',
             'backOrder',
             'packingList:id,packing_list_number',
             'transfer:id,transferID',
             'order:id,order_number',
         ])->withCount('items')->withSum('items', 'total_cost')->latest('liquidate_id');
 
-        // SECURITY: If regional user, restrict to their warehouse
-        $user = auth()->user();
-        if ($user->warehouse_id) {
-            $liquidates->whereHas('items', fn($q) => $q->where('warehouse', $user->warehouse->name));
+        // SECURITY: New granular scoping rules
+        $user = auth()->user()->load('warehouse');
+        $isRegional = $user->warehouse?->type === 'regional';
+        $userRegion = $user->warehouse?->region;
+        $userWarehouseName = $user->warehouse?->name;
+
+        if ($isRegional) {
+            $liquidates->where(function ($q) use ($userWarehouseName, $userRegion) {
+                // 1. Show records from my own warehouse
+                $q->where('warehouse', $userWarehouseName)
+                // 2. Show records from facilities in my region
+                  ->orWhereExists(function ($sub) use ($userRegion) {
+                      $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                          ->from('facilities')
+                          ->whereColumn('facilities.name', 'liquidates.facility')
+                          ->where('facilities.region', $userRegion);
+                  });
+            });
         }
 
         // Search filter
@@ -113,7 +129,7 @@ class LiquidateDisposalController extends Controller
         $liquidates->whereDate('liquidated_at', '<=', $request->date_to);
 
         // Status filter
-        if ($request->has('status') && $request->status && $request->status !== 'all') {
+        if (!$skipStatusFilter && $request->has('status') && $request->status && $request->status !== 'all') {
             $liquidates->where('status', $request->status);
         }
 
@@ -123,24 +139,37 @@ class LiquidateDisposalController extends Controller
     /**
      * Get disposals query with filters
      */
-    private function getDisposalsQuery(Request $request)
+    private function getDisposalsQuery(Request $request, $skipStatusFilter = false)
     {
         $disposals = Disposal::query()->with([
             'items.product',
             'disposedBy',
             'approvedBy',
             'reviewedBy',
-            'rejectedBy',
             'backOrder',
             'packingList:id,packing_list_number',
             'transfer:id,transferID',
             'order:id,order_number',
-        ])->latest('disposal_id');
+        ])->withCount('items')->withSum('items', 'total_cost')->latest('disposal_id');
 
-        // SECURITY: If regional user, restrict to their warehouse
-        $user = auth()->user();
-        if ($user->warehouse_id) {
-            $disposals->whereHas('items', fn($q) => $q->where('warehouse', $user->warehouse->name));
+        // SECURITY: New granular scoping rules
+        $user = auth()->user()->load('warehouse');
+        $isRegional = $user->warehouse?->type === 'regional';
+        $userRegion = $user->warehouse?->region;
+        $userWarehouseName = $user->warehouse?->name;
+
+        if ($isRegional) {
+            $disposals->where(function ($q) use ($userWarehouseName, $userRegion) {
+                // 1. Show records from my own warehouse
+                $q->where('warehouse', $userWarehouseName)
+                // 2. Show records from facilities in my region
+                  ->orWhereExists(function ($sub) use ($userRegion) {
+                      $sub->select(\Illuminate\Support\Facades\DB::raw(1))
+                          ->from('facilities')
+                          ->whereColumn('facilities.name', 'disposals.facility')
+                          ->where('facilities.region', $userRegion);
+                  });
+            });
         }
 
         // Search filter
@@ -162,7 +191,7 @@ class LiquidateDisposalController extends Controller
         $disposals->whereDate('disposed_at', '<=', $request->date_to);
 
         // Status filter
-        if ($request->has('status') && $request->status && $request->status !== 'all') {
+        if (!$skipStatusFilter && $request->has('status') && $request->status && $request->status !== 'all') {
             $disposals->where('status', $request->status);
         }
 
@@ -183,7 +212,6 @@ class LiquidateDisposalController extends Controller
             'liquidatedBy',
             'approvedBy',
             'reviewedBy',
-            'rejectedBy',
             'backOrder',
             'packingList:id,packing_list_number',
             'transfer:id,transferID',
@@ -191,16 +219,46 @@ class LiquidateDisposalController extends Controller
         ])->findOrFail($id);
 
         // SECURITY: Ensure user has access to this liquidation
-        $user = auth()->user();
-        if ($user->warehouse_id) {
-            $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
-            if (!$hasAccess) {
-                abort(403, 'Unauthorized access to this liquidation.');
+        $user = auth()->user()->load('warehouse');
+        $isCentral = $user->warehouse?->type === 'central';
+        $isRegional = $user->warehouse?->type === 'regional';
+        $userRegion = $user->warehouse?->region;
+
+        if ($isRegional) {
+            if ($liquidate->warehouse !== $user->warehouse->name) {
+                $facilityInRegion = \App\Models\Facility::where('name', $liquidate->facility)
+                    ->where('region', $userRegion)
+                    ->exists();
+                if (!$facilityInRegion) {
+                    abort(403, 'Unauthorized access to this liquidation.');
+                }
             }
+        } elseif (!$isCentral) {
+            abort(403, 'Unauthorized access.');
         }
 
         $liquidate->setAttribute('source_display', $this->resolveSourceDisplayForLiquidate($liquidate));
         $liquidate->setAttribute('liquidated_by_name', $liquidate->liquidatedBy?->name);
+
+        // Capability icons for UI buttons
+        $canReview = false;
+        $canApprove = false;
+        $canReject = false;
+
+        if ($isCentral) {
+            $canReview = $liquidate->warehouse_id == $user->warehouse_id;
+            $canApprove = true;
+            $canReject = true;
+        } elseif ($isRegional) {
+            $canReview = true; // scoping already handled region/self access
+            $canApprove = false; // Regional users cannot approve
+            $canReject = true; 
+        }
+
+        $liquidate->setAttribute('can_review', $canReview);
+        $liquidate->setAttribute('can_approve', $canApprove);
+        $liquidate->setAttribute('can_reject', $canReject);
+        $liquidate->setAttribute('can_edit', $canReview); // Rollback to pending is allowed for reviewers
 
         return inertia('LiquidateDisposal/Liquidate/Show', [
             'liquidate' => $liquidate,
@@ -221,7 +279,6 @@ class LiquidateDisposalController extends Controller
             'disposedBy',
             'approvedBy',
             'reviewedBy',
-            'rejectedBy',
             'backOrder',
             'packingList:id,packing_list_number',
             'transfer:id,transferID',
@@ -229,16 +286,42 @@ class LiquidateDisposalController extends Controller
         ])->findOrFail($id);
 
         // SECURITY: Ensure user has access to this disposal
-        $user = auth()->user();
-        if ($user->warehouse_id) {
-            $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
-            if (!$hasAccess) {
-                abort(403, 'Unauthorized access to this disposal.');
+        $user = auth()->user()->load('warehouse');
+        $isCentral = $user->warehouse?->type === 'central';
+        $isRegional = $user->warehouse?->type === 'regional';
+        $userRegion = $user->warehouse?->region;
+
+        if ($isRegional) {
+            if ($disposal->warehouse !== $user->warehouse->name) {
+                $facilityInRegion = \App\Models\Facility::where('name', $disposal->facility)
+                    ->where('region', $userRegion)
+                    ->exists();
+                if (!$facilityInRegion) {
+                    abort(403, 'Unauthorized access to this disposal.');
+                }
             }
+        } elseif (!$isCentral) {
+            abort(403, 'Unauthorized access.');
         }
 
         $disposal->setAttribute('source_display', $this->resolveSourceDisplayForDisposal($disposal));
         $disposal->setAttribute('disposed_by_name', $disposal->disposedBy?->name);
+
+        // Capability icons for UI buttons
+        $canReview = false;
+        $canApprove = false;
+
+        if ($isCentral) {
+            $canReview = $disposal->warehouse_id == $user->warehouse_id;
+            $canApprove = true;
+        } elseif ($isRegional) {
+            $canReview = true; // scoping already handled region/self access
+            $canApprove = false; // Regional users cannot approve
+        }
+
+        $disposal->setAttribute('can_review', $canReview);
+        $disposal->setAttribute('can_approve', $canApprove);
+        $disposal->setAttribute('can_edit', $canReview); // Rollback to pending is allowed for reviewers
 
         return inertia('LiquidateDisposal/Disposal/Show', [
             'disposal' => $disposal,
@@ -257,34 +340,39 @@ class LiquidateDisposalController extends Controller
         try {
             $liquidate = Liquidate::findOrFail($id);
             
-            // SECURITY: Ensure user has access
-            $user = auth()->user();
-            if ($user->warehouse_id) {
-                $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
-                if (!$hasAccess) {
-                    return response()->json(['message' => 'Unauthorized access to this liquidation.'], 403);
+            // SECURITY: Detailed review rules
+            $user = auth()->user()->load('warehouse');
+            $isCentral = $user->warehouse?->type === 'central';
+            $isRegional = $user->warehouse?->type === 'regional';
+            $userRegion = $user->warehouse?->region;
+            
+            if ($isCentral) {
+                // Central can review its own warehouse records
+                if ($liquidate->warehouse_id !== $user->warehouse_id) {
+                    return response()->json(['message' => 'Central users can only review records belonging to Central Warehouse. Facilities and Regional Warehouses are reviewed by Regional users.'], 403);
+                }
+            } elseif ($isRegional) {
+                // Regional can review self or facilities in their region
+                if ($liquidate->warehouse !== $user->warehouse->name) {
+                    $facilityInRegion = \App\Models\Facility::where('name', $liquidate->facility)
+                        ->where('region', $userRegion)
+                        ->exists();
+                    if (!$facilityInRegion) {
+                        return response()->json(['message' => 'Unauthorized: You can only review records from your own warehouse or facilities in your region.'], 403);
+                    }
                 }
             }
+            if ($liquidate->status !== 'pending') {
+                return response()->json([
+                    'message' => 'Only pending liquidations can be reviewed'
+                ], 422);
+            }
+
             $liquidate->status = 'reviewed';
             $liquidate->reviewed_at = now();
             $liquidate->reviewed_by = Auth::id();
             $liquidate->save();
 
-            // Notify users with approve/reject permission (next action)
-            $approvers = User::withPermission('liquidation-approve')
-                ->where('is_active', true)
-                ->whereNotNull('email')
-                ->where('id', '!=', auth()->id())
-                ->get();
-            $rejectors = User::withPermission('liquidation-reject')
-                ->where('is_active', true)
-                ->whereNotNull('email')
-                ->where('id', '!=', auth()->id())
-                ->get();
-            $recipients = $approvers->merge($rejectors)->unique('id');
-            foreach ($recipients as $user) {
-                $user->notify(new LiquidationActionRequired($liquidate, LiquidationActionRequired::ACTION_READY_FOR_APPROVAL));
-            }
 
             return response()->json([
                 'message' => 'Liquidation reviewed successfully',
@@ -309,20 +397,23 @@ class LiquidateDisposalController extends Controller
         try {
             $liquidate = Liquidate::findOrFail($id);
             
-            // SECURITY: Ensure user has access
-            $user = auth()->user();
-            if ($user->warehouse_id) {
-                $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
-                if (!$hasAccess) {
-                    return response()->json(['message' => 'Unauthorized access to this liquidation.'], 403);
-                }
+            // SECURITY: Only Central Warehouse can approve
+            $user = auth()->user()->load('warehouse');
+            $isCentral = $user->warehouse?->type === 'central';
+            
+            if (!$isCentral) {
+                return response()->json(['message' => 'Unauthorized: Approval is restricted to the Central Warehouse.'], 403);
             }
+
+            if ($liquidate->status !== 'reviewed') {
+                return response()->json([
+                    'message' => 'Only reviewed liquidations can be approved'
+                ], 422);
+            }
+
             $liquidate->status = 'approved';
             $liquidate->approved_at = now();
             $liquidate->approved_by = Auth::id();
-            $liquidate->rejected_at = null;
-            $liquidate->rejection_reason = null;
-            $liquidate->rejected_by = null;
             $liquidate->save();
 
             return response()->json([
@@ -336,42 +427,6 @@ class LiquidateDisposalController extends Controller
         }
     }
 
-    /**
-     * Reject a liquidation
-     */
-    public function rejectLiquidate(Request $request, $id)
-    {
-        if (!auth()->user()->hasPermission('liquidation-reject')) {
-            return response()->json(['message' => 'Unauthorized: You do not have permission to reject liquidations.'], 403);
-        }
-
-        try {
-            $liquidate = Liquidate::findOrFail($id);
-            
-            // SECURITY: Ensure user has access
-            $user = auth()->user();
-            if ($user->warehouse_id) {
-                $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
-                if (!$hasAccess) {
-                    return response()->json(['message' => 'Unauthorized access to this liquidation.'], 403);
-                }
-            }
-            $liquidate->status = 'rejected';
-            $liquidate->rejected_at = now();
-            $liquidate->rejected_by = Auth::id();
-            $liquidate->rejection_reason = $request->reason;
-            $liquidate->save();
-
-            return response()->json([
-                'message' => 'Liquidation rejected successfully',
-                'liquidate' => $liquidate
-            ], 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Error rejecting liquidation: ' . $th->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Rollback an approved liquidation to pending status
@@ -386,12 +441,22 @@ class LiquidateDisposalController extends Controller
             $liquidate = Liquidate::findOrFail($id);
             
             // SECURITY: Ensure user has access
-            $user = auth()->user();
-            if ($user->warehouse_id) {
-                $hasAccess = $liquidate->items()->where('warehouse', $user->warehouse->name)->exists();
-                if (!$hasAccess) {
-                    return response()->json(['message' => 'Unauthorized access to this liquidation.'], 403);
+            $user = auth()->user()->load('warehouse');
+            $isCentral = $user->warehouse?->type === 'central';
+            $isRegional = $user->warehouse?->type === 'regional';
+            $userRegion = $user->warehouse?->region;
+
+            if ($isRegional) {
+                if ($liquidate->warehouse !== $user->warehouse->name) {
+                    $facilityInRegion = \App\Models\Facility::where('name', $liquidate->facility)
+                        ->where('region', $userRegion)
+                        ->exists();
+                    if (!$facilityInRegion) {
+                        return response()->json(['message' => 'Unauthorized access to this liquidation.'], 403);
+                    }
                 }
+            } elseif (!$isCentral) {
+                return response()->json(['message' => 'Unauthorized access.'], 403);
             }
             $liquidate->status = 'pending';
             $liquidate->approved_by = null;
@@ -421,12 +486,26 @@ class LiquidateDisposalController extends Controller
         try {
             $disposal = Disposal::findOrFail($id);
             
-            // SECURITY: Ensure user has access
-            $user = auth()->user();
-            if ($user->warehouse_id) {
-                $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
-                if (!$hasAccess) {
-                    return response()->json(['message' => 'Unauthorized access to this disposal.'], 403);
+            // SECURITY: Detailed review rules
+            $user = auth()->user()->load('warehouse');
+            $isCentral = $user->warehouse?->type === 'central';
+            $isRegional = $user->warehouse?->type === 'regional';
+            $userRegion = $user->warehouse?->region;
+            
+            if ($isCentral) {
+                // Central can review its own warehouse records
+                if ($disposal->warehouse_id !== $user->warehouse_id) {
+                    return response()->json(['message' => 'Central users can only review records belonging to Central Warehouse. Facilities and Regional Warehouses are reviewed by Regional users.'], 403);
+                }
+            } elseif ($isRegional) {
+                // Regional can review self or facilities in their region
+                if ($disposal->warehouse !== $user->warehouse->name) {
+                    $facilityInRegion = \App\Models\Facility::where('name', $disposal->facility)
+                        ->where('region', $userRegion)
+                        ->exists();
+                    if (!$facilityInRegion) {
+                        return response()->json(['message' => 'Unauthorized: You can only review records from your own warehouse or facilities in your region.'], 403);
+                    }
                 }
             }
             
@@ -441,21 +520,6 @@ class LiquidateDisposalController extends Controller
             $disposal->reviewed_by = Auth::id();
             $disposal->save();
 
-            // Notify users with approve/reject permission (next action)
-            $approvers = User::withPermission('disposal-approve')
-                ->where('is_active', true)
-                ->whereNotNull('email')
-                ->where('id', '!=', auth()->id())
-                ->get();
-            $rejectors = User::withPermission('disposal-reject')
-                ->where('is_active', true)
-                ->whereNotNull('email')
-                ->where('id', '!=', auth()->id())
-                ->get();
-            $recipients = $approvers->merge($rejectors)->unique('id');
-            foreach ($recipients as $user) {
-                $user->notify(new DisposalActionRequired($disposal, DisposalActionRequired::ACTION_READY_FOR_APPROVAL));
-            }
 
             return response()->json([
                 'message' => 'Disposal reviewed successfully',
@@ -480,27 +544,23 @@ class LiquidateDisposalController extends Controller
         try {
             $disposal = Disposal::findOrFail($id);
             
-            // SECURITY: Ensure user has access
-            $user = auth()->user();
-            if ($user->warehouse_id) {
-                $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
-                if (!$hasAccess) {
-                    return response()->json(['message' => 'Unauthorized access to this disposal.'], 403);
-                }
+            // SECURITY: Only Central Warehouse can approve
+            $user = auth()->user()->load('warehouse');
+            $isCentral = $user->warehouse?->type === 'central';
+            
+            if (!$isCentral) {
+                return response()->json(['message' => 'Unauthorized: Approval is restricted to the Central Warehouse.'], 403);
             }
             
-            if (!in_array($disposal->status, ['reviewed', 'rejected'])) {
+            if ($disposal->status !== 'reviewed') {
                 return response()->json([
-                    'message' => 'Only reviewed or rejected disposals can be approved'
+                    'message' => 'Only reviewed disposals can be approved'
                 ], 422);
             }
 
             $disposal->status = 'approved';
             $disposal->approved_at = now();
             $disposal->approved_by = Auth::id();
-            $disposal->rejected_at = null;
-            $disposal->rejection_reason = null;
-            $disposal->rejected_by = null;
             $disposal->save();
 
             return response()->json([
@@ -514,49 +574,6 @@ class LiquidateDisposalController extends Controller
         }
     }
 
-    /**
-     * Reject a disposal
-     */
-    public function rejectDisposal(Request $request, $id)
-    {
-        if (!auth()->user()->hasPermission('disposal-reject')) {
-            return response()->json(['message' => 'Unauthorized: You do not have permission to reject disposals.'], 403);
-        }
-
-        try {
-            $disposal = Disposal::findOrFail($id);
-            
-            // SECURITY: Ensure user has access
-            $user = auth()->user();
-            if ($user->warehouse_id) {
-                $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
-                if (!$hasAccess) {
-                    return response()->json(['message' => 'Unauthorized access to this disposal.'], 403);
-                }
-            }
-            
-            if ($disposal->status !== 'reviewed') {
-                return response()->json([
-                    'message' => 'Only reviewed disposals can be rejected'
-                ], 422);
-            }
-
-            $disposal->status = 'rejected';
-            $disposal->rejected_at = now();
-            $disposal->rejected_by = Auth::id();
-            $disposal->rejection_reason = $request->reason;
-            $disposal->save();
-
-            return response()->json([
-                'message' => 'Disposal rejected successfully',
-                'disposal' => $disposal
-            ], 200);
-        } catch (\Throwable $th) {
-            return response()->json([
-                'message' => 'Error rejecting disposal: ' . $th->getMessage()
-            ], 500);
-        }
-    }
 
     /**
      * Rollback an approved disposal to pending status
@@ -571,12 +588,22 @@ class LiquidateDisposalController extends Controller
             $disposal = Disposal::findOrFail($id);
             
             // SECURITY: Ensure user has access
-            $user = auth()->user();
-            if ($user->warehouse_id) {
-                $hasAccess = $disposal->items()->where('warehouse', $user->warehouse->name)->exists();
-                if (!$hasAccess) {
-                    return response()->json(['message' => 'Unauthorized access to this disposal.'], 403);
+            $user = auth()->user()->load('warehouse');
+            $isCentral = $user->warehouse?->type === 'central';
+            $isRegional = $user->warehouse?->type === 'regional';
+            $userRegion = $user->warehouse?->region;
+
+            if ($isRegional) {
+                if ($disposal->warehouse !== $user->warehouse->name) {
+                    $facilityInRegion = \App\Models\Facility::where('name', $disposal->facility)
+                        ->where('region', $userRegion)
+                        ->exists();
+                    if (!$facilityInRegion) {
+                        return response()->json(['message' => 'Unauthorized access to this disposal.'], 403);
+                    }
                 }
+            } elseif (!$isCentral) {
+                return response()->json(['message' => 'Unauthorized access.'], 403);
             }
             
             if ($disposal->status !== 'approved') {

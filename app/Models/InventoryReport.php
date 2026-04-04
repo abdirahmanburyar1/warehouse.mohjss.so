@@ -14,6 +14,7 @@ class InventoryReport extends Model
     const STATUS_REJECTED = 'rejected';
 
     protected $fillable = [
+        'warehouse_id',
         'month_year',
         'generated_by',
         'generated_at',

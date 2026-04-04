@@ -11,6 +11,7 @@ class MohInventory extends Model
     protected $fillable = [
         'uuid',
         'date',
+        'warehouse_id',
         'reviewed_at',
         'reviewed_by',
         'approved_by',
@@ -18,6 +19,7 @@ class MohInventory extends Model
         'rejected_by',
         'rejected_at',
         'rejection_reason',
+        'created_by',
     ];
 
     protected $casts = [
@@ -56,11 +58,27 @@ class MohInventory extends Model
     }
 
     /**
+     * Get the user who created the MOH inventory.
+     */
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
      * Get the user who rejected the MOH inventory.
      */
     public function rejected(): BelongsTo
     {
         return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    /**
+     * Get the warehouse associated with the MOH inventory.
+     */
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
     }
 
     /**

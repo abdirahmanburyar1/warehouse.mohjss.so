@@ -721,6 +721,10 @@ const canAddAllocation = (item) =>
 function syncAllocatedWithReceived(item, changedIndex = null) {
     const received = Number(item.quantity) || 0;
     const total = allocatedTotal(item);
+
+    // Update total cost reactively
+    item.total_cost = received * (Number(item.unit_cost) || 0);
+
     if (total <= received) return;
 
     const overflow = total - received;
@@ -894,7 +898,7 @@ onMounted(async () => {
                 expire_date: pli.expire_date,
                 barcode: pli.barcode,
                 unit_cost: pli.unit_cost,
-                total_cost: pli.total_cost,
+                total_cost: (Number(pli.unit_cost) || 0) * (Number(pli.quantity) || 0),
                 status: pli.status,
                 differences: pli.differences || [],
                 quantity: 0,
@@ -910,6 +914,7 @@ onMounted(async () => {
     groupedItems.value = Object.values(groups);
     groupedItems.value.forEach((g) => {
         g.quantity = allocatedTotal(g);
+        g.total_cost = (Number(g.quantity) || 0) * (Number(g.unit_cost) || 0);
     });
 
     // Load locations for existing items that have warehouses selected

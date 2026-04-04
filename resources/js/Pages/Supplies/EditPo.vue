@@ -905,7 +905,7 @@ async function rejectPO() {
 
     try {
         isProcessing.value.reject = true;
-        const response = await axios.post(route('purchase-orders.reject', form.value.id), {
+        const response = await axios.post(route('supplies.rejectPO', form.value.id), {
             reason: reason
         });
         form.value.rejected_at = response.data.rejected_at;
@@ -930,7 +930,7 @@ async function rejectPO() {
         Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Failed to reject purchase order'
+            text: error.response?.data || 'Failed to reject purchase order'
         });
     } finally {
         isProcessing.value.reject = false;

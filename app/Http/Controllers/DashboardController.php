@@ -512,7 +512,8 @@ class DashboardController extends Controller
             }
             
             // Get the inventory report for the specified month
-            $inventoryReport = InventoryReport::where('month_year', $month)->first();
+            $inventoryReport = InventoryReport::where('warehouse_id', $warehouseId ?? auth()->user()->warehouse_id)
+                ->where('month_year', $month)->first();
             
             // Get all warehouse products with their categories
             $warehouseProducts = Product::with('category')
@@ -540,9 +541,9 @@ class DashboardController extends Controller
                     $query = $inventoryReport->items()->where('product_id', $product->id);
                     
                     // Apply warehouse filter
-                    if ($warehouseId) {
-                        $query->where('warehouse_id', $warehouseId);
-                    }
+                    // if ($warehouseId) {
+                    //     $query->where('warehouse_id', $warehouseId);
+                    // }
                     
                     $inventoryItem = $query->first();
                 }
@@ -618,60 +619,34 @@ class DashboardController extends Controller
             $type = $request->type ?? 'opening_balance';
             $month = $request->month ?? now()->subMonth()->format('Y-m');
             $facilityId = $request->facility_id ?? null;
-            
-            // Note: Only products with 'Facility' in their tracert_type array will be included
-            
-            // Validate the type is one of the allowed columns
-            // opening_balance = Beginning Balance, stock_received = QTY Received, 
-            // stock_issued = Issued Quantity (Monthly Consumption), closing_balance = Closing Balance (Calculated)
-            // positive_adjustments = Positive Adjustments, negative_adjustments = Negative Adjustments
-            $allowedTypes = ['opening_balance', 'stock_received', 'stock_issued', 'closing_balance', 'positive_adjustments', 'negative_adjustments'];
+
+            $allowedTypes = [
+                'opening_balance',
+                'stock_received',
+                'stock_issued',
+                'closing_balance',
+                'positive_adjustments',
+                'negative_adjustments'
+            ];
+
             if (!in_array($type, $allowedTypes)) {
                 $type = 'opening_balance';
             }
-            
-            // Get facilities list for frontend
-            $user = auth()->user();
-            $facilitiesQuery = Facility::select('id', 'name', 'facility_type');
-            
-            if ($user->warehouse_id && $user->warehouse->region) {
-                $facilitiesQuery->where('region', trim($user->warehouse->region));
-            }
 
-            $facilities = $facilitiesQuery->orderBy('name')->get();
-            
-            // Build query for facility monthly reports
+            $facilities = Facility::select('id', 'name', 'facility_type')
+                ->orderBy('name')
+                ->get();
+
             $query = FacilityMonthlyReport::where('report_period', $month)
                 ->with(['facility', 'items.product.category']);
-                
-            // Filter by facility if specified, otherwise get all facilities
+
             if ($facilityId) {
-                // SECURITY: Verify facility is in region
-                if ($user->warehouse_id && $user->warehouse->region) {
-                    $exists = Facility::where('id', $facilityId)->where('region', trim($user->warehouse->region))->exists();
-                    if (!$exists) {
-                        return response()->json(['success' => false, 'message' => 'Unauthorized: Facility is outside your region'], 403);
-                    }
-                }
                 $query->where('facility_id', $facilityId);
-                $facilityReports = [$query->first()];
-                $selectedFacilityName = $facilityReports[0]->facility->name ?? 'Unknown Facility';
-            } else {
-                // If no facility specified but regional user, must restrict to regional facilities
-                if ($user->warehouse_id && $user->warehouse->region) {
-                    $regionalFacilityIds = Facility::where('region', trim($user->warehouse->region))->pluck('id')->toArray();
-                    $query->whereIn('facility_id', $regionalFacilityIds);
-                }
-                $facilityReports = $query->get()->toArray();
-                $selectedFacilityName = 'Filtered Facilities';
             }
-            
-            // Filter out null reports and check if we have any data
-            $facilityReports = array_filter($facilityReports, function($report) {
-                return $report && !empty($report['items']);
-            });
-                
-            if (empty($facilityReports)) {
+
+            $facilityReports = $query->get();
+
+            if ($facilityReports->isEmpty()) {
                 return response()->json([
                     'success' => false,
                     'message' => "No facility reports found for {$month}",
@@ -680,81 +655,37 @@ class DashboardController extends Controller
                     'facilities' => $facilities
                 ], 404);
             }
-            
-            // Create a collection to hold all items from all facilities
-            $items = collect();
-            
+
+            $selectedFacilityName = optional($facilityReports->first()->facility)->name ?? 'All Facilities';
+
+            // Create a collection to hold all traceable items
+            $rawItems = collect();
             foreach ($facilityReports as $facilityReport) {
-                if (!$facilityReport || empty($facilityReport['items'])) continue;
-                
-                foreach ($facilityReport['items'] as $reportItem) {
-                    // Convert array to object if needed
-                    if (is_array($reportItem)) {
-                        $reportItem = (object) $reportItem;
-                        if (isset($reportItem->product) && is_array($reportItem->product)) {
-                            $reportItem->product = (object) $reportItem->product;
-                            if (isset($reportItem->product->category) && is_array($reportItem->product->category)) {
-                                $reportItem->product->category = (object) $reportItem->product->category;
-                            }
-                        }
-                    }
-                    
+                foreach ($facilityReport->items as $reportItem) {
                     if (!$reportItem->product) continue;
-                    
-                    // Only include products that are traceable for facilities
+
+                    // tracert filter
                     $tracertType = $reportItem->product->tracert_type ?? '';
                     $isFacilityTraceable = false;
-                    
+
                     if (is_string($tracertType)) {
-                        // Handle string format
                         $isFacilityTraceable = str_contains($tracertType, 'Facility');
                     } elseif (is_array($tracertType)) {
-                        // Handle array format
                         $isFacilityTraceable = in_array('Facility', $tracertType);
                     } else {
-                        // Handle JSON string format
                         $decoded = json_decode($tracertType, true);
                         if (is_array($decoded)) {
                             $isFacilityTraceable = in_array('Facility', $decoded);
                         }
                     }
-                    
-                    if (!$isFacilityTraceable) continue;
-                    
-                    // Get category name from the product's category relationship
-                    $categoryName = $reportItem->product->category ? $reportItem->product->category->name : 'Uncategorized';
 
-                    // Calculate closing balance using LMIS formula: 
-                    // Opening Balance + Stock Received - Stock Issued + Positive Adjustments - Negative Adjustments
-                    $calculatedClosingBalance = ($reportItem->opening_balance ?? 0)
-                                              + ($reportItem->stock_received ?? 0)
-                                              - ($reportItem->stock_issued ?? 0)
-                                              + ($reportItem->positive_adjustments ?? 0)
-                                              - ($reportItem->negative_adjustments ?? 0);
-                    
-                    // Create a mock item with the report item data
-                    $mockItem = (object) [
-                        'id' => $reportItem->id,
-                        'product' => $reportItem->product,
-                        'category' => $reportItem->product->category,
-                        'category_name' => $categoryName,
-                        'opening_balance' => $reportItem->opening_balance ?? 0,
-                        'stock_received' => $reportItem->stock_received ?? 0,
-                        'stock_issued' => $reportItem->stock_issued ?? 0,
-                        'positive_adjustments' => $reportItem->positive_adjustments ?? 0,
-                        'negative_adjustments' => $reportItem->negative_adjustments ?? 0,
-                        'closing_balance' => $calculatedClosingBalance, // Use calculated value
-                        'stored_closing_balance' => $reportItem->closing_balance ?? 0, // Keep original for reference
-                    ];
-                    
-                    $items->push($mockItem);
+                    if ($isFacilityTraceable) {
+                        $rawItems->push($reportItem);
+                    }
                 }
             }
-            
-            // Sort by the selected type in descending order
-            $items = $items->sortByDesc($type);
 
-            if ($items->isEmpty()) {
+            if ($rawItems->isEmpty()) {
                 return response()->json([
                     'success' => false,
                     'message' => "No facility traceable items found for {$month}",
@@ -764,7 +695,41 @@ class DashboardController extends Controller
                 ], 404);
             }
 
-            // Process data for charts
+            // 🔥 GROUP BY PRODUCT to consolidate batches
+            $grouped = $rawItems->groupBy('product_id');
+            $items = collect();
+
+            foreach ($grouped as $productId => $group) {
+                $first = $group->first();
+                $product = $first->product;
+
+                // Sum metrics across all batches for this product
+                $opening = $group->sum('opening_balance');
+                $received = $group->sum('stock_received');
+                $issued = $group->sum('stock_issued');
+                $posAdj = $group->sum('positive_adjustments');
+                $negAdj = $group->sum('negative_adjustments');
+
+                // Calculate real product-level closing balance
+                $closing = $opening + $received - $issued + $posAdj - $negAdj;
+
+                $items->push((object)[
+                    'id' => $first->id,
+                    'product_id' => $productId,
+                    'product' => $product,
+                    'category_name' => optional($product->category)->name ?? 'Uncategorized',
+                    'opening_balance' => $opening,
+                    'stock_received' => $received,
+                    'stock_issued' => $issued,
+                    'positive_adjustments' => $posAdj,
+                    'negative_adjustments' => $negAdj,
+                    'closing_balance' => $closing,
+                    'total_closing_balance' => $closing,
+                ]);
+            }
+
+            $items = $items->sortByDesc($type)->values();
+
             $chartData = $this->processChartData($items, $type);
             $summary = $this->processSummaryData($items, $type);
 
@@ -788,23 +753,22 @@ class DashboardController extends Controller
                         'stock_issued' => $item->stock_issued,
                         'positive_adjustments' => $item->positive_adjustments,
                         'negative_adjustments' => $item->negative_adjustments,
-                        'closing_balance' => $item->closing_balance, // Calculated value
-                        'stored_closing_balance' => $item->stored_closing_balance, // Original stored value
+                        'closing_balance' => $item->closing_balance,
+                        'total_closing_balance' => $item->total_closing_balance,
                     ];
                 })
             ], 200);
 
-        } catch (\Throwable $th) {             
-            // Try to get facilities list even on error
-            $facilities = collect();
+        } catch (\Throwable $th) {
+
             try {
                 $facilities = Facility::select('id', 'name', 'facility_type')
                     ->orderBy('name')
                     ->get();
             } catch (\Exception $e) {
-                // If facilities can't be loaded, use empty collection
+                $facilities = collect();
             }
-            
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch facility data: ' . $th->getMessage(),
@@ -812,8 +776,216 @@ class DashboardController extends Controller
                 'summary' => $this->getEmptySummary(),
                 'facilities' => $facilities
             ], 500);
-        }        
+        }
     }
+
+    // public function facilityTracertItems(Request $request)
+    // {
+    //     try {
+    //         $type = $request->type ?? 'opening_balance';
+    //         $month = $request->month ?? now()->subMonth()->format('Y-m');
+    //         $facilityId = $request->facility_id ?? null;
+            
+    //         // Note: Only products with 'Facility' in their tracert_type array will be included
+            
+    //         // Validate the type is one of the allowed columns
+    //         // opening_balance = Beginning Balance, stock_received = QTY Received, 
+    //         // stock_issued = Issued Quantity (Monthly Consumption), closing_balance = Closing Balance (Calculated)
+    //         // positive_adjustments = Positive Adjustments, negative_adjustments = Negative Adjustments
+    //         $allowedTypes = ['opening_balance', 'stock_received', 'stock_issued', 'closing_balance', 'positive_adjustments', 'negative_adjustments'];
+    //         if (!in_array($type, $allowedTypes)) {
+    //             $type = 'opening_balance';
+    //         }
+            
+    //         // Get facilities list for frontend
+    //         $user = auth()->user();
+    //         $facilitiesQuery = Facility::select('id', 'name', 'facility_type');
+            
+    //         if ($user->warehouse_id && $user->warehouse->region) {
+    //             $facilitiesQuery->where('region', trim($user->warehouse->region));
+    //         }
+
+    //         $facilities = $facilitiesQuery->orderBy('name')->get();
+            
+    //         // Build query for facility monthly reports
+    //         $query = FacilityMonthlyReport::where('report_period', $month)
+    //             ->with(['facility', 'items.product.category']);
+
+    //         $facilityReports = $query->get()->toArray();
+                
+    //         // // Filter by facility if specified, otherwise get all facilities
+    //         // if ($facilityId) {
+    //         //     // SECURITY: Verify facility is in region
+    //         //     if ($user->warehouse_id && $user->warehouse->region) {
+    //         //         $exists = Facility::where('id', $facilityId)
+    //         //         // ->where('region', trim($user->warehouse->region))
+    //         //         ->exists();
+    //         //         if (!$exists) {
+    //         //             return response()->json(['success' => false, 'message' => 'Unauthorized: Facility is outside your region'], 403);
+    //         //         }
+    //         //     }
+    //         //     $query->where('facility_id', $facilityId);
+    //             // $facilityReports = [$query->first()];
+    //             // $selectedFacilityName = $facilityReports[0]->facility->name ?? 'Unknown Facility';
+    //         // } else {
+    //         //     // If no facility specified but regional user, must restrict to regional facilities
+    //         //     if ($user->warehouse_id && $user->warehouse->region) {
+    //         //         $regionalFacilityIds = Facility::where('region', trim($user->warehouse->region))->pluck('id')->toArray();
+    //         //         $query->whereIn('facility_id', $regionalFacilityIds);
+    //         //     }
+    //         $facilityReports = $query->get()->toArray();
+    //         // $selectedFacilityName = 'Filtered Facilities';
+    //         $selectedFacilityName = $facilityReports[0]->facility->name ?? 'Unknown Facility';
+    //         // }
+            
+    //         // // Filter out null reports and check if we have any data
+    //         $facilityReports = array_filter($facilityReports, function($report) {
+    //             return $report && !empty($report['items']);
+    //         });
+                
+    //         if (empty($facilityReports)) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => "No facility reports found for {$month}",
+    //                 'chartData' => $this->getEmptyChartData(),
+    //                 'summary' => $this->getEmptySummary(),
+    //                 'facilities' => $facilities
+    //             ], 404);
+    //         }
+            
+    //         // Create a collection to hold all items from all facilities
+    //         $items = collect();
+            
+    //         foreach ($facilityReports as $facilityReport) {
+    //             if (!$facilityReport || empty($facilityReport['items'])) continue;
+                
+    //             foreach ($facilityReport['items'] as $reportItem) {
+    //                 // Convert array to object if needed
+    //                 if (is_array($reportItem)) {
+    //                     $reportItem = (object) $reportItem;
+    //                     if (isset($reportItem->product) && is_array($reportItem->product)) {
+    //                         $reportItem->product = (object) $reportItem->product;
+    //                         if (isset($reportItem->product->category) && is_array($reportItem->product->category)) {
+    //                             $reportItem->product->category = (object) $reportItem->product->category;
+    //                         }
+    //                     }
+    //                 }
+                    
+    //                 if (!$reportItem->product) continue;
+                    
+    //                 // Only include products that are traceable for facilities
+    //                 $tracertType = $reportItem->product->tracert_type ?? '';
+    //                 $isFacilityTraceable = false;
+                    
+    //                 if (is_string($tracertType)) {
+    //                     // Handle string format
+    //                     $isFacilityTraceable = str_contains($tracertType, 'Facility');
+    //                 } elseif (is_array($tracertType)) {
+    //                     // Handle array format
+    //                     $isFacilityTraceable = in_array('Facility', $tracertType);
+    //                 } else {
+    //                     // Handle JSON string format
+    //                     $decoded = json_decode($tracertType, true);
+    //                     if (is_array($decoded)) {
+    //                         $isFacilityTraceable = in_array('Facility', $decoded);
+    //                     }
+    //                 }
+                    
+    //                 if (!$isFacilityTraceable) continue;
+                    
+    //                 // Get category name from the product's category relationship
+    //                 $categoryName = $reportItem->product->category ? $reportItem->product->category->name : 'Uncategorized';
+
+    //                 // Calculate closing balance using LMIS formula: 
+    //                 // Opening Balance + Stock Received - Stock Issued + Positive Adjustments - Negative Adjustments
+    //                 $calculatedClosingBalance = ($reportItem->opening_balance ?? 0)
+    //                                           + ($reportItem->stock_received ?? 0)
+    //                                           - ($reportItem->stock_issued ?? 0)
+    //                                           + ($reportItem->positive_adjustments ?? 0)
+    //                                           - ($reportItem->negative_adjustments ?? 0);
+                    
+    //                 // Create a mock item with the report item data
+    //                 $mockItem = (object) [
+    //                     'id' => $reportItem->id,
+    //                     'product' => $reportItem->product,
+    //                     'category' => $reportItem->product->category,
+    //                     'category_name' => $categoryName,
+    //                     'opening_balance' => $reportItem->opening_balance ?? 0,
+    //                     'stock_received' => $reportItem->stock_received ?? 0,
+    //                     'stock_issued' => $reportItem->stock_issued ?? 0,
+    //                     'positive_adjustments' => $reportItem->positive_adjustments ?? 0,
+    //                     'negative_adjustments' => $reportItem->negative_adjustments ?? 0,
+    //                     'closing_balance' => $calculatedClosingBalance, // Use calculated value
+    //                     'stored_closing_balance' => $reportItem->closing_balance ?? 0, // Keep original for reference
+    //                 ];
+                    
+    //                 $items->push($mockItem);
+    //             }
+    //         }
+            
+    //         // Sort by the selected type in descending order
+    //         $items = $items->sortByDesc($type);
+
+    //         if ($items->isEmpty()) {
+    //             return response()->json([
+    //                 'success' => false,
+    //                 'message' => "No facility traceable items found for {$month}",
+    //                 'chartData' => $this->getEmptyChartData(),
+    //                 'summary' => $this->getEmptySummary(),
+    //                 'facilities' => $facilities
+    //             ], 404);
+    //         }
+
+    //         // Process data for charts
+    //         $chartData = $this->processChartData($items, $type);
+    //         $summary = $this->processSummaryData($items, $type);
+
+    //         return response()->json([
+    //             'success' => true,
+    //             'month' => $month,
+    //             'type' => $type,
+    //             'facility' => $selectedFacilityName,
+    //             'facilities' => $facilities,
+    //             'chartData' => $chartData,
+    //             'summary' => $summary,
+    //             'items' => $items->map(function ($item) use ($type) {
+    //                 return [
+    //                     'id' => $item->id,
+    //                     'product_name' => $item->product->name,
+    //                     'product_id' => $item->product->productID,
+    //                     'category_name' => $item->category_name,
+    //                     'value' => $item->{$type},
+    //                     'opening_balance' => $item->opening_balance,
+    //                     'stock_received' => $item->stock_received,
+    //                     'stock_issued' => $item->stock_issued,
+    //                     'positive_adjustments' => $item->positive_adjustments,
+    //                     'negative_adjustments' => $item->negative_adjustments,
+    //                     'closing_balance' => $item->closing_balance, // Calculated value
+    //                     'stored_closing_balance' => $item->stored_closing_balance, // Original stored value
+    //                 ];
+    //             })
+    //         ], 200);
+
+    //     } catch (\Throwable $th) {             
+    //         // Try to get facilities list even on error
+    //         $facilities = collect();
+    //         try {
+    //             $facilities = Facility::select('id', 'name', 'facility_type')
+    //                 ->orderBy('name')
+    //                 ->get();
+    //         } catch (\Exception $e) {
+    //             // If facilities can't be loaded, use empty collection
+    //         }
+            
+    //         return response()->json([
+    //             'success' => false,
+    //             'message' => 'Failed to fetch facility data: ' . $th->getMessage(),
+    //             'chartData' => $this->getEmptyChartData(),
+    //             'summary' => $this->getEmptySummary(),
+    //             'facilities' => $facilities
+    //         ], 500);
+    //     }        
+    // }
 
     /**
      * Process data for chart visualization - chunk by 4 but organized by category

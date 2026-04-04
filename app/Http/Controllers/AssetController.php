@@ -15,6 +15,7 @@ use App\Models\AssetType;
 use App\Models\AssetHistory;
 use App\Models\FundSource;
 use App\Models\Facility;
+use App\Models\AssetApprovalItem;
 use App\Http\Resources\AssetResource;
 use App\Http\Resources\AssetItemResource;
 use Illuminate\Http\Request;
@@ -29,156 +30,221 @@ use Illuminate\Support\Carbon;
 
 class AssetController extends Controller
 {
-    public function index(Request $request)
+    private function getFilteredAssets(Request $request, $query, $requireFilters = true)
     {
-        $assetItems = AssetItem::query();
+        // 1. Initial filter check - only count EXPLICIT user selections
+        $userFilters = [
+            'search', 'region_id', 'location_id', 'district_id', 
+            'fund_source_id', 'status', 'category_id', 'type_id', 
+            'assignee_id', 'acquisition_from', 'acquisition_to', 
+            'created_from', 'asset_id', 'created_to', 'selectedAsset'
+        ];
 
-        // Organization filter - only show asset items from the same organization if user has one
-        if (auth()->check() && auth()->user() && !empty(auth()->user()->organization)) {
-            $assetItems->whereHas('asset', function($query) {
-                $query->where('organization', auth()->user()->organization);
+        $hasExplicitFilters = false;
+        foreach ($userFilters as $filter) {
+            if ($request->filled($filter)) {
+                $hasExplicitFilters = true;
+                break;
+            }
+        }
+
+        $user = auth()->user();
+        $isRegional = !$user->isAdmin() && $user->warehouse?->region;
+
+        if ($isRegional) {
+            $regionName = trim($user->warehouse->region);
+            $region = Region::where('name', $regionName)->first();
+            if ($region) {
+                // If they specifically tried to filter by another region, the explicit check would be true,
+                // but we must still force their region scope.
+                $query->whereHas('asset', function($q) use ($region) {
+                    $q->where('region_id', $region->id);
+                });
+            }
+        }
+
+        if ($requireFilters && !$hasExplicitFilters) {
+            $query->whereRaw('1 = 0');
+        }
+
+        if ($request->filled('asset_id')) {
+            $query->where('asset_id', $request->asset_id);
+        }
+
+        if ($request->filled('selectedAsset')) {
+            $query->whereHas('asset', function($q) use ($request) {
+                $q->where('asset_number', $request->selectedAsset);
             });
         }
-        
-        $hasFilters = $request->filled('search') || 
-                      $request->filled('region_id') || 
-                      $request->filled('location_id') || 
-                      $request->filled('district_id') || 
-                      $request->filled('fund_source_id') || 
-                      $request->filled('status') || 
-                      $request->filled('category_id') || 
-                      $request->filled('type_id') || 
-                      $request->filled('assignee_id') || 
-                      $request->filled('acquisition_from') || 
-                      $request->filled('acquisition_to') || 
-                      $request->filled('created_from') || 
-                      $request->filled('created_to');
 
-        // Only fetch assets if at least one filter is applied
-        if (!$hasFilters) {
-            $assetItems->whereRaw('1 = 0'); // Returns an empty result set
-        }
-
+        // Apply filters
         if($request->filled('search')){
-            $assetItems->where(function($query) use ($request) {
-                $query->whereLike('asset_tag', '%'.$request->search.'%')   
+            $query->where(function($q) use ($request) {
+                $q->whereLike('asset_tag', '%'.$request->search.'%')   
                     ->orWhereLike('asset_name', '%'.$request->search.'%')
-                ->orWhereLike('serial_number', '%'.$request->search.'%')
-                    ->orWhereHas('asset.fundSource', function($q) use ($request){
-                        $q->where('name', 'like', '%'.$request->search.'%');
+                    ->orWhereLike('serial_number', '%'.$request->search.'%')
+                    ->orWhereHas('asset.fundSource', function($innerQ) use ($request){
+                        $innerQ->where('name', 'like', '%'.$request->search.'%');
                     });
                 });
         }
 
         if($request->filled('region_id')){
-            $assetItems->whereHas('asset', function($query) use ($request) {
-                $query->where('region_id', $request->region_id);
+            $query->whereHas('asset', function($q) use ($request) {
+                $q->where('region_id', $request->region_id);
             });
         }
 
         if($request->filled('location_id')){
-            $assetItems->whereHas('asset', function($query) use ($request) {
-                $query->where('facility_id', $request->location_id);
+            $query->whereHas('asset', function($q) use ($request) {
+                $q->where('facility_id', $request->location_id);
             });
         }
 
         if($request->filled('district_id')){
-            $assetItems->whereHas('asset', function($query) use ($request) {
-                $query->where('district_id', $request->district_id);
+            $query->whereHas('asset', function($q) use ($request) {
+                $q->where('district_id', $request->district_id);
             });
         }
 
         if($request->filled('fund_source_id')){
-            $assetItems->whereHas('asset', function($query) use ($request) {
-                $query->where('fund_source_id', $request->fund_source_id);
+            $query->whereHas('asset', function($q) use ($request) {
+                $q->where('fund_source_id', $request->fund_source_id);
             });
         }
 
-        // Status filter
         if ($request->filled('status')) {
-            $assetItems->where('status', $request->status);
+            $query->where('status', $request->status);
         }
 
-        // New filters
         if ($request->filled('category_id')) {
-            $assetItems->where('asset_category_id', $request->category_id);
+            $query->where('asset_category_id', $request->category_id);
         }
+
         if ($request->filled('type_id')) {
-            $assetItems->where('asset_type_id', $request->type_id);
+            $query->where('asset_type_id', $request->type_id);
         }
+
         if ($request->filled('assignee_id')) {
-            $assetItems->where('assignee_id', $request->input('assignee_id'));
+            $query->where('assignee_id', $request->input('assignee_id'));
         }
+
         if ($request->filled('acquisition_from') || $request->filled('acquisition_to')) {
             $from = $request->input('acquisition_from');
             $to = $request->input('acquisition_to');
             if ($from && $to) {
-                $assetItems->whereHas('asset', function($query) use ($from, $to) {
-                    $query->whereBetween('acquisition_date', [$from, $to]);
+                $query->whereHas('asset', function($q) use ($from, $to) {
+                    $q->whereBetween('acquisition_date', [$from, $to]);
                 });
             } elseif ($from) {
-                $assetItems->whereHas('asset', function($query) use ($from) {
-                    $query->whereDate('acquisition_date', '>=', $from);
+                $query->whereHas('asset', function($q) use ($from) {
+                    $q->whereDate('acquisition_date', '>=', $from);
                 });
             } elseif ($to) {
-                $assetItems->whereHas('asset', function($query) use ($to) {
-                    $query->whereDate('acquisition_date', '<=', $to);
+                $query->whereHas('asset', function($q) use ($to) {
+                    $q->whereDate('acquisition_date', '<=', $to);
                 });
             }
         }
+
         if ($request->filled('created_from') || $request->filled('created_to')) {
             $from = $request->input('created_from');
             $to = $request->input('created_to');
             if ($from && $to) {
-                $assetItems->whereBetween('created_at', [$from, $to]);
+                $query->whereBetween('created_at', [$from, $to]);
             } elseif ($from) {
-                $assetItems->whereDate('created_at', '>=', $from);
+                $query->whereDate('created_at', '>=', $from);
             } elseif ($to) {
-                $assetItems->whereDate('created_at', '<=', $to);
+                $query->whereDate('created_at', '<=', $to);
             }
         }
-    
+
+        return $query;
+    }
+
+    private function getCommonData()
+    {
+        $verifiedCount = AssetItem::count();
+        $functioningCount = AssetItem::where('status', 'functioning')->count();
+        $pendingCount = AssetItem::where('status', 'pending_approval')->count();
+        $maintenanceCount = AssetItem::whereIn('status', ['maintenance', 'not_functioning'])->count();
+
+        $stagingCount = Asset::whereNotNull('submitted_at')
+            ->whereNull('approved_at')
+            ->whereNull('rejected_at')
+            ->count();
+
+        $user = auth()->user();
+        $isRegional = !$user->isAdmin() && $user->warehouse?->region;
+        $regionName = $isRegional ? trim($user->warehouse->region) : null;
+
+        $facilitiesQuery = Facility::orderBy('name');
+        if ($regionName) {
+            $facilitiesQuery->where('region', $regionName);
+        }
+        $facilities = $facilitiesQuery->get(['id', 'name', 'district', 'region']);
+
+        $districtsQuery = District::orderBy('name');
+        if ($regionName) {
+            $districtsQuery->where('region', $regionName);
+        }
+        $districts = $districtsQuery->get();
+
+        $regionsQuery = Region::query();
+        if ($regionName) {
+            $regionsQuery->where('name', $regionName);
+        }
+        $regions = $regionsQuery->get();
+
+        $categories = AssetCategory::select('id', 'name')->get();
+        $types = AssetType::select('id', 'name', 'asset_category_id')->get();
+        $assignees = Assignee::select('id', 'name')->get();
+
+        return [
+            'facilities' => $facilities,
+            'districts' => $districts,
+            'assetsCount' => $verifiedCount,
+            'functioningCount' => $functioningCount,
+            'pendingCount' => $pendingCount,
+            'maintenanceCount' => $maintenanceCount,
+            'stagingCount' => $stagingCount,
+            'regions' => $regions,
+            'fundSources' => FundSource::get(['id', 'name']),
+            'categories' => $categories,
+            'types' => $types,
+            'assignees' => $assignees,
+        ];
+    }
+
+    public function index(Request $request)
+    {
+        $query = AssetItem::query();
+        $assetItems = $this->getFilteredAssets($request, $query, true);
         $assetItems->orderBy('created_at', 'desc');
 
         $assetItems = $assetItems->with([
-            'asset:id,asset_number,acquisition_date,fund_source_id,region_id,district_id,facility_id',
+            'asset:id,asset_number,acquisition_date,fund_source_id,region_id,district_id,facility_id,sub_location_id,submitted_at,reviewed_at,approved_at,rejected_at',
             'asset.fundSource:id,name',
             'asset.region:id,name',
             'asset.district:id,name',
             'asset.facility:id,name',
+            'asset.subLocation:id,name',
             'category:id,name',
             'type:id,name',
-            'assignee:id,name'
+            'assignee:id,name',
+            'fundSource:id,name'
         ])
             ->paginate($request->input('per_page', 10), ['*'], 'page', $request->input('page', 1))
             ->withQueryString();
 
-        $assetItems->setPath(url()->current()); // Force Laravel to use full URLs
+        $data = $this->getCommonData();
 
-        $count = AssetItem::when(auth()->check() && auth()->user() && !empty(auth()->user()->organization), function($query) {
-            $query->whereHas('asset', function($q) {
-                $q->where('organization', auth()->user()->organization);
-            });
-        })->count();
+        $assetItems->setPath(url()->current());
 
-        $facilities = Facility::orderBy('name')->get(['id', 'name', 'district', 'region']);
-        $districts = District::orderBy('name')->get();
-        $categories = AssetCategory::select('id','name')->get();
-        $types = AssetType::select('id','name','asset_category_id')->get();
-        $assignees = Assignee::select('id','name')->get();
-        
-        return inertia('Assets/Index', [
-            'facilities' => $facilities,
-            'districts' => $districts,
+        return Inertia::render('Assets/Index', array_merge($data, [
             'assets' => AssetItemResource::collection($assetItems),
-            'filters' => $request->only('page','per_page','search','region_id','district_id','location_id','sub_location_id','fund_source_id','category_id','type_id','assignee_id','acquisition_from','acquisition_to','created_from','created_to','status'),
-            'assetsCount' => $count,
-            'regions' => Region::get(),
-            'fundSources' => FundSource::get(),
-            'categories' => $categories,
-            'types' => $types,
-            'assignees' => $assignees,
-        ]);
+            'filters' => $request->only('page', 'per_page', 'search', 'region_id', 'district_id', 'location_id', 'sub_location_id', 'fund_source_id', 'category_id', 'type_id', 'assignee_id', 'acquisition_from', 'acquisition_to', 'created_from', 'created_to', 'status'),
+        ]));
     }
 
     public function create()
@@ -188,18 +254,34 @@ class AssetController extends Controller
             return redirect()->route('assets.index')->with('error', 'You do not have permission to create assets.');
         }
 
-        // Allow creating assets even without organization
-        // This allows admins to create assets and assign organizations
+        $user = auth()->user();
+        $isRegional = !$user->isAdmin() && $user->warehouse?->region;
+        $regionName = $isRegional ? trim($user->warehouse->region) : null;
+
+        $facilitiesQuery = Facility::orderBy('name');
+        if ($isRegional) {
+            $facilitiesQuery->where('region', $regionName);
+        }
+        $facilities = $facilitiesQuery->get(['id', 'name', 'district', 'region']);
+
+        $districtsQuery = District::orderBy('name');
+        if ($isRegional) {
+            $districtsQuery->where('region', $regionName);
+        }
+        $districts = $districtsQuery->get();
+
+        $regionsQuery = Region::query();
+        if ($isRegional) {
+            $regionsQuery->where('name', $regionName);
+        }
+        $regions = $regionsQuery->get();
         
-        $locations = AssetLocation::all();
+        $locations = $facilities;
         $categories = AssetCategory::all();
         $fundSources = FundSource::get();
-        $regions = Region::get();
-        $districts = District::get();
         $types = AssetType::all();
         $users = User::select('id','name','email')->get();
         $assignees = Assignee::select('id','name')->orderBy('name')->get();
-        $facilities = Facility::orderBy('name')->get(['id', 'name', 'district', 'region']);
         
         return Inertia::render('Assets/Create', [
             'locations' => $locations,
@@ -236,6 +318,21 @@ class AssetController extends Controller
                     'facility_id' => 'required|exists:facilities,id',
                 ]);
 
+                // Regional validation
+                $user = auth()->user();
+                if (!$user->isAdmin() && $user->warehouse && $user->warehouse->region) {
+                    $region = Region::where('name', trim($user->warehouse->region))->first();
+                    if ($region && (int)$validatedAsset['region_id'] !== $region->id) {
+                        throw new \Exception('Unauthorized: Region must match your warehouse region.');
+                    }
+                    
+                    // Also check facility region
+                    $facility = Facility::find($validatedAsset['facility_id']);
+                    if ($facility && trim($facility->region) !== trim($user->warehouse->region)) {
+                        throw new \Exception('Unauthorized: Facility must be in your region.');
+                    }
+                }
+
                 // Validate asset items array
                 $request->validate([
                     'asset_items' => 'required|array|min:1',
@@ -245,6 +342,7 @@ class AssetController extends Controller
                     'asset_items.*.asset_category_id' => 'required|exists:asset_categories,id',
                     'asset_items.*.asset_type_id' => 'required|exists:asset_types,id',
                     'asset_items.*.assignee_id' => 'nullable|exists:assignees,id',
+                    'asset_items.*.status' => 'required|string|in:functioning,not_functioning,maintenance,disposed',
                     'asset_items.*.original_value' => 'required|numeric|min:0',
                 ]);
 
@@ -274,10 +372,10 @@ class AssetController extends Controller
                 // Create the main asset record
                 $asset = Asset::create($validatedAsset);
 
-                // Create asset items
+                // Create asset items in the staging table
                 $assetItems = [];
                 foreach ($assetItemsData as $itemData) {
-                    $assetItem = AssetItem::create([
+                    $assetItem = \App\Models\AssetApprovalItem::create([
                         'asset_id' => $asset->id,
                         'asset_tag' => $itemData['asset_tag'],
                         'asset_name' => $itemData['asset_name'],
@@ -285,8 +383,10 @@ class AssetController extends Controller
                         'asset_category_id' => $itemData['asset_category_id'],
                         'asset_type_id' => $itemData['asset_type_id'],
                         'assignee_id' => $itemData['assignee_id'],
-                        'status' => 'pending_approval', // Default status for new items
+                        'status' => $itemData['status'] ?? 'functioning',
                         'original_value' => $itemData['original_value'],
+                        'fund_source_id' => $validatedAsset['fund_source_id'],
+                        'acquisition_date' => $validatedAsset['acquisition_date'],
                     ]);
 
                     $assetItems[] = $assetItem;
@@ -301,16 +401,6 @@ class AssetController extends Controller
                     'performed_at' => now(),
                 ]);
 
-                // Create history for each asset item
-                foreach ($assetItems as $item) {
-                    $item->createHistory([
-                        'action' => 'item_created',
-                        'action_type' => 'creation',
-                        'notes' => 'Asset item created',
-                        'performed_by' => auth()->id(),
-                        'performed_at' => now(),
-                    ]);
-                }
 
                 // Notify users with asset-review permission (workflow: next action is review)
                 User::withPermission('asset-review')
@@ -363,25 +453,53 @@ class AssetController extends Controller
     public function edit(Asset $asset)
     {
         // Load the asset with its actual relationships, filtered by organization through asset items
-        $asset = Asset::with(['region', 'district', 'fundSource', 'facility'])
-            ->whereHas('assetItems', function($query) {
-                if (auth()->check() && auth()->user() && !empty(auth()->user()->organization)) {
-                    $query->where('organization', auth()->user()->organization);
-                }
-            })
-            ->findOrFail($asset->id);
+        $assetQuery = Asset::with(['region', 'district', 'fundSource', 'facility']);
+            
+        $user = auth()->user();
+        if (!$user->isAdmin() && $user->warehouse && $user->warehouse->region) {
+            $region = Region::where('name', trim($user->warehouse->region))->first();
+            if ($region) {
+                $assetQuery->where('region_id', $region->id);
+            }
+        }
+
+        if ($user && !empty($user->organization)) {
+            $assetQuery->whereHas('assetItems', function($query) use ($user) {
+                $query->where('organization', $user->organization);
+            });
+        }
+        
+        $asset = $assetQuery->findOrFail($asset->id);
             
         // Get the first asset item for additional details
         $assetItem = $asset->assetItems()->with(['category', 'type', 'assignee'])->first();
         
-        $locations = Facility::orderBy('name')->get(['id', 'name', 'district', 'region']);
+        $isRegional = !$user->isAdmin() && $user->warehouse?->region;
+        $regionName = $isRegional ? trim($user->warehouse->region) : null;
+
+        $facilitiesQuery = Facility::orderBy('name');
+        if ($isRegional) {
+            $facilitiesQuery->where('region', $regionName);
+        }
+        $locations = $facilitiesQuery->get(['id', 'name', 'district', 'region']);
+
+        $districtsQuery = District::orderBy('name');
+        if ($isRegional) {
+            $districtsQuery->where('region', $regionName);
+        }
+        $districts = $districtsQuery->get();
+
+        $regionsQuery = Region::query();
+        if ($isRegional) {
+            $regionsQuery->where('name', $regionName);
+        }
+        $regions = $regionsQuery->get();
+
         $categories = AssetCategory::orderBy('name')->get();
         $fundSources = FundSource::orderBy('name')->get();
-        $regions = Region::orderBy('name')->get();
-        $districts = District::orderBy('name')->get();
         $types = AssetType::orderBy('name')->get();
         $assignees = Assignee::select('id','name')->orderBy('name')->get();
-        $facilities = Facility::orderBy('name')->get(['id', 'name', 'district', 'region']);
+        $facilities = $locations;
         
         return Inertia::render('Assets/Edit', [
             'asset' => $asset,
@@ -414,6 +532,19 @@ class AssetController extends Controller
             }
 
             // Update the asset
+            $user = auth()->user();
+            if (!$user->isAdmin() && $user->warehouse && $user->warehouse->region) {
+                if ($asset->region?->name !== trim($user->warehouse->region)) {
+                    return response()->json('Unauthorized: You can only update assets in your region.', 403);
+                }
+                
+                // If they are trying to change the region
+                $newRegion = Region::find($assetValidated['region_id']);
+                if ($newRegion && $newRegion->name !== trim($user->warehouse->region)) {
+                    return response()->json('Unauthorized: You cannot move an asset out of your region.', 403);
+                }
+            }
+
             $asset->update($assetValidated);
 
             // Validate and update asset item fields if provided
@@ -602,18 +733,24 @@ class AssetController extends Controller
      */
     public function approvalsIndex(Request $request)
     {
-        // Load all assets that have been submitted (including approved ones)
-        // This allows us to show the full approval workflow history
+        $user = auth()->user();
         $assets = Asset::whereNotNull('submitted_at')
-            ->whereHas('assetItems', function($query) {
-                if (auth()->check() && auth()->user() && !empty(auth()->user()->organization)) {
-                    $query->where('organization', auth()->user()->organization);
-                }
-            });
+            ->whereHas('assetApprovalItems');
+            
+        if ($user && !empty($user->organization)) {
+            $assets->where('organization', $user->organization);
+        }
         
+        if (!$user->isAdmin() && $user->warehouse && $user->warehouse->region) {
+            $region = Region::where('name', trim($user->warehouse->region))->first();
+            if ($region) {
+                $assets->where('region_id', $region->id);
+            }
+        }
+
         $assets = $assets
                       ->with(['region', 'facility', 'subLocation'])
-                      ->get(['id', 'asset_number', 'acquisition_date'])
+                      ->get(['id', 'asset_number', 'acquisition_date', 'region_id', 'facility_id', 'sub_location_id'])
                       ->map(function($asset) {
                           return [
                               'id' => $asset->id,
@@ -625,36 +762,38 @@ class AssetController extends Controller
                           ];
                       })
                       ->toArray();
+        
+        $assetItems = $this->getFilteredAssets($request, \App\Models\AssetApprovalItem::query(), true);
+        
+        $data = $this->getCommonData();
 
-        $assetItem = null;
+        $selectedAssetRecord = null;
         if ($request->selectedAsset) {
-            $assetItem = Asset::where('asset_number', $request->selectedAsset)
-                ->whereHas('assetItems', function($query) {
-                    if (auth()->check() && auth()->user() && !empty(auth()->user()->organization)) {
-                        $query->where('organization', auth()->user()->organization);
-                    }
-                })
-                ->with([
-                    'assetItems.category', 
-                    'assetItems.type', 
-                    'assetItems.assignee', 
-                    'fundSource', 
-                    'region', 
-                    'facility', 
-                    'subLocation',
-                    'submittedBy',
-                    'reviewedBy',
-                    'approvedBy',
-                    'rejectedBy'
-                ])
+            $selectedAssetRecord = Asset::where('asset_number', $request->selectedAsset)
+                ->with(['reviewedBy', 'approvedBy', 'fundSource', 'region', 'facility'])
                 ->first();
         }
 
-        return Inertia::render('Assets/Show', [
-            'assets' => $assets,
-            'assetItem' => $assetItem,
-            'filters' => $request->only('selectedAsset'),
-        ]);
+        return Inertia::render('Assets/PendingApprovals', array_merge($data, [
+            'assets' => $assetItems->with([
+                'asset:id,asset_number,acquisition_date,fund_source_id,region_id,district_id,facility_id,sub_location_id',
+                'asset.fundSource:id,name',
+                'asset.region:id,name',
+                'asset.district:id,name',
+                'asset.facility:id,name',
+                'asset.subLocation:id,name',
+                'category:id,name',
+                'type:id,name',
+                'assignee:id,name',
+                'fundSource:id,name'
+            ])->paginate($request->input('per_page', 10), ['*'], 'page', $request->input('page', 1))->withQueryString(),
+            'unapprovedAssets' => $assets,
+            'assetItem' => $selectedAssetRecord,
+            'filters' => array_merge(
+                $request->only('page', 'per_page', 'search', 'region_id', 'district_id', 'location_id', 'sub_location_id', 'fund_source_id', 'category_id', 'type_id', 'assignee_id', 'acquisition_from', 'acquisition_to', 'created_from', 'created_to', 'status', 'selectedAsset'),
+                ['asset_id' => $request->selectedAsset]
+            ),
+        ]));
     }
 
     /**
@@ -667,59 +806,82 @@ class AssetController extends Controller
             return response()->json(['success' => false, 'message' => 'You do not have permission to approve assets.'], 403);
         }
         try {
-            // Check if user has access to this asset through organization
-            if (auth()->check() && auth()->user() && !empty(auth()->user()->organization)) {
-                $hasAccess = $asset->organization === auth()->user()->organization;
-                if (!$hasAccess) {
+            return DB::transaction(function () use ($asset) {
+                // Check if user has access to this asset through organization
+                if (auth()->check() && auth()->user() && !empty(auth()->user()->organization)) {
+                    $hasAccess = $asset->organization === auth()->user()->organization;
+                    if (!$hasAccess) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'You do not have access to this asset'
+                        ], 403);
+                    }
+                }
+
+                // Check if asset is in reviewed status (has reviewed_at but no approved_at)
+                if (!$asset->reviewed_at) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'You do not have access to this asset'
-                    ], 403);
+                        'message' => 'Asset must be reviewed before approval'
+                    ], 400);
                 }
-            }
 
-            // Check if asset is in reviewed status (has reviewed_at but no approved_at)
-            if (!$asset->reviewed_at || $asset->approved_at) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Asset must be reviewed before approval'
-                ], 400);
-            }
+                if ($asset->approved_at) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Asset is already approved'
+                    ], 400);
+                }
 
-            $asset->update([
-                'approved_by' => auth()->id(),
-                'approved_at' => now(),
-            ]);
+                // 1. Handle Staging Items (AssetApprovalItem)
+                $stagingItems = AssetApprovalItem::where('asset_id', $asset->id)->get();
+                foreach ($stagingItems as $item) {
+                    AssetItem::create([
+                        'asset_id' => $item->asset_id,
+                        'asset_tag' => $item->asset_tag,
+                        'asset_name' => $item->asset_name,
+                        'serial_number' => $item->serial_number,
+                        'asset_category_id' => $item->asset_category_id,
+                        'asset_type_id' => $item->asset_type_id,
+                        'assignee_id' => $item->assignee_id,
+                        'fund_source_id' => $item->fund_source_id,
+                        'acquisition_date' => $item->acquisition_date,
+                        'status' => $item->status === 'pending_approval' ? 'functioning' : $item->status,
+                        'original_value' => $item->original_value,
+                    ]);
+                }
+                
+                // Cleanup staging
+                AssetApprovalItem::where('asset_id', $asset->id)->delete();
 
-            // Update all asset items to approved status
-            $asset->assetItems()->update([
-                'status' => 'Functioning'
-            ]);
+                // 2. Handle Existing Main Items (if any)
+                $asset->assetItems()->where('status', 'pending_approval')->update([
+                    'status' => 'functioning'
+                ]);
 
-            // Create history records
-            $asset->createHistory([
-                'action' => 'asset_approved',
-                'action_type' => 'approval',
-                'notes' => 'Asset approved by ' . auth()->user()->name,
-                'performed_by' => auth()->id(),
-                'performed_at' => now(),
-            ]);
+                // 3. Finalize Asset status
+                $asset->update([
+                    'approved_by' => auth()->id(),
+                    'approved_at' => now(),
+                    'rejected_at' => null,
+                    'rejection_reason' => null,
+                ]);
 
-            foreach ($asset->assetItems as $item) {
-                $item->createHistory([
-                    'action' => 'item_approved',
+                // Create history records
+                $asset->createHistory([
+                    'action' => 'asset_approved',
                     'action_type' => 'approval',
-                    'notes' => 'Asset item approved',
+                    'notes' => 'Asset approved and released from staging by ' . auth()->user()->name,
                     'performed_by' => auth()->id(),
                     'performed_at' => now(),
                 ]);
-            }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Asset approved successfully',
-                'asset' => $asset->fresh(['approvedBy', 'assetItems'])
-            ]);
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Asset finalized and approved successfully!',
+                    'asset' => $asset->fresh(['approvedBy', 'assetItems'])
+                ]);
+            });
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -767,10 +929,8 @@ class AssetController extends Controller
                 'rejection_reason' => $request->rejection_reason,
             ]);
 
-            // Update all asset items to rejected status
-            $asset->assetItems()->update([
-                'status' => 'pending_approval'
-            ]);
+            // Delete associated staging items (AssetApprovalItem)
+            AssetApprovalItem::where('asset_id', $asset->id)->delete();
 
             // Create history records
             $asset->createHistory([
@@ -1192,12 +1352,10 @@ class AssetController extends Controller
                 'Category',
                 'Type',
                 'Fund Source',
-                'Region',
-                'Asset Location',
                 'Sub Location',
                 'Assignee',
                 'Status',
-                'Original Value',
+                'Value',
                 'Acquisition Date'
             ];
 
@@ -1267,17 +1425,31 @@ class AssetController extends Controller
      */
     public function import(Request $request)
     {
+        ini_set('max_execution_time', 0);
+        ini_set('memory_limit', '-1');
+
         try {
             $request->validate([
                 'file' => 'required|file|mimes:xlsx,xls|max:10240', // 10MB max
             ]);
 
             $file = $request->file('file');
+            $regionId = $request->input('region_id');
+            $districtId = $request->input('district_id');
+            $facilityId = $request->input('facility_id');
             
-            // Import the file with current user ID
-            Excel::import(new AssetsImport(auth()->id()), $file);
+            // Import the file with current user ID and selected location
+            Excel::import(new AssetsImport(auth()->id(), $regionId, $districtId, $facilityId), $file);
 
-            return back()->with('success', 'Assets imported successfully!');
+            // Explicitly clean up the uploaded file to ensure server optimization
+            if (file_exists($file->getRealPath())) {
+                unlink($file->getRealPath());
+            }
+
+            return response()->json([
+                'message' => 'Assets imported successfully!',
+                'redirect' => route('assets.index')
+            ]);
 
         } catch (\Maatwebsite\Excel\Validators\ValidationException $e) {
             $failures = $e->failures();
@@ -1287,10 +1459,14 @@ class AssetController extends Controller
                 $errors[] = "Row " . ($failure->row() - 1) . ": " . implode(', ', $failure->errors());
             }
             
-            return back()->withErrors(['import_errors' => $errors]);
+            return response()->json(['import_errors' => $errors], 422);
             
         } catch (\Throwable $th) {
-            return back()->withErrors(['error' => 'Failed to import assets: ' . $th->getMessage()]);
+            // Split by <br> if present to return as an array for the frontend "Registry"
+            $message = $th->getMessage();
+            $errors = str_contains($message, '<br>') ? explode('<br>', $message) : [$message];
+            
+            return response()->json(['import_errors' => $errors], 422);
         }
     }
 }

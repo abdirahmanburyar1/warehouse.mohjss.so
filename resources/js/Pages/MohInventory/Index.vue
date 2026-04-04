@@ -28,7 +28,6 @@ const selectedInventoryId = ref(props.filters?.inventory_id || '');
 const search = ref(props.filters?.search || '');
 const category_id = ref(props.filters?.category_id || '');
 const dosage_id = ref(props.filters?.dosage_id || '');
-
 const filterTimeout = ref(null);
 
 // File upload state
@@ -721,7 +720,7 @@ const filteredInventoryItems = computed(() => {
                         >
                             <option value="">Choose a MOH inventory...</option>
                             <option v-for="inventory in nonApprovedInventories" :key="inventory.id" :value="inventory.id">
-                                {{ inventory.uuid || `MOH-${inventory.id}` }}, {{ inventory.date ? moment(inventory.date).format('DD/MM/YYYY') : 'N/A' }}
+                                {{ inventory.uuid || `MOH-${inventory.id}` }} ({{ inventory.warehouse?.name || 'N/A' }}), {{ inventory.date ? moment(inventory.date).format('DD/MM/YYYY') : 'N/A' }}
                                 - {{ getStatusInfo(inventory).text }}
                             </option>
                         </select>
@@ -856,6 +855,14 @@ const filteredInventoryItems = computed(() => {
                                 <dd class="mt-1 text-sm text-gray-900">{{ selectedInventory.date ? moment(selectedInventory.date).format('MMM DD, YYYY') : 'N/A' }}</dd>
                             </div>
                             <div>
+                                <dt class="text-sm font-medium text-gray-500">Warehouse</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ selectedInventory.warehouse?.name || 'N/A' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500">Created By</dt>
+                                <dd class="mt-1 text-sm text-gray-900">{{ selectedInventory.creator?.name || 'N/A' }}</dd>
+                            </div>
+                            <div>
                                 <dt class="text-sm font-medium text-gray-500">Total Items</dt>
                                 <dd class="mt-1 text-sm text-gray-900">{{ getTotalItems(props.selectedInventory) }}</dd>
                             </div>
@@ -887,6 +894,7 @@ const filteredInventoryItems = computed(() => {
                             <thead class="bg-gray-50">
                                 <tr>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Warehouse</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">UoM</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Source</th>
                                     <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
@@ -909,6 +917,10 @@ const filteredInventoryItems = computed(() => {
                                                 {{ item.product?.category?.name || 'N/A' }} - {{ item.product?.dosage?.name || 'N/A' }}
                                             </div>
                                         </div>
+                                    </td>
+                                    <!-- Warehouse -->
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                        {{ item.warehouse?.name || 'N/A' }}
                                     </td>
                                     <!-- UoM -->
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
@@ -976,15 +988,13 @@ const filteredInventoryItems = computed(() => {
                             <div class="flex flex-col">
                                 <button 
                                     @click="changeStatus(selectedInventory.id, 'reviewed', 'is_reviewing')"
-                                    :disabled="isType['is_reviewing'] || selectedInventory.reviewed_at || selectedInventory.status === 'rejected' || (!$page.props.auth.can.moh_inventory_review && !$page.props.auth.isAdmin)"
+                                    :disabled="isType['is_reviewing'] || props.selectedInventory.reviewed_at || props.selectedInventory.status === 'rejected' || (!$page.props.auth.can.moh_inventory_review && !$page.props.auth.isAdmin) || props.selectedInventory.warehouse_id != $page.props.auth.user.warehouse_id"
                                     :class="[
-                                        selectedInventory.reviewed_at
+                                        props.selectedInventory.reviewed_at
                                             ? 'bg-green-500'
-                                            : selectedInventory.status === 'rejected'
+                                            : props.selectedInventory.warehouse_id != $page.props.auth.user.warehouse_id || (!$page.props.auth.can.moh_inventory_review && !$page.props.auth.isAdmin)
                                                 ? 'bg-gray-300 cursor-not-allowed'
-                                                : (!$page.props.auth.can.moh_inventory_review && !$page.props.auth.isAdmin)
-                                                    ? 'bg-gray-400 cursor-not-allowed'
-                                                    : 'bg-yellow-500 hover:bg-yellow-600',
+                                                : 'bg-yellow-500 hover:bg-yellow-600',
                                     ]" 
                                     class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px]">
                                     <img src="/assets/images/review.png" class="w-5 h-5 mr-2" alt="Review" />
@@ -1007,7 +1017,7 @@ const filteredInventoryItems = computed(() => {
                             <div class="flex flex-col">
                                 <button 
                                     @click="changeStatus(props.selectedInventory.id, 'approved', 'is_approve')"
-                                    :disabled="isType['is_approve'] || !props.selectedInventory.reviewed_at || props.selectedInventory.approved_at || (!$page.props.auth.can.moh_inventory_approve && !$page.props.auth.isAdmin)"
+                                    :disabled="isType['is_approve'] || !props.selectedInventory.reviewed_at || props.selectedInventory.approved_at || (!$page.props.auth.can.moh_inventory_approve && !$page.props.auth.isAdmin) || $page.props.auth.user.warehouse?.type !== 'central'"
                                     :class="[
                                         props.selectedInventory.approved_at
                                             ? 'bg-green-500'

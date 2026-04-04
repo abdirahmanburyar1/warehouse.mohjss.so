@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class IssueQuantityReport extends Model
 {
     protected $fillable = [
+        'warehouse_id',
         'month_year',
         'total_quantity',
         'generated_by'

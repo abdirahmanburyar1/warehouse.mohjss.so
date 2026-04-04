@@ -36,7 +36,7 @@ class FacilityMonthlyConsumptionTemplateExport implements FromArray, WithHeading
     {
         $headers = ['Item'];
         foreach ($this->monthYears as $monthYear) {
-            $dt = \DateTime::createFromFormat('Y-m', $monthYear);
+            $dt = \DateTime::createFromFormat('Y-m-d', $monthYear . '-01');
             $headers[] = $dt ? $dt->format('M-y') : $monthYear; // e.g. "Jan-26"
         }
         return $headers;

@@ -12,6 +12,7 @@ use App\Models\Inventory;
 use App\Models\District;
 use App\Models\InventoryItem;
 use App\Models\InventoryAllocation;
+use App\Models\PackingListItem;
 // App Events and Resources
 use App\Events\OrderEvent;
 use App\Models\IssuedQuantity;
@@ -21,12 +22,13 @@ use App\Models\Region;
 use App\Models\User;
 use App\Models\Driver;
 use App\Models\LogisticCompany;
+use App\Models\PackingListDifference;
+use App\Models\BackOrder;
 use App\Notifications\OrderActionRequired;
 
 // Laravel Core
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
@@ -37,6 +39,104 @@ use App\Services\AmcCalculationService;
 
 class OrderController extends Controller
 {
+    /**
+     * Record differences for an order item (Back Order)
+     */
+    public function backorder(Request $request)
+    {
+        try {
+            $request->validate([
+                'order_item_id' => 'required|exists:order_items,id',
+                'differences' => 'required|array',
+                'received_quantity' => 'required|numeric|min:0',
+                'differences.*.inventory_allocation_id' => 'required|exists:inventory_allocations,id',
+                'differences.*.quantity' => 'required|numeric|min:0',
+                'differences.*.status' => 'required|in:Missing,Damaged,Expired,Lost',
+                'differences.*.notes' => 'nullable|string',
+                'differences.*.id' => 'nullable|exists:packing_list_differences,id',
+                'deleted_differences' => 'nullable|array',
+                'deleted_differences.*' => 'exists:packing_list_differences,id'
+            ]);
+
+            return DB::transaction(function () use ($request) {
+                $orderItem = OrderItem::with('order')->find($request->order_item_id);
+                $orderItem->received_quantity = $request->received_quantity;
+                $orderItem->save();
+                
+                // Authorization check - Central or sender warehouse
+                $user = auth()->user();
+                if ($user->warehouse_id && $orderItem->order->sender_warehouse_id != $user->warehouse_id && $orderItem->order->warehouse_id != $user->warehouse_id) {
+                     return response()->json('You are not authorized to record differences for this order.', 403);
+                }
+
+                $hasDifferenceItems = collect($request->differences)
+                    ->filter(function($item) { return !empty($item); })
+                    ->isNotEmpty();
+
+                $backOrder = null;
+                if ($hasDifferenceItems) {
+                    $backOrder = BackOrder::firstOrCreate(
+                        ['order_id' => $orderItem->order_id],
+                        [
+                            'order_id' => $orderItem->order_id,
+                            'back_order_date' => now()->toDateString(),
+                            'created_by' => auth()->user()->id,
+                            'source_type' => 'order',
+                            'warehouse_id' => $orderItem->order->sender_warehouse_id ?? auth()->user()->warehouse_id,
+                            'facility_id' => $orderItem->order->facility_id,
+                            'reported_by' => auth()->user()->name,
+                        ]
+                    );
+                }
+
+                if ($request->has('deleted_differences') && !empty($request->deleted_differences)) {
+                    PackingListDifference::whereIn('id', $request->deleted_differences)->delete();
+                }
+
+                foreach ($request->differences as $differenceData) {
+                    $inventoryAllocation = InventoryAllocation::where('id', $differenceData['inventory_allocation_id'])
+                        ->where('order_item_id', $orderItem->id)
+                        ->first();
+                    if (!$inventoryAllocation) {
+                        return response()->json('Invalid inventory allocation specified.', 500);
+                    }
+                    if ($differenceData['quantity'] > $inventoryAllocation->allocated_quantity) {
+                        return response()->json('Difference quantity exceeds allocated quantity for batch ' . $inventoryAllocation->batch_number, 500);
+                    }
+                    if (isset($differenceData['id'])) {
+                        $difference = PackingListDifference::find($differenceData['id']);
+                        if ($difference) {
+                            $difference->update([
+                                'quantity' => $differenceData['quantity'],
+                                'notes' => $differenceData['notes'],
+                                'status' => $differenceData['status'],
+                                'back_order_id' => $backOrder ? $backOrder->id : null,
+                            ]);
+                        }
+                    } else {
+                        PackingListDifference::create([
+                            'product_id' => $orderItem->product_id,
+                            'inventory_allocation_id' => $inventoryAllocation->id,
+                            'order_item_id' => $orderItem->id,
+                            'quantity' => $differenceData['quantity'],
+                            'notes' => $differenceData['notes'],
+                            'status' => $differenceData['status'],
+                            'back_order_id' => $backOrder ? $backOrder->id : null,
+                        ]);
+                    }
+                }
+                
+                if ($backOrder) {
+                    $backOrder->updateTotals();
+                }
+                
+                return response()->json('Differences have been recorded successfully', 200);
+            });
+        } catch (\Throwable $th) {
+            return response()->json($th->getMessage(), 500);
+        }
+    }
+
     /**
      * Reject an entire order
      *
@@ -93,6 +193,8 @@ class OrderController extends Controller
         $facilityLocation = $request->facilityLocation;
         $query = Order::query();
 
+        $query->orderBy('id', 'desc');
+
         if ($user->warehouse_id) {
             $query->where('warehouse_id', $user->warehouse_id);
         }
@@ -137,7 +239,6 @@ class OrderController extends Controller
         
         $query->with(['facility.handledby:id,name', 'user', 'senderWarehouse', 'warehouse']);
 
-        $query->orderBy('order_date', 'desc');
 
         $orders = $query->paginate($request->input('per_page', 25), ['*'], 'page', $request->input('page', 1))
             ->withQueryString();
@@ -425,12 +526,6 @@ class OrderController extends Controller
         try {
             DB::beginTransaction();
             
-            // Log the incoming request for debugging
-            logger()->info('UpdateQuantity Request Data:', $request->all());
-    
-            // Check if the OrderItem exists manually to provide better error info
-            $orderItemExists = \App\Models\OrderItem::where('id', $request->item_id)->exists();
-            
             $request->validate([
                 'item_id'  => 'required|exists:order_items,id',
                 'quantity' => 'required|numeric',
@@ -442,51 +537,28 @@ class OrderController extends Controller
     
 
             $orderItem = OrderItem::find($request->item_id);
-            
             if (!$orderItem) {
-                logger()->error('OrderItem not found:', ['item_id' => $request->item_id]);
                 return response()->json(['error' => 'Order item not found'], 404);
             }
-            
             $order = $orderItem->order;
             
             $user = auth()->user();
             if ($user->warehouse_id && $order->warehouse_id !== $user->warehouse_id) {
                  return response()->json(['success' => false, 'message' => 'Unauthorized access to this order.'], 403);
             }
-
-            if($orderItem->quantity <= 0) {
-                $orderItem->quantity = $request->quantity;
-                $orderItem->save();
-                $orderItem->refresh();
+    
+            if (!in_array($order->status, ['pending', 'reviewed'])) {
+                return response()->json('Cannot update quantity for orders that are not in pending or reviewed status', 500);
             }
     
-            if (!in_array($order->status, ['pending'])) {
-                return response()->json('Cannot update quantity for orders that are not in pending status', 500);
-            }
-    
-            // Fetch AMC for the product and facility
             $amcService = new AmcCalculationService();
             $amcData = $amcService->calculateAmc($order->facility_id, $orderItem->product_id);
             $amc = (float) ($amcData['amc'] ?? 0);
 
-            logger()->info('Order Update AMC Data:', [
-                'item_id' => $orderItem->id,
-                'facility_id' => $order->facility_id,
-                'product_id' => $orderItem->product_id,
-                'applied_amc' => $amc,
-                'amc_calculation' => $amcData['calculation'] ?? 'N/A'
-            ]);
-
-            // Handle original quantity fallback for legacy or non-AMC products
-            $originalQuantity = $orderItem->quantity > 0 ? $orderItem->quantity : $request->quantity;
+            // Respect the original requested quantity (even if 0) as per facility's request
+            $originalQuantity = (float) ($orderItem->quantity ?? 0);
             $originalDays = $orderItem->no_of_days > 0 ? $orderItem->no_of_days : 1;
-            $dailyUsageRate = $originalQuantity / $originalDays;
-            
-    
-            // Calculate new quantity and days (table column is no_of_days)
-            // User Formula: Number of Days = [(QTY to Release + SOH + QOO) ÷ AMC] × 30
-            // Inverse: Qty to Release = ((Number of Days * AMC) / 30) - SOH - QOO
+            $dailyUsageRate = $originalDays > 0 ? $originalQuantity / $originalDays : 0;
             
             $soh = (float)($orderItem->soh ?? 0);
             $qoo = (float)($orderItem->quantity_on_order ?? 0);
@@ -510,202 +582,6 @@ class OrderController extends Controller
                 $orderItem->no_of_days = $newDays;
             }
     
-            $oldQuantityToRelease = $orderItem->quantity_to_release ?? 0;
-            
-            // Case 1: Decrease
-            if ($newQuantityToRelease < $oldQuantityToRelease) {
-                $quantityToRemove = $oldQuantityToRelease - $newQuantityToRelease;
-                $remainingToRemove = $quantityToRemove;
-    
-                $allocations = $orderItem->inventory_allocations()->orderBy('expiry_date', 'desc')->get();
-    
-                foreach ($allocations as $allocation) {
-                    if ($remainingToRemove <= 0) break;
-    
-                    $inventory = InventoryItem::where('product_id', $allocation->product_id)
-                        ->where('warehouse_id', $allocation->warehouse_id)
-                        ->where('batch_number', $allocation->batch_number)
-                        ->where('expiry_date', $allocation->expiry_date)
-                        ->first();
-    
-                    $restoreQty = min($allocation->allocated_quantity, $remainingToRemove);
-    
-                    if ($inventory) {
-                        $inventory->quantity += $restoreQty;
-                        $inventory->save();
-                    } else {
-                        // Find or create parent inventory record (only by product_id)
-                        $parentInventory = \App\Models\Inventory::firstOrCreate([
-                            'product_id' => $allocation->product_id,
-                        ], [
-                            'quantity' => 0, // Will be updated by the inventory item
-                        ]);
-
-                        if ($parentInventory->wasRecentlyCreated) {
-                            logger()->info("Created parent inventory record during order update", [
-                                'product_id' => $allocation->product_id,
-                                'inventory_id' => $parentInventory->id
-                            ]);
-                        }
-
-                        InventoryItem::create([
-                            'inventory_id' => $parentInventory->id,
-                            'product_id'   => $allocation->product_id,
-                            'warehouse_id' => $allocation->warehouse_id,
-                            'location'     => $allocation->location,
-                            'batch_number' => $allocation->batch_number,
-                            'uom'          => $allocation->uom,
-                            'barcode'      => $allocation->barcode,
-                            'expiry_date'  => $allocation->expiry_date,
-                            'quantity'     => $restoreQty
-                        ]);
-
-                        // Update parent inventory quantity
-                        $parentInventory->increment('quantity', $restoreQty);
-                    }
-    
-                    if ($allocation->allocated_quantity <= $remainingToRemove) {
-                        $remainingToRemove -= $allocation->allocated_quantity;
-                        $allocation->delete();
-                    } else {
-                        $allocation->allocated_quantity -= $remainingToRemove;
-                        $allocation->save();
-                        $remainingToRemove = 0;
-                    }
-                }
-    
-                $orderItem->quantity_to_release = $newQuantityToRelease;
-                $orderItem->save();
-    
-                DB::commit();
-                return response()->json('Quantity to release decreased successfully', 200);
-            }
-    
-            // Case 2: Increase
-            if ($newQuantityToRelease > $oldQuantityToRelease) {
-                $quantityToAdd = $newQuantityToRelease - $oldQuantityToRelease;
-                $remainingToAllocate = $quantityToAdd;
-                
-                $inventoryItems = InventoryItem::where('product_id', $orderItem->product_id)
-                    ->where('quantity', '>', 0)
-                    ->orderBy('expiry_date', 'asc')
-                    ->get();
-                    
-
-    
-                if ($inventoryItems->isEmpty()) {
-                    DB::rollBack();
-                    return response()->json('No inventory available for this product', 500);
-                }
-    
-                foreach ($inventoryItems as $inventory) {
-                    if ($remainingToAllocate <= 0) break;
-    
-                    $allocQty = min($inventory->quantity, $remainingToAllocate);
-                    
-    
-    
-                    $existingAllocation = $orderItem->inventory_allocations()
-                        ->where('batch_number', $inventory->batch_number)
-                        ->where('expiry_date', $inventory->expiry_date)
-                        ->first();
-    
-                    if ($existingAllocation) {
-                       
-                        $existingAllocation->allocated_quantity += $allocQty;
-                        $existingAllocation->save();
-                    } else {
-                       
-                        $orderItem->inventory_allocations()->create([
-                            'product_id'       => $inventory->product_id,
-                            'warehouse_id'     => $inventory->warehouse_id,
-                            'location'         => $inventory->location,
-                            'batch_number'     => $inventory->batch_number,
-                            'uom'              => $inventory->uom,
-                            'barcode'          => $inventory->barcode ?? null,
-                            'expiry_date'      => $inventory->expiry_date,
-                            'allocated_quantity' => $allocQty,
-                            'allocation_type'  => $order->order_type,
-                            'unit_cost'        => $inventory->unit_cost,
-                            'total_cost'       => $inventory->unit_cost * $allocQty,
-                            'source'           => $inventory->source ?? 'warehouse', // Capture source from inventory_items
-                            'notes'            => 'Allocated from inventory ID: ' . $inventory->id
-                        ]);
-                    }
-    
-                    // Update inventory quantity and clean up empty batches
-                    $newQuantity = $inventory->quantity - $allocQty;
-                    if ($newQuantity <= 0) {
-                        // Delete the inventory item if quantity becomes zero or negative
-                        $inventory->delete();
-                        logger()->info("Deleted empty batch during order update", [
-                            'batch_number' => $inventory->batch_number,
-                            'product_id' => $inventory->product_id,
-                            'order_item_id' => $orderItem->id
-                        ]);
-                    } else {
-                        $inventory->quantity = $newQuantity;
-                        $inventory->save();
-                    }
-                    $remainingToAllocate -= $allocQty;
-                    
-                   
-                }
-    
-                // Final adjustment
-                $totalAllocated = $orderItem->inventory_allocations()->sum('allocated_quantity');
-                if ($totalAllocated < $newQuantityToRelease) {
-                    $difference = $newQuantityToRelease - $totalAllocated;
-                    $lastAllocation = $orderItem->inventory_allocations()->latest()->first();
-    
-                    if ($lastAllocation) {
-                        $lastAllocation->allocated_quantity += $difference;
-                        $lastAllocation->save();
-    
-                        $inventory = InventoryItem::where('product_id', $lastAllocation->product_id)
-                            ->where('warehouse_id', $lastAllocation->warehouse_id)
-                            ->where('batch_number', $lastAllocation->batch_number)
-                            ->where('expiry_date', $lastAllocation->expiry_date)
-                            ->first();
-    
-                        if ($inventory) {
-                            $newQuantity = $inventory->quantity - $difference;
-                            if ($newQuantity <= 0) {
-                                // Delete the inventory item if quantity becomes zero or negative
-                                $inventory->delete();
-                                logger()->info("Deleted empty batch during final adjustment", [
-                                    'batch_number' => $inventory->batch_number,
-                                    'product_id' => $inventory->product_id,
-                                    'order_item_id' => $orderItem->id
-                                ]);
-                            } else {
-                                $inventory->quantity = $newQuantity;
-                                $inventory->save();
-                            }
-                        }
-                    }
-                }
-    
-                if ($remainingToAllocate > 0) {
-                   
-                    DB::rollBack();
-                    return response()->json('Insufficient inventory. Could only allocate ' . ($quantityToAdd - $remainingToAllocate) . ' out of ' . $quantityToAdd, 500);
-                }
-    
-                $orderItem->quantity_to_release = $newQuantityToRelease;
-                $orderItem->save();
-                
-               
-    
-                // event(new InventoryUpdated());
-    
-                DB::commit();
-                return response()->json('Quantity to release updated successfully', 200);
-            }
-    
-            // Case 3: Always recalculate and reallocate quantities
-           
-            
             // Clear all existing allocations and restore inventory
             $existingAllocations = $orderItem->inventory_allocations()->get();
             
@@ -715,6 +591,7 @@ class OrderController extends Controller
                     ->where('warehouse_id', $allocation->warehouse_id)
                     ->where('batch_number', $allocation->batch_number)
                     ->where('expiry_date', $allocation->expiry_date)
+                    ->where('source', $allocation->source)
                     ->first();
                 
                 if ($inventory) {
@@ -725,15 +602,8 @@ class OrderController extends Controller
                     $parentInventory = \App\Models\Inventory::firstOrCreate([
                         'product_id' => $allocation->product_id,
                     ], [
-                        'quantity' => 0, // Will be updated by the inventory item
+                        'quantity' => 0,
                     ]);
-
-                    if ($parentInventory->wasRecentlyCreated) {
-                        logger()->info("Created parent inventory record during allocation restore", [
-                            'product_id' => $allocation->product_id,
-                            'inventory_id' => $parentInventory->id
-                        ]);
-                    }
 
                     InventoryItem::create([
                         'inventory_id' => $parentInventory->id,
@@ -744,32 +614,35 @@ class OrderController extends Controller
                         'uom'          => $allocation->uom,
                         'barcode'      => $allocation->barcode,
                         'expiry_date'  => $allocation->expiry_date,
+                        'source'       => $allocation->source,
                         'quantity'     => $allocation->allocated_quantity
                     ]);
 
-                    // Update parent inventory quantity
                     $parentInventory->increment('quantity', $allocation->allocated_quantity);
                 }
-                
-               
                 
                 $allocation->delete();
             }
             
-            // Now create fresh allocations for the required quantity
+            // Now create fresh allocations for the required quantity with strict 3-month rule
             if ($newQuantityToRelease > 0) {
                 $remainingToAllocate = $newQuantityToRelease;
                 
                 $inventoryItems = InventoryItem::where('product_id', $orderItem->product_id)
+                    ->where('warehouse_id', $order->warehouse_id)
                     ->where('quantity', '>', 0)
+                    ->where('expiry_date', '>=', Carbon::now()->addMonths(3)->toDateString())
                     ->orderBy('expiry_date', 'asc')
                     ->get();
-                    
-               
                 
                 if ($inventoryItems->isEmpty()) {
                     DB::rollBack();
-                    return response()->json('No inventory available for this product', 500);
+                    return response()->json('No inventory available for this product with at least 3 months expiry.', 500);
+                }
+
+                if ($inventoryItems->whereNull('location')->isNotEmpty()) {
+                    DB::rollBack();
+                    return response()->json('Please allocate that item location', 500);
                 }
                 
                 foreach ($inventoryItems as $inventory) {
@@ -777,7 +650,11 @@ class OrderController extends Controller
                     
                     $allocQty = min($inventory->quantity, $remainingToAllocate);
                     
-                   
+                    $unitCost = $inventory->unit_cost ?? (PackingListItem::where('product_id', $inventory->product_id)
+                        ->where('batch_number', $inventory->batch_number)
+                        ->whereNotNull('unit_cost')
+                        ->latest()
+                        ->value('unit_cost') ?? 0.00);
                     
                     $orderItem->inventory_allocations()->create([
                         'product_id'       => $inventory->product_id,
@@ -789,32 +666,33 @@ class OrderController extends Controller
                         'expiry_date'      => $inventory->expiry_date,
                         'allocated_quantity' => $allocQty,
                         'allocation_type'  => $order->order_type,
-                        'unit_cost'        => $inventory->unit_cost,
-                        'total_cost'       => $inventory->unit_cost * $allocQty,
-                        'source'           => $inventory->source ?? 'warehouse', // Capture source from inventory_items
-                        'notes'            => 'Fresh allocation from inventory ID: ' . $inventory->id
+                        'unit_cost'        => $unitCost,
+                        'total_cost'       => $unitCost * $allocQty,
+                        'source'           => $inventory->source ?? 'warehouse',
+                        'notes'            => 'Fresh allocation with strict 3-month rule enforcement'
                     ]);
                     
-                    $inventory->quantity -= $allocQty;
-                    $inventory->save();
+                    $newQuantity = $inventory->quantity - $allocQty;
+                    if ($newQuantity <= 0) {
+                        $inventory->delete();
+                    } else {
+                        $inventory->quantity = $newQuantity;
+                        $inventory->save();
+                    }
                     $remainingToAllocate -= $allocQty;
-                    
-                   
                 }
                 
                 if ($remainingToAllocate > 0) {
                     DB::rollBack();
-                    return response()->json('Insufficient inventory. Could only allocate ' . ($newQuantityToRelease - $remainingToAllocate) . ' out of ' . $newQuantityToRelease, 500);
+                    return response()->json('Insufficient inventory after filtering by 3-month expiry. Could only allocate ' . ($newQuantityToRelease - $remainingToAllocate) . ' out of ' . $newQuantityToRelease, 500);
                 }
             }
             
             $orderItem->quantity_to_release = $newQuantityToRelease;
             $orderItem->save();           
             
-            // event(new InventoryUpdated());
-            
             DB::commit();
-            return response()->json('Quantities recalculated and allocated successfully', 200);
+            return response()->json('Quantities recalculated and allocated successfully with 3-month rule', 200);
     
         } catch (\Throwable $th) {
             DB::rollBack();
@@ -983,7 +861,9 @@ class OrderController extends Controller
                                 ->where('warehouse_id', $allocation->warehouse_id)
                                 ->where('batch_number', $allocation->batch_number)
                                 ->where('expiry_date', $allocation->expiry_date)
+                                ->where('source', $allocation->source)
                                 ->first();
+
                             
                             if ($inventoryItem) {
                                 // Restore the quantity back to inventory
@@ -1000,10 +880,12 @@ class OrderController extends Controller
                                     'barcode' => $allocation->barcode,
                                     'expiry_date' => $allocation->expiry_date,
                                     'quantity' => $allocation->allocated_quantity,
+                                    'source' => $allocation->source,
                                     'unit_cost' => $allocation->unit_cost ?? 0,
                                     'total_cost' => $allocation->total_cost ?? 0,
                                     'notes' => 'Restored from rejected order allocation'
                                 ]);
+
                             }
                         }
                         
@@ -1176,10 +1058,6 @@ class OrderController extends Controller
             return response()->json("Successfully updated {$updatedCount} orders to {$request->status}");
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Bulk order status change failed', [
-                'error' => $e->getMessage(),
-                'order_ids' => $request->order_ids
-            ]);
             return response()->json('Failed to update order statuses: ' . $e->getMessage(), 500);
         }
     }
@@ -1226,9 +1104,9 @@ class OrderController extends Controller
                 // Get all available inventory for this product from the warehouse, ordered by expiry date (FIFO)
                 $warehouseInventories = Inventory::where('product_id', $item->product_id)
                     ->where('quantity', '>', 0)
-                    // ->where('warehouse_id', $item->warehouse_id)
-                    ->orderBy('expiry_date', 'asc')  // Order by expiry date for FIFO (oldest first)
+                    ->orderBy('expiry_date', 'asc')
                     ->get();
+
 
                 $remainingQuantity = (float) $item->quantity;
 
@@ -1419,10 +1297,6 @@ class OrderController extends Controller
             return response()->json("Successfully updated {$updatedCount} items to {$request->status}");
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Bulk order item status change failed', [
-                'error' => $e->getMessage(),
-                'item_ids' => $request->item_ids
-            ]);
             return response()->json('Failed to update item statuses: ' . $e->getMessage(), 500);
         }
     }
@@ -1456,13 +1330,17 @@ class OrderController extends Controller
     
             // Get all InventoryItems (not just Inventory) ordered by expiry
             $inventoryItems = InventoryItem::where('product_id', $item->product_id)
-                ->where('warehouse_id', $request->warehouse_id)
+                ->where('warehouse_id', auth()->user()->warehouse_id)
                 ->where('quantity', '>', 0)
                 ->orderBy('expiry_date', 'asc')
                 ->get();
     
             if ($inventoryItems->sum('quantity') < $remainingQuantity) {
                 return response()->json("Not enough stock to fulfill {$item->quantity} units for product: {$item->product->name}", 500);
+            }
+
+            if ($inventoryItems->whereNull('location')->isNotEmpty()) {
+                return response()->json('Please allocate that item location', 500);
             }
     
             // === Status Updates ===
@@ -1502,6 +1380,11 @@ class OrderController extends Controller
                         'product_id' => $item->product_id,
                     ]);
     
+                    $unitCost = $invItem->unit_cost ?? (PackingListItem::where('product_id', $invItem->product_id)
+                        ->where('batch_number', $invItem->batch_number)
+                        ->whereNotNull('unit_cost')
+                        ->latest()
+                        ->value('unit_cost') ?? 0.00);
                     FacilityInventoryItem::create([
                         'inventory_id' => $facilityInventory->id,
                         'product_id' => $item->product_id,
@@ -1509,6 +1392,8 @@ class OrderController extends Controller
                         'batch_number' => $invItem->batch_number,
                         'expiry_date' => $invItem->expiry_date,
                         'warehouse_id' => $request->warehouse_id,
+                        'unit_cost' => $unitCost,
+                        'total_cost' => $unitCost * $quantityToTake
                     ]);
     
                     $usedInventories[] = [
@@ -1546,10 +1431,6 @@ class OrderController extends Controller
             return response()->json('Order item status updated successfully.', 200);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Order item status change failed', [
-                'error' => $e->getMessage(),
-                'item_id' => $request->item_id ?? null
-            ]);
             return response()->json('Failed to update order item status: ' . $e->getMessage(), 500);
         }
     }
@@ -1560,34 +1441,66 @@ class OrderController extends Controller
         if (!auth()->user()->hasPermission('order-view') && !auth()->user()->hasPermission('order-manage') && !auth()->user()->isAdmin()) {
             abort(403, 'You do not have permission to access the orders module.');
         }
+
         try {
-            DB::beginTransaction();
-            // Load order with items and inventory_allocations so the frontend gets allocation location (and other allocation fields).
-            // Do not eager load items.inventory_allocations.location (relation) so the allocation's string column 'location' is serialized.
-            $order = Order::where('orders.id', $id)
-                ->with(['items.product.category', 'dispatch.driver', 'dispatch.logistic_company', 'items.inventory_allocations.warehouse', 'items.inventory_allocations.back_order', 'facility', 'user', 'reviewedBy', 'approvedBy', 'processedBy', 'dispatchedBy', 'deliveredBy', 'receivedBy', 'rejectedBy'])
+            $order = Order::where('id', $id)
+                ->with([
+                    'items.product.category', 
+                    'dispatch.driver', 
+                    'dispatch.logistic_company', 
+                    'items.inventory_allocations.warehouse', 
+                    'items.inventory_allocations.back_order', 
+                    'items.differences', 
+                    'facility', 
+                    'senderWarehouse',
+                    'user', 
+                    'reviewedBy', 
+                    'approvedBy', 
+                    'processedBy', 
+                    'dispatchedBy', 
+                    'deliveredBy', 
+                    'receivedBy', 
+                    'rejectedBy'
+                ])
                 ->first();
 
-            // Get SOH (and product_name) per order_item for display; merge onto existing items so we keep inventory_allocations.
-            $itemsWithSoh = DB::table('order_items')
-                ->select([
-                    'order_items.id',
-                    'products.name as product_name',
-                    'order_items.soh as soh'
-                ])
-                ->join('products', 'order_items.product_id', '=', 'products.id')
-                ->where('order_items.order_id', $id)
-                ->get()
-                ->keyBy('id');
-
-            foreach ($order->items as $item) {
-                $row = $itemsWithSoh->get($item->id);
-                if ($row) {
-                    $item->soh = $row->soh;
-                    $item->product_name = $row->product_name;
-                }
+            if (!$order) {
+                return inertia("Order/Show", [
+                    'order' => null,
+                    'error' => "Order #{$id} not found."
+                ]);
             }
-            $products = Product::select('id','name')->get();
+
+            // Efficiently pre-fetch SOH (Stock On Hand) for all items in this order
+            $productIds = $order->items->pluck('product_id')->unique();
+            $sohData = collect();
+
+            if ($order->sender_warehouse_id) {
+                // Case 1: Order from a Regional Warehouse
+                $sohData = DB::table('inventory_items')
+                    ->select('product_id', DB::raw('SUM(quantity) as total_quantity'))
+                    ->where('warehouse_id', $order->sender_warehouse_id)
+                    ->whereIn('product_id', $productIds)
+                    ->groupBy('product_id')
+                    ->pluck('total_quantity', 'product_id');
+            } elseif ($order->facility_id) {
+                // Case 2: Order from a Health Center
+                $sohData = DB::table('facility_inventory_items')
+                    ->join('facility_inventories', 'facility_inventories.id', '=', 'facility_inventory_items.facility_inventory_id')
+                    ->select('facility_inventory_items.product_id', DB::raw('SUM(facility_inventory_items.quantity) as total_quantity'))
+                    ->where('facility_inventories.facility_id', $order->facility_id)
+                    ->whereIn('facility_inventory_items.product_id', $productIds)
+                    ->groupBy('facility_inventory_items.product_id')
+                    ->pluck('total_quantity', 'product_id');
+            }
+
+            // Map additional attributes used by the UI
+            foreach ($order->items as $item) {
+                $item->product_name = $item->product->name ?? 'Unknown Product';
+                $item->soh = $sohData[$item->product_id] ?? 0;
+            }
+
+            $products = Product::select('id', 'name')->get();
             
             // Get drivers with their companies
             $drivers = Driver::with('company')->where('is_active', true)->get();
@@ -1608,16 +1521,17 @@ class OrderController extends Controller
                     'isAddNew' => true
                 ]);
             
-            DB::commit();
             return inertia("Order/Show", [
                 'order' => $order, 
                 'products' => $products,
                 'drivers' => $drivers,
                 'companyOptions' => $companyOptions
             ]);
-        } catch (\Throwable $th) {
-            DB::rollBack();
-            return inertia("Order/Show", ['error' =>  $th->getMessage()]);
+        } catch (\Throwable $th) {            
+            return inertia("Order/Show", [
+                'order' => null,
+                'error' => "An unexpected error occurred: " . $th->getMessage()
+            ]);
         }
     }
 

@@ -15,23 +15,38 @@ class FacilityMonthlyReportItem extends Model
     protected $fillable = [
         'parent_id',
         'product_id',
+        'batch_number',
+        'expiry_date',
         'opening_balance',
         'stock_received',
         'stock_issued',
         'positive_adjustments',
         'negative_adjustments',
         'closing_balance',
+        'total_closing_balance',
+        'average_monthly_consumption',
+        'months_of_stock',
         'stockout_days',
+        'quantity_breakdown',
+        'movement_count',
+        'received_transactions',
+        'issued_transactions',
     ];
 
     protected $casts = [
+        'expiry_date' => 'date',
         'opening_balance' => 'decimal:2',
         'stock_received' => 'decimal:2',
         'stock_issued' => 'decimal:2',
         'positive_adjustments' => 'decimal:2',
         'negative_adjustments' => 'decimal:2',
         'closing_balance' => 'decimal:2',
+        'total_closing_balance' => 'decimal:2',
+        'average_monthly_consumption' => 'decimal:2',
         'stockout_days' => 'integer',
+        'movement_count' => 'integer',
+        'received_transactions' => 'integer',
+        'issued_transactions' => 'integer',
     ];
 
     /**

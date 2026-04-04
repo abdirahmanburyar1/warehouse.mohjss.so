@@ -40,15 +40,29 @@ class LiquidationActionRequired extends Notification implements ShouldQueue
     {
         $liquidateId = $this->liquidate->liquidate_id ?? '#' . $this->liquidate->id;
         $source = $this->liquidate->source ? str_replace('_', ' ', $this->liquidate->source) : 'N/A';
-        $path = route('liquidate-disposal.liquidates.show', [$this->liquidate->id], false);
-        $showUrl = str_starts_with($path, 'http') ? $path : rtrim(config('app.url'), '/') . (str_starts_with($path, '/') ? $path : '/' . $path);
+        
+        // Determine the correct base URL based on the recipient's primary platform
+        $baseUrl = config('app.url'); // Default to current platform
+        
+        if ($notifiable->warehouse_id) {
+            $warehouseType = $notifiable->warehouse->type ?? null;
+            if ($warehouseType === 'central') {
+                $baseUrl = 'https://warehouse.mohjss.so';
+            } elseif ($warehouseType === 'regional') {
+                $baseUrl = 'https://regionalwrjss.vistawims.com';
+            }
+        } elseif ($notifiable->facility_id) {
+            $baseUrl = 'https://hcjss.vistawims.com';
+        }
+
+        $showUrl = rtrim($baseUrl, '/') . '/liquidate-disposal/liquidates/' . $this->liquidate->id;
 
         if ($this->action === self::ACTION_NEEDS_REVIEW) {
             $subject = 'Liquidation ' . $liquidateId . ' needs your review';
             $line1 = 'A liquidation has been submitted and needs your review.';
         } else {
             $subject = 'Liquidation ' . $liquidateId . ' is ready for approval';
-            $line1 = 'Liquidation ' . $liquidateId . ' has been reviewed and is ready for your approval or rejection.';
+            $line1 = 'Liquidation ' . $liquidateId . ' has been reviewed and is ready for your approval.';
         }
 
         return (new MailMessage)

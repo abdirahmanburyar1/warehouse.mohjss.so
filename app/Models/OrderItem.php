@@ -41,4 +41,19 @@ class OrderItem extends Model
     {
         return $this->belongsTo(Warehouse::class);
     }
+
+    /**
+     * Get the differences for this order item
+     */
+    public function differences()
+    {
+        return $this->hasManyThrough(
+            PackingListDifference::class,
+            InventoryAllocation::class,
+            'order_item_id', // Local key on InventoryAllocation
+            'inventory_allocation_id', // Foreign key on PackingListDifference
+            'id', // Local key on OrderItem
+            'id' // Local key on InventoryAllocation
+        );
+    }
 }

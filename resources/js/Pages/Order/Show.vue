@@ -1,52 +1,141 @@
 <template>
-    <AuthenticatedLayout title="Track Your Orders" description="Keeping Essentials Ready, Every Time"
-        img="/assets/images/orders.png"> <!-- Order Header -->
-        <div v-if="props.error">
-            {{ props.error }}
+    <AuthenticatedLayout
+        title="Track Your Orders"
+        description="Keeping Essentials Ready, Every Time"
+        img="/assets/images/orders.png"
+    >
+        <!-- Order Header -->
+        <div
+            v-if="props.error"
+            class="p-6 bg-red-50 text-red-700 rounded-lg m-6 border border-red-200"
+        >
+            <h2 class="text-lg font-bold mb-2">Error Loading Order</h2>
+            <p>{{ props.error }}</p>
+            <Link
+                :href="route('orders.index')"
+                class="mt-4 inline-block text-red-800 underline font-medium"
+                >Back to orders</Link
+            >
+        </div>
+        <div
+            v-else-if="!props.order"
+            class="p-6 bg-blue-50 text-blue-700 rounded-lg m-6 border border-blue-200"
+        >
+            <h2 class="text-lg font-bold mb-2">Order Not Found</h2>
+            <p>
+                The order you are looking for does not exist or you do not have
+                permission to view it.
+            </p>
+            <Link
+                :href="route('orders.index')"
+                class="mt-4 inline-block text-blue-800 underline font-medium"
+                >Back to orders</Link
+            >
         </div>
         <div v-else>
             <div class="px-6 py-4 border-b border-gray-200">
                 <div class="flex items-center justify-between">
                     <div>
-                        <Link :href="route('orders.index')">Back to orders</Link>
+                        <Link
+                            :href="route('orders.index')"
+                            class="text-blue-600 hover:text-blue-800 text-sm flex items-center mb-2"
+                        >
+                            <svg
+                                class="w-4 h-4 mr-1"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                                ></path>
+                            </svg>
+                            Back to orders
+                        </Link>
                         <h1 class="text-xs font-semibold text-gray-900">
                             Order ID. {{ props.order.order_number }}
                         </h1>
                     </div>
                     <div class="flex items-center space-x-4">
-                        <span :class="[
-                            statusClasses[props.order.status] ||
-                            statusClasses.default,
-                        ]" class="flex items-center text-xs font-bold px-4 py-2">
+                        <span
+                            :class="[
+                                statusClasses[props.order.status] ||
+                                    statusClasses.default,
+                            ]"
+                            class="flex items-center text-xs font-bold px-4 py-2"
+                        >
                             <!-- Status Icon -->
                             <span class="mr-3">
                                 <!-- Pending Icon -->
-                                <img v-if="props.order.status === 'pending'" src="/assets/images/pending.png"
-                                    class="w-4 h-4" alt="Pending" />
+                                <img
+                                    v-if="props.order.status === 'pending'"
+                                    src="/assets/images/pending.png"
+                                    class="w-4 h-4"
+                                    alt="Pending"
+                                />
 
                                 <!-- reviewed Icon -->
-                                <img v-else-if="props.order.status === 'reviewed'" src="/assets/images/reviewed.png"
-                                    class="w-4 h-4" alt="Reviewed" />
+                                <img
+                                    v-else-if="
+                                        props.order.status === 'reviewed'
+                                    "
+                                    src="/assets/images/reviewed.png"
+                                    class="w-4 h-4"
+                                    alt="Reviewed"
+                                />
 
                                 <!-- Approved Icon -->
-                                <img v-else-if="props.order.status === 'approved'" src="/assets/images/approved.png"
-                                    class="w-4 h-4" alt="Approved" />
+                                <img
+                                    v-else-if="
+                                        props.order.status === 'approved'
+                                    "
+                                    src="/assets/images/approved.png"
+                                    class="w-4 h-4"
+                                    alt="Approved"
+                                />
 
                                 <!-- In Process Icon -->
-                                <img v-else-if="props.order.status === 'in_process'" src="/assets/images/inprocess.png"
-                                    class="w-4 h-4" alt="In Process" />
+                                <img
+                                    v-else-if="
+                                        props.order.status === 'in_process'
+                                    "
+                                    src="/assets/images/inprocess.png"
+                                    class="w-4 h-4"
+                                    alt="In Process"
+                                />
 
                                 <!-- Dispatched Icon -->
-                                <img v-else-if="props.order.status === 'dispatched'" src="/assets/images/dispatch.png"
-                                    class="w-4 h-4" alt="Dispatched" />
+                                <img
+                                    v-else-if="
+                                        props.order.status === 'dispatched'
+                                    "
+                                    src="/assets/images/dispatch.png"
+                                    class="w-4 h-4"
+                                    alt="Dispatched"
+                                />
 
                                 <!-- Received Icon -->
-                                <img v-else-if="props.order.status === 'received'" src="/assets/images/received.png"
-                                    class="w-4 h-4" alt="Received" />
+                                <img
+                                    v-else-if="
+                                        props.order.status === 'received'
+                                    "
+                                    src="/assets/images/received.png"
+                                    class="w-4 h-4"
+                                    alt="Received"
+                                />
 
                                 <!-- Rejected Icon -->
-                                <img v-else-if="props.order.status === 'rejected'" src="/assets/images/rejected.png"
-                                class="w-4 h-4" alt="Rejected" />
+                                <img
+                                    v-else-if="
+                                        props.order.status === 'rejected'
+                                    "
+                                    src="/assets/images/rejected.png"
+                                    class="w-4 h-4"
+                                    alt="Rejected"
+                                />
                             </span>
                             {{ props.order.status.toUpperCase() }}
                         </span>
@@ -55,33 +144,55 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6 p-6">
-                <!-- Facility Information -->
+                <!-- Facility/Warehouse Information -->
                 <div class="bg-gray-50 rounded-lg p-4 space-y-2">
                     <h2 class="text-lg font-medium text-gray-900">
-                        Facility Details
+                        {{
+                            props.order.facility
+                                ? "Facility Details"
+                                : "Warehouse Details"
+                        }}
                     </h2>
                     <div class="flex items-center">
-                        <BuildingOfficeIcon class="h-4 w-4 text-gray-400 mr-2" />
+                        <BuildingOfficeIcon
+                            class="h-4 w-4 text-gray-400 mr-2"
+                        />
                         <span class="text-sm text-gray-600">{{
-                            props.order.facility.name
+                            props.order.facility?.name ||
+                            props.order.sender_warehouse?.name ||
+                            "Unknown"
                         }}</span>
                     </div>
                     <div class="flex items-center">
                         <EnvelopeIcon class="h-4 w-4 text-gray-400 mr-2" />
                         <span class="text-sm text-gray-600">{{
-                            props.order.facility.email
+                            props.order.facility?.email ||
+                            props.order.sender_warehouse?.email ||
+                            "N/A"
                         }}</span>
                     </div>
                     <div class="flex items-center">
                         <PhoneIcon class="h-4 w-4 text-gray-400 mr-2" />
                         <span class="text-sm text-gray-600">{{
-                            props.order.facility.phone
+                            props.order.facility?.phone ||
+                            props.order.sender_warehouse?.phone ||
+                            "N/A"
                         }}</span>
                     </div>
                     <div class="flex items-center">
                         <MapPinIcon class="h-4 w-4 text-gray-400 mr-2" />
-                        <span class="text-sm text-gray-600">{{ props.order.facility.address }},
-                            {{ props.order.facility.city }}</span>
+                        <span class="text-sm text-gray-600"
+                            >{{
+                                props.order.facility?.address ||
+                                props.order.sender_warehouse?.address ||
+                                "N/A"
+                            }},
+                            {{
+                                props.order.facility?.city ||
+                                props.order.sender_warehouse?.city ||
+                                ""
+                            }}</span
+                        >
                     </div>
                 </div>
                 <div>
@@ -120,175 +231,293 @@
             </div>
 
             <!-- Status Stage Timeline -->
-             <div v-if="props.order.status == 'rejected'">
+            <div v-if="props.order.status == 'rejected'">
                 <div class="flex flex-col items-center">
-                    <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10 bg-white border-red-500">
-                        <img src="/assets/images/rejected.png" class="w-7 h-7" alt="Rejected" />
+                    <div
+                        class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10 bg-white border-red-500"
+                    >
+                        <img
+                            src="/assets/images/rejected.png"
+                            class="w-7 h-7"
+                            alt="Rejected"
+                        />
                     </div>
-                    <h1 class="mt-3 text-2xl text-red-600 font-bold ">Rejected</h1>
+                    <h1 class="mt-3 text-2xl text-red-600 font-bold">
+                        Rejected
+                    </h1>
                 </div>
-             </div>
+            </div>
             <div v-else class="col-span-2 mb-6">
                 <div class="relative">
                     <!-- Timeline Track Background -->
-                    <div class="absolute top-7 left-0 right-0 h-2 bg-gray-200 z-0"></div>
+                    <div
+                        class="absolute top-7 left-0 right-0 h-2 bg-gray-200 z-0"
+                    ></div>
 
                     <!-- Timeline Progress -->
-                    <div class="absolute top-7 left-0 h-2 bg-green-500 z-0 transition-all duration-500 ease-in-out"
+                    <div
+                        class="absolute top-7 left-0 h-2 bg-green-500 z-0 transition-all duration-500 ease-in-out"
                         :style="{
-                            width: `${(statusOrder.indexOf(props.order.status) /
-                                (statusOrder.length - 1)) *
+                            width: `${
+                                (statusOrder.indexOf(props.order.status) /
+                                    (statusOrder.length - 1)) *
                                 100
-                                }%`,
-                        }"></div>
+                            }%`,
+                        }"
+                    ></div>
 
                     <!-- Timeline Steps -->
                     <div class="relative flex justify-between">
                         <!-- Pending -->
                         <div class="flex flex-col items-center">
-                            <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10" :class="[
-                                statusOrder.indexOf(props.order.status) >=
+                            <div
+                                class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10"
+                                :class="[
+                                    statusOrder.indexOf(props.order.status) >=
                                     statusOrder.indexOf('pending')
-                                    ? 'bg-white border-orange-500'
-                                    : 'bg-white border-gray-200',
-                            ]">
-                                <img src="/assets/images/pending.png" class="w-7 h-7" alt="Pending" :class="statusOrder.indexOf(props.order.status) >=
-                                    statusOrder.indexOf('pending')
-                                    ? ''
-                                    : 'opacity-40'
-                                    " />
+                                        ? 'bg-white border-orange-500'
+                                        : 'bg-white border-gray-200',
+                                ]"
+                            >
+                                <img
+                                    src="/assets/images/pending.png"
+                                    class="w-7 h-7"
+                                    alt="Pending"
+                                    :class="
+                                        statusOrder.indexOf(
+                                            props.order.status,
+                                        ) >= statusOrder.indexOf('pending')
+                                            ? ''
+                                            : 'opacity-40'
+                                    "
+                                />
                             </div>
-                            <span class="mt-3 text-xs font-bold" :class="statusOrder.indexOf(props.order.status) >=
-                                statusOrder.indexOf('pending')
-                                ? 'text-green-600'
-                                : 'text-gray-500'
-                                ">Pending</span>
+                            <span
+                                class="mt-3 text-xs font-bold"
+                                :class="
+                                    statusOrder.indexOf(props.order.status) >=
+                                    statusOrder.indexOf('pending')
+                                        ? 'text-green-600'
+                                        : 'text-gray-500'
+                                "
+                                >Pending</span
+                            >
                         </div>
 
                         <!-- Reviewed -->
                         <div class="flex flex-col items-center">
-                            <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10" :class="[
-                                statusOrder.indexOf(props.order.status) >=
+                            <div
+                                class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10"
+                                :class="[
+                                    statusOrder.indexOf(props.order.status) >=
                                     statusOrder.indexOf('reviewed')
-                                    ? 'bg-white border-orange-500'
-                                    : 'bg-white border-gray-200',
-                            ]">
-                                <img src="/assets/images/review.png" class="w-7 h-7" alt="Reviewed" :class="statusOrder.indexOf(props.order.status) >=
-                                    statusOrder.indexOf('reviewed')
-                                    ? ''
-                                    : 'opacity-40'
-                                    " />
+                                        ? 'bg-white border-orange-500'
+                                        : 'bg-white border-gray-200',
+                                ]"
+                            >
+                                <img
+                                    src="/assets/images/review.png"
+                                    class="w-7 h-7"
+                                    alt="Reviewed"
+                                    :class="
+                                        statusOrder.indexOf(
+                                            props.order.status,
+                                        ) >= statusOrder.indexOf('reviewed')
+                                            ? ''
+                                            : 'opacity-40'
+                                    "
+                                />
                             </div>
-                            <span class="mt-3 text-xs font-bold" :class="statusOrder.indexOf(props.order.status) >=
-                                statusOrder.indexOf('reviewed')
-                                ? 'text-green-600'
-                                : 'text-gray-500'
-                                ">Reviewed</span>
+                            <span
+                                class="mt-3 text-xs font-bold"
+                                :class="
+                                    statusOrder.indexOf(props.order.status) >=
+                                    statusOrder.indexOf('reviewed')
+                                        ? 'text-green-600'
+                                        : 'text-gray-500'
+                                "
+                                >Reviewed</span
+                            >
                         </div>
 
                         <!-- Approved -->
                         <div class="flex flex-col items-center">
-                            <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10" :class="[
-                                statusOrder.indexOf(props.order.status) >=
+                            <div
+                                class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10"
+                                :class="[
+                                    statusOrder.indexOf(props.order.status) >=
                                     statusOrder.indexOf('approved')
-                                    ? 'bg-white border-orange-500'
-                                    : 'bg-white border-gray-200',
-                            ]">
-                                <img src="/assets/images/approved.png" class="w-7 h-7" alt="Approved" :class="statusOrder.indexOf(props.order.status) >=
-                                    statusOrder.indexOf('approved')
-                                    ? ''
-                                    : 'opacity-40'
-                                    " />
+                                        ? 'bg-white border-orange-500'
+                                        : 'bg-white border-gray-200',
+                                ]"
+                            >
+                                <img
+                                    src="/assets/images/approved.png"
+                                    class="w-7 h-7"
+                                    alt="Approved"
+                                    :class="
+                                        statusOrder.indexOf(
+                                            props.order.status,
+                                        ) >= statusOrder.indexOf('approved')
+                                            ? ''
+                                            : 'opacity-40'
+                                    "
+                                />
                             </div>
-                            <span class="mt-3 text-xs font-bold" :class="statusOrder.indexOf(props.order.status) >=
-                                statusOrder.indexOf('approved')
-                                ? 'text-green-600'
-                                : 'text-gray-500'
-                                ">Approved</span>
+                            <span
+                                class="mt-3 text-xs font-bold"
+                                :class="
+                                    statusOrder.indexOf(props.order.status) >=
+                                    statusOrder.indexOf('approved')
+                                        ? 'text-green-600'
+                                        : 'text-gray-500'
+                                "
+                                >Approved</span
+                            >
                         </div>
 
                         <!-- In Process -->
                         <div class="flex flex-col items-center">
-                            <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10" :class="[
-                                statusOrder.indexOf(props.order.status) >=
+                            <div
+                                class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10"
+                                :class="[
+                                    statusOrder.indexOf(props.order.status) >=
                                     statusOrder.indexOf('in_process')
-                                    ? 'bg-white border-orange-500'
-                                    : 'bg-white border-gray-200',
-                            ]">
-                                <img src="/assets/images/inprocess.png" class="w-7 h-7" alt="In Process" :class="statusOrder.indexOf(props.order.status) >=
-                                    statusOrder.indexOf('in_process')
-                                    ? ''
-                                    : 'opacity-40'
-                                    " />
+                                        ? 'bg-white border-orange-500'
+                                        : 'bg-white border-gray-200',
+                                ]"
+                            >
+                                <img
+                                    src="/assets/images/inprocess.png"
+                                    class="w-7 h-7"
+                                    alt="In Process"
+                                    :class="
+                                        statusOrder.indexOf(
+                                            props.order.status,
+                                        ) >= statusOrder.indexOf('in_process')
+                                            ? ''
+                                            : 'opacity-40'
+                                    "
+                                />
                             </div>
-                            <span class="mt-3 text-xs font-bold" :class="statusOrder.indexOf(props.order.status) >=
-                                statusOrder.indexOf('in_process')
-                                ? 'text-green-600'
-                                : 'text-gray-500'
-                                ">In Process</span>
+                            <span
+                                class="mt-3 text-xs font-bold"
+                                :class="
+                                    statusOrder.indexOf(props.order.status) >=
+                                    statusOrder.indexOf('in_process')
+                                        ? 'text-green-600'
+                                        : 'text-gray-500'
+                                "
+                                >In Process</span
+                            >
                         </div>
 
                         <!-- Dispatch -->
                         <div class="flex flex-col items-center">
-                            <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10" :class="[
-                                statusOrder.indexOf(props.order.status) >=
+                            <div
+                                class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10"
+                                :class="[
+                                    statusOrder.indexOf(props.order.status) >=
                                     statusOrder.indexOf('dispatched')
-                                    ? 'bg-white border-orange-500'
-                                    : 'bg-white border-gray-200',
-                            ]">
-                                <img src="/assets/images/dispatch.png" class="w-7 h-7" alt="Dispatch" :class="statusOrder.indexOf(props.order.status) >=
-                                    statusOrder.indexOf('dispatched')
-                                    ? ''
-                                    : 'opacity-40'
-                                    " />
+                                        ? 'bg-white border-orange-500'
+                                        : 'bg-white border-gray-200',
+                                ]"
+                            >
+                                <img
+                                    src="/assets/images/dispatch.png"
+                                    class="w-7 h-7"
+                                    alt="Dispatch"
+                                    :class="
+                                        statusOrder.indexOf(
+                                            props.order.status,
+                                        ) >= statusOrder.indexOf('dispatched')
+                                            ? ''
+                                            : 'opacity-40'
+                                    "
+                                />
                             </div>
-                            <span class="mt-3 text-xs font-bold" :class="statusOrder.indexOf(props.order.status) >=
-                                statusOrder.indexOf('dispatched')
-                                ? 'text-green-600'
-                                : 'text-gray-500'
-                                ">Dispatched</span>
+                            <span
+                                class="mt-3 text-xs font-bold"
+                                :class="
+                                    statusOrder.indexOf(props.order.status) >=
+                                    statusOrder.indexOf('dispatched')
+                                        ? 'text-green-600'
+                                        : 'text-gray-500'
+                                "
+                                >Dispatched</span
+                            >
                         </div>
 
                         <!-- Delivered -->
                         <div class="flex flex-col items-center">
-                            <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10" :class="[
-                                statusOrder.indexOf(props.order.status) >=
+                            <div
+                                class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10"
+                                :class="[
+                                    statusOrder.indexOf(props.order.status) >=
                                     statusOrder.indexOf('delivered')
-                                    ? 'bg-white border-orange-500'
-                                    : 'bg-white border-gray-200',
-                            ]">
-                                <img src="/assets/images/delivery.png" class="w-7 h-7" alt="Dispatch" :class="statusOrder.indexOf(props.order.status) >=
-                                    statusOrder.indexOf('delivered')
-                                    ? ''
-                                    : 'opacity-40'
-                                    " />
+                                        ? 'bg-white border-orange-500'
+                                        : 'bg-white border-gray-200',
+                                ]"
+                            >
+                                <img
+                                    src="/assets/images/delivery.png"
+                                    class="w-7 h-7"
+                                    alt="Dispatch"
+                                    :class="
+                                        statusOrder.indexOf(
+                                            props.order.status,
+                                        ) >= statusOrder.indexOf('delivered')
+                                            ? ''
+                                            : 'opacity-40'
+                                    "
+                                />
                             </div>
-                            <span class="mt-3 text-xs font-bold" :class="statusOrder.indexOf(props.order.status) >=
-                                statusOrder.indexOf('delivered')
-                                ? 'text-green-600'
-                                : 'text-gray-500'
-                                ">Delivered</span>
+                            <span
+                                class="mt-3 text-xs font-bold"
+                                :class="
+                                    statusOrder.indexOf(props.order.status) >=
+                                    statusOrder.indexOf('delivered')
+                                        ? 'text-green-600'
+                                        : 'text-gray-500'
+                                "
+                                >Delivered</span
+                            >
                         </div>
 
                         <!-- Received -->
                         <div class="flex flex-col items-center">
-                            <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10" :class="[
-                                statusOrder.indexOf(props.order.status) >=
+                            <div
+                                class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10"
+                                :class="[
+                                    statusOrder.indexOf(props.order.status) >=
                                     statusOrder.indexOf('received')
-                                    ? 'bg-white border-green-500'
-                                    : 'bg-white border-gray-200',
-                            ]">
-                                <img src="/assets/images/received.png" class="w-7 h-7" alt="Received" :class="statusOrder.indexOf(props.order.status) >=
-                                    statusOrder.indexOf('received')
-                                    ? ''
-                                    : 'opacity-40'
-                                    " />
+                                        ? 'bg-white border-green-500'
+                                        : 'bg-white border-gray-200',
+                                ]"
+                            >
+                                <img
+                                    src="/assets/images/received.png"
+                                    class="w-7 h-7"
+                                    alt="Received"
+                                    :class="
+                                        statusOrder.indexOf(
+                                            props.order.status,
+                                        ) >= statusOrder.indexOf('received')
+                                            ? ''
+                                            : 'opacity-40'
+                                    "
+                                />
                             </div>
-                            <span class="mt-3 text-xs font-bold" :class="statusOrder.indexOf(props.order.status) >=
-                                statusOrder.indexOf('received')
-                                ? 'text-green-600'
-                                : 'text-gray-500'
-                                ">Received</span>
+                            <span
+                                class="mt-3 text-xs font-bold"
+                                :class="
+                                    statusOrder.indexOf(props.order.status) >=
+                                    statusOrder.indexOf('received')
+                                        ? 'text-green-600'
+                                        : 'text-gray-500'
+                                "
+                                >Received</span
+                            >
                         </div>
                     </div>
                 </div>
@@ -296,151 +525,568 @@
 
             <!-- Order Items Table -->
             <h2 class="text-xs text-gray-900 mb-4">Order Items</h2>
-            <table class="w-full overflow-hidden text-sm text-left table-sm rounded-t-lg">
+            <table
+                class="w-full overflow-hidden text-sm text-left table-sm rounded-t-lg"
+            >
                 <thead>
-                    <tr style="background-color: #F4F7FB;">
-                        <th class="px-3 py-2 text-xs font-bold rounded-tl-lg" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;" rowspan="2">Item</th>
-                        <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;" rowspan="2">Category</th>
-                        <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;" rowspan="2">UoM</th>
-                        <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;" rowspan="2">Facility Inventory Data</th>
-                        <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;" rowspan="2">No. of Days</th>
-                        <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;" rowspan="2">Ordered Quantity</th>
-                        <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;" rowspan="2">Quantity to release</th>
-                        <th class="px-3 py-2 text-xs font-bold text-center" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;" colspan="4">Item Detail</th>
+                    <tr style="background-color: #f4f7fb">
+                        <th
+                            class="px-3 py-2 text-xs font-bold rounded-tl-lg"
+                            style="
+                                color: #4f6fcb;
+                                border-bottom: 2px solid #b7c6e6;
+                            "
+                            rowspan="2"
+                        >
+                            Item
+                        </th>
+                        <th
+                            class="px-3 py-2 text-xs font-bold"
+                            style="
+                                color: #4f6fcb;
+                                border-bottom: 2px solid #b7c6e6;
+                            "
+                            rowspan="2"
+                        >
+                            Category
+                        </th>
+                        <th
+                            class="px-3 py-2 text-xs font-bold"
+                            style="
+                                color: #4f6fcb;
+                                border-bottom: 2px solid #b7c6e6;
+                            "
+                            rowspan="2"
+                        >
+                            UoM
+                        </th>
+                        <th
+                            class="px-3 py-2 text-xs font-bold"
+                            style="
+                                color: #4f6fcb;
+                                border-bottom: 2px solid #b7c6e6;
+                            "
+                            rowspan="2"
+                        >
+                            {{
+                                props.order.facility_id
+                                    ? "Facility Inventory Data"
+                                    : "Warehouse Inventory Data"
+                            }}
+                        </th>
+                        <th
+                            class="px-3 py-2 text-xs font-bold"
+                            style="
+                                color: #4f6fcb;
+                                border-bottom: 2px solid #b7c6e6;
+                            "
+                            rowspan="2"
+                        >
+                            No. of Days
+                        </th>
+                        <th
+                            class="px-3 py-2 text-xs font-bold"
+                            style="
+                                color: #4f6fcb;
+                                border-bottom: 2px solid #b7c6e6;
+                            "
+                            rowspan="2"
+                        >
+                            Ordered Quantity
+                        </th>
+                        <th
+                            class="px-3 py-2 text-xs font-bold"
+                            style="
+                                color: #4f6fcb;
+                                border-bottom: 2px solid #b7c6e6;
+                            "
+                            rowspan="2"
+                        >
+                            Quantity to release
+                        </th>
+                        <th
+                            class="px-3 py-2 text-xs font-bold text-center"
+                            style="
+                                color: #4f6fcb;
+                                border-bottom: 2px solid #b7c6e6;
+                            "
+                            colspan="4"
+                        >
+                            Item Detail
+                        </th>
                     </tr>
-                    <tr style="background-color: #F4F7FB;">
-                        <th class="px-2 py-1 text-xs font-bold border border-[#B7C6E6] text-center" style="color: #4F6FCB;">QTY</th>
-                        <th class="px-2 py-1 text-xs font-bold border border-[#B7C6E6] text-center" style="color: #4F6FCB;">Batch Number</th>
-                        <th class="px-2 py-1 text-xs font-bold border border-[#B7C6E6] text-center" style="color: #4F6FCB;">Expiry Date</th>
-                        <th class="px-2 py-1 text-xs font-bold border border-[#B7C6E6] text-center" style="color: #4F6FCB;">Location</th>
+                    <tr style="background-color: #f4f7fb">
+                        <th
+                            class="px-2 py-1 text-xs font-bold border border-[#B7C6E6] text-center"
+                            style="color: #4f6fcb"
+                        >
+                            QTY
+                        </th>
+                        <th
+                            class="px-2 py-1 text-xs font-bold border border-[#B7C6E6] text-center"
+                            style="color: #4f6fcb"
+                        >
+                            Batch Number
+                        </th>
+                        <th
+                            class="px-2 py-1 text-xs font-bold border border-[#B7C6E6] text-center"
+                            style="color: #4f6fcb"
+                        >
+                            Expiry Date
+                        </th>
+                        <th
+                            class="px-2 py-1 text-xs font-bold border border-[#B7C6E6] text-center"
+                            style="color: #4f6fcb"
+                        >
+                            Location
+                        </th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-if="form.length === 0">
-                        <td colspan="11" class="px-3 py-3 text-center text-gray-500 border-b" style="border-bottom: 1px solid #B7C6E6;">
-                            No items found. Form length: {{ form.length }}, Order items: {{ props.order.items?.length || 0 }}
+                        <td
+                            colspan="11"
+                            class="px-3 py-3 text-center text-gray-500 border-b"
+                            style="border-bottom: 1px solid #b7c6e6"
+                        >
+                            No items found. Form length: {{ form.length }},
+                            Order items: {{ props.order.items?.length || 0 }}
                         </td>
                     </tr>
                     <template v-for="(item, index) in form" :key="item.id">
                         <template v-if="item.inventory_allocations?.length > 0">
-                            <tr v-for="(inv, invIndex) in item.inventory_allocations" :key="`${item.id}-${inv.id || invIndex}`"
+                            <tr
+                                v-for="(
+                                    inv, invIndex
+                                ) in item.inventory_allocations"
+                                :key="`${item.id}-${inv.id || invIndex}`"
                                 class="hover:bg-gray-50 transition-colors duration-150 border-b"
-                                :style="'border-bottom: 1px solid #F4F7FB;'">
-                                <td v-if="invIndex === 0" :rowspan="item.inventory_allocations.length"
-                                    class="px-3 py-3 text-xs text-gray-900 align-top">
+                                :style="'border-bottom: 1px solid #F4F7FB;'"
+                            >
+                                <td
+                                    v-if="invIndex === 0"
+                                    :rowspan="item.inventory_allocations.length"
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
                                     {{ item.product?.name }}
                                 </td>
-                                <td v-if="invIndex === 0" :rowspan="item.inventory_allocations.length"
-                                    class="px-3 py-3 text-xs text-gray-900 align-top">
+                                <td
+                                    v-if="invIndex === 0"
+                                    :rowspan="item.inventory_allocations.length"
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
                                     {{ item.product?.category?.name }}
                                 </td>
-                                <td v-if="invIndex === 0" :rowspan="item.inventory_allocations.length"
-                                    class="px-3 py-3 text-xs text-gray-900 align-top">
-                                    {{ item.inventory_allocations?.[0]?.uom || item.uom || 'N/A' }}
+                                <td
+                                    v-if="invIndex === 0"
+                                    :rowspan="item.inventory_allocations.length"
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
+                                    {{
+                                        item.inventory_allocations?.[0]?.uom ||
+                                        item.uom ||
+                                        "N/A"
+                                    }}
                                 </td>
-                                <td v-if="invIndex === 0" :rowspan="item.inventory_allocations.length"
-                                    class="px-3 py-3 text-xs text-gray-900 align-top">
-                                    <div class="flex flex-col space-y-1 text-xs">
+                                <td
+                                    v-if="invIndex === 0"
+                                    :rowspan="item.inventory_allocations.length"
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
+                                    <div
+                                        class="flex flex-col space-y-1 text-xs"
+                                    >
                                         <div class="flex">
-                                            <span class="font-medium text-xs w-12">SOH:</span>
+                                            <span
+                                                class="font-medium text-xs w-12"
+                                                >SOH:</span
+                                            >
                                             <span>{{ item.soh }}</span>
                                         </div>
                                         <div class="flex">
-                                            <span class="font-medium text-xs w-12">AMC:</span>
+                                            <span
+                                                class="font-medium text-xs w-12"
+                                                >AMC:</span
+                                            >
                                             <span>{{ item.amc || 0 }}</span>
                                         </div>
                                         <div class="flex">
-                                            <span class="font-medium text-xs w-12">QOO:</span>
-                                            <span>{{ item.quantity_on_order }}</span>
+                                            <span
+                                                class="font-medium text-xs w-12"
+                                                >QOO:</span
+                                            >
+                                            <span>{{
+                                                item.quantity_on_order
+                                            }}</span>
                                         </div>
                                     </div>
                                 </td>
-                                <td v-if="invIndex === 0" :rowspan="item.inventory_allocations.length"
-                                    class="px-3 py-3 text-xs text-gray-900 align-top">
+                                <td
+                                    v-if="invIndex === 0"
+                                    :rowspan="item.inventory_allocations.length"
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
                                     {{ item.no_of_days }}
                                 </td>
-                                <td v-if="invIndex === 0" :rowspan="item.inventory_allocations.length"
-                                    class="px-3 py-3 text-xs text-center text-black align-top">
+                                <td
+                                    v-if="invIndex === 0"
+                                    :rowspan="item.inventory_allocations.length"
+                                    class="px-3 py-3 text-xs text-center text-black align-top"
+                                >
                                     {{ item.quantity }}
                                 </td>
-                                <td v-if="invIndex === 0" :rowspan="item.inventory_allocations.length"
-                                    class="px-3 py-3 text-xs text-gray-900 align-top" style="width: 200px;">
-                                    <input type="number" placeholder="0" v-model="item.quantity_to_release" @input="
-                                        handleQuantityInput(item, 'quantity_to_release', index)" :readonly="props.order.status != 'pending'"
-                                        class="w-full rounded-md border border-gray-300 focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1" />
-                                    <label for="days">No. of Days</label>
-                                    <input type="number" min="1" :value="item.no_of_days ?? 1"
-                                        @input="(e) => { item.no_of_days = Math.max(1, parseInt(e.target.value) || 1); handleQuantityInput(item, 'days', index); }"
-                                        :readonly="props.order.status != 'pending'"
-                                        class="w-full rounded-md border border-gray-300 focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1" />
-                                    <span v-if="isUpading[index]" class="text-green-500 text-md">Updating...</span>
-                                    <button @click="showBackOrderModal(item)" v-if="
-                                        item.inventory_allocations &&
-                                        item.inventory_allocations.some(
-                                            (a) => a.back_order?.length > 0
-                                        )
-                                    " class="text-xs text-orange-600 underline hover:text-orange-800 cursor-pointer mt-1">
-                                        Show Back Order
-                                    </button>
+                                <td
+                                    v-if="invIndex === 0"
+                                    :rowspan="item.inventory_allocations.length"
+                                    class="px-3 py-3 text-xs text-gray-900 align-top w-40"
+                                    style="width: 10rem"
+                                >
+                                    <div class="flex flex-col space-y-1">
+                                        <div
+                                            class="p-1.5 bg-gray-50 rounded border border-gray-100"
+                                        >
+                                            <div
+                                                v-if="isUpading[index]"
+                                                class="text-[10px] text-blue-600 font-bold animate-pulse mb-1"
+                                            >
+                                                Updating...
+                                            </div>
+                                            <input
+                                                type="number"
+                                                placeholder="0"
+                                                v-model="
+                                                    item.quantity_to_release
+                                                "
+                                                :readonly="
+                                                    !canEditSupplierFields
+                                                "
+                                                @input="
+                                                    handleQuantityInput(
+                                                        item,
+                                                        'quantity_to_release',
+                                                        index,
+                                                    )
+                                                "
+                                                class="w-full rounded-md border border-gray-300 focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1 text-center px-1 py-1 bg-gray-50 font-medium"
+                                            />
+                                        </div>
+
+                                        <!-- Received Quantity Logic (Always Visible, Disabled for Supplier) -->
+                                        <div
+                                            class="p-1.5 border border-gray-100 rounded bg-white"
+                                        >
+                                            <label
+                                                class="text-[10px] font-bold text-gray-500 uppercase block mb-1"
+                                                >Received Quantity</label
+                                            >
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                placeholder="0"
+                                                v-model="item.received_quantity"
+                                                disabled
+                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1 disabled:bg-gray-100 disabled:cursor-not-allowed text-center"
+                                            />
+
+                                            <div
+                                                class="flex flex-col mb-1 text-[10px]"
+                                            >
+                                                <span
+                                                    class="font-medium text-gray-600 uppercase"
+                                                    >Remaining:
+                                                    {{
+                                                        getRemainingQuantity(
+                                                            item,
+                                                        )
+                                                    }}</span
+                                                >
+                                            </div>
+                                            <div
+                                                class="flex flex-col space-y-1 mt-1"
+                                            >
+                                                <button
+                                                    v-if="
+                                                        parseFloat(
+                                                            item.quantity_to_release,
+                                                        ) !==
+                                                        parseFloat(
+                                                            item.received_quantity ||
+                                                                0,
+                                                        )
+                                                    "
+                                                    @click="
+                                                        openBackOrderModal(item)
+                                                    "
+                                                    class="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-[10px] w-full font-bold uppercase tracking-wider shadow-sm transition-all duration-150"
+                                                >
+                                                    Back Order
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="p-1.5 bg-gray-50 rounded border border-gray-100"
+                                        >
+                                            <label
+                                                class="text-[10px] font-bold text-gray-500 uppercase block mb-1 leading-none"
+                                                >No. of Days</label
+                                            >
+                                            <input
+                                                type="number"
+                                                v-model="item.no_of_days"
+                                                :readonly="
+                                                    !canEditSupplierFields
+                                                "
+                                                @input="
+                                                    handleQuantityInput(
+                                                        item,
+                                                        'days',
+                                                        index,
+                                                    )
+                                                "
+                                                class="w-full rounded-md border border-gray-300 focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1 px-1 py-1 bg-gray-50 font-medium text-center"
+                                            />
+                                        </div>
+                                    </div>
                                 </td>
                                 <!-- Item Details Columns -->
-                                <td class="px-2 py-1 text-xs border-b text-center" style="border-bottom: 1px solid #B7C6E6;">
-                                    {{ inv.allocated_quantity || '' }}
+                                <td
+                                    class="px-2 py-1 text-xs border-b text-center"
+                                    style="border-bottom: 1px solid #b7c6e6"
+                                >
+                                    {{ inv.allocated_quantity || "" }}
                                 </td>
-                                <td class="px-2 py-1 text-xs border-b text-center" style="border-bottom: 1px solid #B7C6E6;">
-                                    {{ inv.batch_number || '' }}
+                                <td
+                                    class="px-2 py-1 text-xs border-b text-center"
+                                    style="border-bottom: 1px solid #b7c6e6"
+                                >
+                                    {{ inv.batch_number || "" }}
                                 </td>
-                                <td class="px-2 py-1 text-xs border-b text-center" style="border-bottom: 1px solid #B7C6E6;">
-                                    {{ inv.expiry_date ? moment(inv.expiry_date).format('DD/MM/YYYY') : '' }}
+                                <td
+                                    class="px-2 py-1 text-xs border-b text-center"
+                                    style="border-bottom: 1px solid #b7c6e6"
+                                >
+                                    {{
+                                        inv.expiry_date
+                                            ? moment(inv.expiry_date).format(
+                                                  "DD/MM/YYYY",
+                                              )
+                                            : ""
+                                    }}
                                 </td>
-                                <td class="px-2 py-1 text-xs border-b text-center" style="border-bottom: 1px solid #B7C6E6;">
-                                    <div class="flex flex-col text-xs">{{ inv.location }}</div>
+                                <td
+                                    class="px-2 py-1 text-xs border-b text-center"
+                                    style="border-bottom: 1px solid #b7c6e6"
+                                >
+                                    <div class="flex flex-col text-xs">
+                                        {{ inv.location }}
+                                    </div>
                                 </td>
                             </tr>
                         </template>
                         <template v-else>
-                            <tr class="hover:bg-gray-50 transition-colors duration-150 border-b" style="border-bottom: 1px solid #F4F7FB;">
-                                <td class="px-3 py-3 text-xs text-gray-900 align-top">{{ item.product?.name }}</td>
-                                <td class="px-3 py-3 text-xs text-gray-900 align-top">{{ item.product?.category?.name }}</td>
-                                <td class="px-3 py-3 text-xs text-gray-900 align-top">{{ item.uom || 'N/A' }}</td>
-                                <td class="px-3 py-3 text-xs text-gray-900 align-top">
-                                    <div class="flex flex-col space-y-1 text-xs">
+                            <tr
+                                class="hover:bg-gray-50 transition-colors duration-150 border-b"
+                                style="border-bottom: 1px solid #f4f7fb"
+                            >
+                                <td
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
+                                    {{ item.product?.name }}
+                                </td>
+                                <td
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
+                                    {{ item.product?.category?.name }}
+                                </td>
+                                <td
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
+                                    {{
+                                        item.inventory_allocations?.[0]?.uom ||
+                                        item.uom ||
+                                        "N/A"
+                                    }}
+                                </td>
+                                <td
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
+                                    <div
+                                        class="flex flex-col space-y-1 text-xs"
+                                    >
                                         <div class="flex">
-                                            <span class="font-medium text-xs w-12">SOH:</span>
+                                            <span
+                                                class="font-medium text-xs w-12"
+                                                >SOH:</span
+                                            >
                                             <span>{{ item.soh }}</span>
                                         </div>
                                         <div class="flex">
-                                            <span class="font-medium text-xs w-12">AMC:</span>
+                                            <span
+                                                class="font-medium text-xs w-12"
+                                                >AMC:</span
+                                            >
                                             <span>{{ item.amc || 0 }}</span>
                                         </div>
                                         <div class="flex">
-                                            <span class="font-medium text-xs w-12">QOO:</span>
-                                            <span>{{ item.quantity_on_order }}</span>
+                                            <span
+                                                class="font-medium text-xs w-12"
+                                                >QOO:</span
+                                            >
+                                            <span>{{
+                                                item.quantity_on_order
+                                            }}</span>
                                         </div>
                                     </div>
                                 </td>
-                                <td class="px-3 py-3 text-xs text-gray-900 align-top">{{ item.no_of_days }}</td>
-                                <td class="px-3 py-3 text-xs text-center text-black align-top">{{ item.quantity }}</td>
-                                <td class="px-3 py-3 text-xs text-gray-900 align-top" style="width: 200px;">
-                                    <input type="number" placeholder="0" v-model="item.quantity_to_release" @input="
-                                        handleQuantityInput(item, 'quantity_to_release', index)" :readonly="props.order.status != 'pending'"
-                                        class="w-full rounded-md border border-gray-300 focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1" />
-                                    <label for="days">No. of Days</label>
-                                    <input type="number" min="1" :value="item.no_of_days ?? 1"
-                                        @input="(e) => { item.no_of_days = Math.max(1, parseInt(e.target.value) || 1); handleQuantityInput(item, 'days', index); }"
-                                        :readonly="props.order.status != 'pending'"
-                                        class="w-full rounded-md border border-gray-300 focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1" />
-                                    <span v-if="isUpading[index]" class="text-green-500 text-md">Updating...</span>
-                                    <button @click="showBackOrderModal(item)" v-if="
-                                        item.back_order && item.back_order.length > 0
-                                    " class="text-xs text-orange-600 underline hover:text-orange-800 cursor-pointer mt-1">
-                                        Show Back Order
-                                    </button>
+                                <td
+                                    class="px-3 py-3 text-xs text-gray-900 align-top"
+                                >
+                                    {{ item.no_of_days }}
                                 </td>
-                                <td class="px-2 py-1 text-xs border-b text-center" style="border-bottom: 1px solid #B7C6E6;">{{ item.allocated_quantity || '' }}</td>
-                                <td class="px-2 py-1 text-xs border-b text-center" style="border-bottom: 1px solid #B7C6E6;">{{ item.batch_number || '' }}</td>
-                                <td class="px-2 py-1 text-xs border-b text-center" style="border-bottom: 1px solid #B7C6E6;">{{ item.expiry_date ? moment(item.expiry_date).format('DD/MM/YYYY') : '' }}</td>
-                                <td class="px-2 py-1 text-xs border-b text-center" style="border-bottom: 1px solid #B7C6E6;"><div class="flex flex-col text-xs">{{ item.location }}</div></td>
+
+                                <td
+                                    class="px-3 py-3 text-xs text-center text-black align-top"
+                                >
+                                    {{ item.quantity }}
+                                </td>
+                                <td
+                                    class="px-3 py-3 text-xs text-gray-900 align-top w-40"
+                                    style="width: 10rem"
+                                >
+                                    <div class="flex flex-col space-y-1">
+                                        <div
+                                            class="p-1.5 bg-gray-50 rounded border border-gray-100"
+                                        >
+                                            <label
+                                                class="text-[10px] font-bold text-gray-500 uppercase block mb-1 leading-none"
+                                                >Quantity to release</label
+                                            >
+                                            <div
+                                                v-if="isUpading[index]"
+                                                class="text-[10px] text-blue-600 font-bold animate-pulse mb-1"
+                                            >
+                                                Updating...
+                                            </div>
+                                            <input
+                                                type="number"
+                                                placeholder="0"
+                                                v-model="
+                                                    item.quantity_to_release
+                                                "
+                                                :readonly="
+                                                    !canEditSupplierFields
+                                                "
+                                                @input="
+                                                    handleQuantityInput(
+                                                        item,
+                                                        'quantity_to_release',
+                                                        index,
+                                                    )
+                                                "
+                                                class="w-full rounded-md border border-gray-300 focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1 text-center px-1 py-1 bg-gray-50 font-medium"
+                                            />
+                                        </div>
+
+                                        <!-- Received Quantity Logic (Always Visible, Disabled for Supplier) -->
+                                        <div
+                                            class="p-1.5 border border-gray-100 rounded bg-white"
+                                        >
+                                            <label
+                                                class="text-[10px] font-bold text-gray-500 uppercase block mb-1"
+                                                >Received Quantity</label
+                                            >
+                                            <input
+                                                type="number"
+                                                min="0"
+                                                placeholder="0"
+                                                v-model="item.received_quantity"
+                                                disabled
+                                                class="w-full rounded-md border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1 disabled:bg-gray-100 disabled:cursor-not-allowed text-center"
+                                            />
+
+                                            <div
+                                                class="flex flex-col mb-1 text-[10px]"
+                                            >
+                                                <span
+                                                    class="font-medium text-gray-600 uppercase"
+                                                    >Remaining:
+                                                    {{
+                                                        getRemainingQuantity(
+                                                            item,
+                                                        )
+                                                    }}</span
+                                                >
+                                            </div>
+                                            <div
+                                                class="flex flex-col space-y-1 mt-1"
+                                            >
+                                                <button
+                                                    @click="
+                                                        openBackOrderModal(item)
+                                                    "
+                                                    class="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 text-[10px] w-full font-bold uppercase tracking-wider shadow-sm transition-all duration-150"
+                                                >
+                                                    Back Order
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div
+                                            class="p-1.5 bg-gray-50 rounded border border-gray-100"
+                                        >
+                                            <label
+                                                class="text-[10px] font-bold text-gray-500 uppercase block mb-1 leading-none"
+                                                >No. of Days</label
+                                            >
+                                            <input
+                                                type="number"
+                                                v-model="item.no_of_days"
+                                                :readonly="
+                                                    !canEditSupplierFields
+                                                "
+                                                @input="
+                                                    handleQuantityInput(
+                                                        item,
+                                                        'days',
+                                                        index,
+                                                    )
+                                                "
+                                                class="w-full rounded-md border border-gray-300 focus:border-orange-500 focus:ring-orange-500 sm:text-sm mb-1 px-1 py-1 bg-gray-50 font-medium text-center"
+                                            />
+                                        </div>
+                                    </div>
+                                </td>
+                                <td
+                                    class="px-2 py-1 text-xs border-b text-center"
+                                    style="border-bottom: 1px solid #b7c6e6"
+                                >
+                                    {{ item.allocated_quantity || "" }}
+                                </td>
+                                <td
+                                    class="px-2 py-1 text-xs border-b text-center"
+                                    style="border-bottom: 1px solid #b7c6e6"
+                                >
+                                    {{ item.batch_number || "" }}
+                                </td>
+                                <td
+                                    class="px-2 py-1 text-xs border-b text-center"
+                                    style="border-bottom: 1px solid #b7c6e6"
+                                >
+                                    {{
+                                        item.expiry_date
+                                            ? moment(item.expiry_date).format(
+                                                  "DD/MM/YYYY",
+                                              )
+                                            : ""
+                                    }}
+                                </td>
+                                <td
+                                    class="px-2 py-1 text-xs border-b text-center"
+                                    style="border-bottom: 1px solid #b7c6e6"
+                                >
+                                    <div class="flex flex-col text-xs">
+                                        {{ item.location }}
+                                    </div>
+                                </td>
                             </tr>
                         </template>
                     </template>
@@ -455,47 +1101,116 @@
                     </h2>
                 </div>
 
-                <div class="bg-white rounded-lg shadow-lg divide-y divide-gray-200">
-                    <div v-for="dispatch in props.order.dispatch" :key="dispatch.id" class="p-6">
+                <div
+                    class="bg-white rounded-lg shadow-lg divide-y divide-gray-200"
+                >
+                    <div
+                        v-for="dispatch in props.order.dispatch"
+                        :key="dispatch.id"
+                        class="p-6"
+                    >
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Driver & Company Info -->
                             <div class="space-y-4">
                                 <div>
-                                    <h3 class="text-sm font-medium text-gray-500">Driver Information</h3>
+                                    <h3
+                                        class="text-sm font-medium text-gray-500"
+                                    >
+                                        Driver Information
+                                    </h3>
                                     <div class="mt-2 space-y-2">
                                         <div class="flex items-center">
-                                            <UserIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-900">{{ dispatch.driver.name }}</span>
+                                            <UserIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span
+                                                class="text-sm text-gray-900"
+                                                >{{
+                                                    dispatch.driver.name
+                                                }}</span
+                                            >
                                         </div>
                                         <div class="flex items-center">
-                                            <IdentificationIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-600">ID: {{ dispatch.driver.driver_id }}</span>
+                                            <IdentificationIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span class="text-sm text-gray-600"
+                                                >ID:
+                                                {{
+                                                    dispatch.driver.driver_id
+                                                }}</span
+                                            >
                                         </div>
                                         <div class="flex items-center">
-                                            <PhoneIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-600">{{ dispatch.driver_number }}</span>
+                                            <PhoneIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span
+                                                class="text-sm text-gray-600"
+                                                >{{
+                                                    dispatch.driver_number
+                                                }}</span
+                                            >
                                         </div>
                                     </div>
                                 </div>
 
                                 <div>
-                                    <h3 class="text-sm font-medium text-gray-500">Logistics Company</h3>
+                                    <h3
+                                        class="text-sm font-medium text-gray-500"
+                                    >
+                                        Logistics Company
+                                    </h3>
                                     <div class="mt-2 space-y-2">
                                         <div class="flex items-center">
-                                            <BuildingOfficeIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-900">{{ dispatch.logistic_company.name }}</span>
+                                            <BuildingOfficeIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span
+                                                class="text-sm text-gray-900"
+                                                >{{
+                                                    dispatch.logistic_company
+                                                        .name
+                                                }}</span
+                                            >
                                         </div>
                                         <div class="flex items-center">
-                                            <EnvelopeIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-600">{{ dispatch.logistic_company.email }}</span>
+                                            <EnvelopeIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span
+                                                class="text-sm text-gray-600"
+                                                >{{
+                                                    dispatch.logistic_company
+                                                        .email
+                                                }}</span
+                                            >
                                         </div>
+
                                         <div class="flex items-center">
-                                            <UserIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-600">Contact: {{ dispatch.logistic_company.incharge_person }}</span>
+                                            <UserIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span class="text-sm text-gray-600"
+                                                >Contact:
+                                                {{
+                                                    dispatch.logistic_company
+                                                        .incharge_person
+                                                }}</span
+                                            >
                                         </div>
+
                                         <div class="flex items-center">
-                                            <PhoneIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-600">{{ dispatch.logistic_company.incharge_phone }}</span>
+                                            <PhoneIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span
+                                                class="text-sm text-gray-600"
+                                                >{{
+                                                    dispatch.logistic_company
+                                                        .incharge_phone
+                                                }}</span
+                                            >
                                         </div>
                                     </div>
                                 </div>
@@ -504,32 +1219,84 @@
                             <!-- Dispatch Details -->
                             <div class="space-y-4">
                                 <div>
-                                    <h3 class="text-sm font-medium text-gray-500">Dispatch Details</h3>
+                                    <h3
+                                        class="text-sm font-medium text-gray-500"
+                                    >
+                                        Dispatch Details
+                                    </h3>
                                     <div class="mt-2 space-y-2">
                                         <div class="flex items-center">
-                                            <CalendarIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-900">{{ moment(dispatch.dispatch_date).format('MMMM D, YYYY') }}</span>
+                                            <CalendarIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span
+                                                class="text-sm text-gray-900"
+                                                >{{
+                                                    moment(
+                                                        dispatch.dispatch_date,
+                                                    ).format("MMMM D, YYYY")
+                                                }}</span
+                                            >
                                         </div>
                                         <div class="flex items-center">
-                                            <TruckIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-600">Vehicle Plate: {{ dispatch.plate_number }}</span>
+                                            <TruckIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span class="text-sm text-gray-600"
+                                                >Vehicle Plate:
+                                                {{
+                                                    dispatch.plate_number
+                                                }}</span
+                                            >
                                         </div>
                                         <div class="flex items-center">
-                                            <ArchiveBoxIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-600">{{dispatch.received_cartons}}/{{ dispatch.no_of_cartoons }} Cartons</span>
+                                            <ArchiveBoxIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span class="text-sm text-gray-600"
+                                                >{{
+                                                    dispatch.received_cartons
+                                                }}/{{
+                                                    dispatch.no_of_cartoons
+                                                }}
+                                                Cartons</span
+                                            >
                                         </div>
                                         <div class="flex items-center">
-                                            <ClockIcon class="w-4 h-4 text-gray-400 mr-2" />
-                                            <span class="text-sm text-gray-600">Dispatched on {{ moment(dispatch.created_at).format('MMMM D, YYYY h:mm A') }}</span>
+                                            <ClockIcon
+                                                class="w-4 h-4 text-gray-400 mr-2"
+                                            />
+                                            <span class="text-sm text-gray-600"
+                                                >Dispatched on
+                                                {{
+                                                    moment(
+                                                        dispatch.created_at,
+                                                    ).format(
+                                                        "MMMM D, YYYY h:mm A",
+                                                    )
+                                                }}</span
+                                            >
                                         </div>
                                         <!-- View Images Button -->
                                         <div v-if="dispatch.image" class="mt-3">
                                             <button
-                                                @click="viewDispatchImages(dispatch)"
+                                                @click="
+                                                    viewDispatchImages(dispatch)
+                                                "
                                                 class="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                                             >
-                                                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                <svg
+                                                    class="w-4 h-4 mr-2"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        stroke-linecap="round"
+                                                        stroke-linejoin="round"
+                                                        stroke-width="2"
+                                                        d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                                                    />
                                                 </svg>
                                                 View Images
                                             </button>
@@ -543,17 +1310,35 @@
             </div>
 
             <!-- Dispatch Images Modal -->
-            <Modal :show="showDispatchImagesModal" @close="closeDispatchImagesModal">
+            <Modal
+                :show="showDispatchImagesModal"
+                @close="closeDispatchImagesModal"
+            >
                 <div class="p-6">
                     <div class="flex items-center justify-between mb-4">
-                        <h2 class="text-lg font-medium text-gray-900">Dispatch Images</h2>
-                        <button @click="closeDispatchImagesModal" class="text-gray-400 hover:text-gray-600">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        <h2 class="text-lg font-medium text-gray-900">
+                            Dispatch Images
+                        </h2>
+                        <button
+                            @click="closeDispatchImagesModal"
+                            class="text-gray-400 hover:text-gray-600"
+                        >
+                            <svg
+                                class="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
                             </svg>
                         </button>
                     </div>
-                    
+
                     <div v-if="dispatchImages.length > 0" class="space-y-4">
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div
@@ -568,20 +1353,44 @@
                                     class="w-full h-32 object-cover rounded-lg shadow-sm hover:shadow-md transition-shadow"
                                     @error="handleImageError"
                                 />
-                                <div class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg flex items-center justify-center">
-                                    <svg class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                                <div
+                                    class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-opacity rounded-lg flex items-center justify-center"
+                                >
+                                    <svg
+                                        class="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"
+                                        />
                                     </svg>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
+
                     <div v-else class="text-center py-8">
-                        <svg class="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <svg
+                            class="w-12 h-12 text-gray-400 mx-auto mb-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
                         </svg>
-                        <p class="text-gray-500">No images available for this dispatch</p>
+                        <p class="text-gray-500">
+                            No images available for this dispatch
+                        </p>
                     </div>
                 </div>
             </Modal>
@@ -589,57 +1398,106 @@
             <!-- Image Lightbox Modal -->
             <Modal :show="showImageLightbox" @close="closeImageLightbox">
                 <div class="relative bg-black">
-                    <div class="flex items-center justify-between p-4 bg-black bg-opacity-75">
+                    <div
+                        class="flex items-center justify-between p-4 bg-black bg-opacity-75"
+                    >
                         <h3 class="text-white font-medium">
-                            Image {{ currentImageIndex + 1 }} of {{ dispatchImages.length }}
+                            Image {{ currentImageIndex + 1 }} of
+                            {{ dispatchImages.length }}
                         </h3>
-                        <button @click="closeImageLightbox" class="text-white hover:text-gray-300">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        <button
+                            @click="closeImageLightbox"
+                            class="text-white hover:text-gray-300"
+                        >
+                            <svg
+                                class="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                />
                             </svg>
                         </button>
                     </div>
-                    
+
                     <div class="relative">
                         <img
                             v-if="dispatchImages[currentImageIndex]"
-                            :src="getImageUrl(dispatchImages[currentImageIndex])"
+                            :src="
+                                getImageUrl(dispatchImages[currentImageIndex])
+                            "
                             :alt="`Dispatch image ${currentImageIndex + 1}`"
                             class="w-full max-h-screen object-contain"
                             @error="handleImageError"
                         />
-                        
+
                         <!-- Navigation arrows -->
                         <button
-                            v-if="dispatchImages.length > 1 && currentImageIndex > 0"
+                            v-if="
+                                dispatchImages.length > 1 &&
+                                currentImageIndex > 0
+                            "
                             @click="previousImage"
                             class="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all"
                         >
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                            <svg
+                                class="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M15 19l-7-7 7-7"
+                                />
                             </svg>
                         </button>
-                        
+
                         <button
-                            v-if="dispatchImages.length > 1 && currentImageIndex < dispatchImages.length - 1"
+                            v-if="
+                                dispatchImages.length > 1 &&
+                                currentImageIndex < dispatchImages.length - 1
+                            "
                             @click="nextImage"
                             class="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full hover:bg-opacity-75 transition-all"
                         >
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                            <svg
+                                class="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M9 5l7 7-7 7"
+                                />
                             </svg>
                         </button>
                     </div>
-                    
+
                     <!-- Image counter dots -->
-                    <div v-if="dispatchImages.length > 1" class="flex justify-center space-x-2 p-4 bg-black bg-opacity-75">
+                    <div
+                        v-if="dispatchImages.length > 1"
+                        class="flex justify-center space-x-2 p-4 bg-black bg-opacity-75"
+                    >
                         <button
                             v-for="(image, index) in dispatchImages"
                             :key="index"
                             @click="currentImageIndex = index"
                             :class="[
                                 'w-2 h-2 rounded-full transition-all',
-                                index === currentImageIndex ? 'bg-white' : 'bg-gray-500 hover:bg-gray-400'
+                                index === currentImageIndex
+                                    ? 'bg-white'
+                                    : 'bg-gray-500 hover:bg-gray-400',
                             ]"
                         />
                     </div>
@@ -648,636 +1506,795 @@
 
             <!-- Order Status Actions -->
             <div class="mt-8 mb-6 bg-white rounded-lg shadow-sm">
-                <h3 class="text-lg font-semibold text-gray-800 mb-4 text-center">
+                <h3
+                    class="text-lg font-semibold text-gray-800 mb-4 text-center"
+                >
                     Order Status Actions
                 </h3>
                 <div class="flex items-start mb-6">
                     <!-- Status Action Buttons -->
-                    <div class="flex flex-wrap items-center justify-center gap-4 px-1 py-2">
+                    <div
+                        class="flex flex-wrap items-center justify-center gap-4 px-1 py-2"
+                    >
                         <!-- Pending status indicator removed by the Dr Mutax -->
                         <!-- Review button -->
                         <div class="relative">
                             <div class="flex flex-col">
-                                <button @click="
-                                    changeStatus(
-                                        props.order.id,
-                                        'reviewed',
-                                        'is_reviewing'
-                                    )
-                                    " :disabled="isType['is_reviewing'] ||
+                                <button
+                                    @click="
+                                        changeStatus(
+                                            props.order.id,
+                                            'reviewed',
+                                            'is_reviewing',
+                                        )
+                                    "
+                                    :disabled="
+                                        isType['is_reviewing'] ||
                                         props.order.status !== 'pending' ||
-                                        (!$page.props.auth.can.order_review && !$page.props.auth.can.order_manage)
-                                        " :class="[
-                                    (!$page.props.auth.can.order_review && !$page.props.auth.can.order_manage)
-                                        ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
-                                        : props.order.status === 'pending'
-                                        ? 'bg-yellow-500 hover:bg-yellow-600'
-                                        : statusOrder.indexOf(props.order.status) >
-                                            statusOrder.indexOf('pending')
-                                            ? 'bg-green-500'
-                                            : 'bg-gray-300 cursor-not-allowed',
-                                ]" class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]">
-                                    <img src="/assets/images/review.png" class="w-5 h-5 mr-2" alt="Review" />
-                                    <span class="text-sm font-bold text-white">{{
-                                        statusOrder.indexOf(props.order.status) >
-                                            statusOrder.indexOf("pending")
-                                            ? "Reviewed"
-                                            : isType["is_reviewing"]
-                                                ? "Please Wait..."
-                                                : props.order.status == 'rejected' ? "Reviewed" : "Review"
-                                    }}</span>
+                                        (!$page.props.auth.can.order_review &&
+                                            !$page.props.auth.can.order_manage)
+                                    "
+                                    :class="[
+                                        !$page.props.auth.can.order_review &&
+                                        !$page.props.auth.can.order_manage
+                                            ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
+                                            : props.order.status === 'pending'
+                                              ? 'bg-yellow-500 hover:bg-yellow-600'
+                                              : statusOrder.indexOf(
+                                                      props.order.status,
+                                                  ) >
+                                                  statusOrder.indexOf('pending')
+                                                ? 'bg-green-500'
+                                                : 'bg-gray-300 cursor-not-allowed',
+                                    ]"
+                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]"
+                                >
+                                    <img
+                                        src="/assets/images/review.png"
+                                        class="w-5 h-5 mr-2"
+                                        alt="Review"
+                                    />
+                                    <span
+                                        class="text-sm font-bold text-white"
+                                        >{{
+                                            statusOrder.indexOf(
+                                                props.order.status,
+                                            ) > statusOrder.indexOf("pending")
+                                                ? "Reviewed"
+                                                : isType["is_reviewing"]
+                                                  ? "Please Wait..."
+                                                  : props.order.status ==
+                                                      "rejected"
+                                                    ? "Reviewed"
+                                                    : "Review"
+                                        }}</span
+                                    >
                                 </button>
-                                <span v-show="props.order?.reviewed_at" class="text-sm text-gray-600">
-                                    On {{ moment(props.order?.reviewed_at).format('DD/MM/YYYY HH:mm') }}
+                                <span
+                                    v-show="props.order?.reviewed_at"
+                                    class="text-sm text-gray-600"
+                                >
+                                    On
+                                    {{
+                                        moment(props.order?.reviewed_at).format(
+                                            "DD/MM/YYYY HH:mm",
+                                        )
+                                    }}
                                 </span>
-                                <span v-show="props.order?.reviewed_by" class="text-sm text-gray-600">
+                                <span
+                                    v-show="props.order?.reviewed_by"
+                                    class="text-sm text-gray-600"
+                                >
                                     By {{ props.order?.reviewed_by?.name }}
                                 </span>
                             </div>
-                            <div v-if="props.order.status === 'pending'"
-                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div
+                                v-if="props.order.status === 'pending'"
+                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"
+                            ></div>
                         </div>
-
                         <!-- Approved button -->
-                        <div class="relative" v-if="props.order.status !== 'rejected'">
+                        <div
+                            class="relative"
+                            v-if="props.order.status !== 'rejected'"
+                        >
                             <div class="flex flex-col">
-                                <button @click="
-                                    changeStatus(
-                                        props.order.id,
-                                        'approved',
-                                        'is_approve'
-                                    )
-                                    " :disabled="isType['is_approve'] ||
+                                <button
+                                    @click="
+                                        changeStatus(
+                                            props.order.id,
+                                            'approved',
+                                            'is_approve',
+                                        )
+                                    "
+                                    :disabled="
+                                        isType['is_approve'] ||
                                         props.order.status !== 'reviewed' ||
-                                        (!$page.props.auth.can.order_approve && !$page.props.auth.can.order_manage)
-                                        " :class="[
-                                        (!$page.props.auth.can.order_approve && !$page.props.auth.can.order_manage)
-                                        ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
-                                        : props.order.status == 'reviewed'
-                                        ? 'bg-yellow-500 hover:bg-yellow-600'
-                                        : statusOrder.indexOf(props.order.status) >
-                                            statusOrder.indexOf('reviewed')
-                                            ? 'bg-green-500'
-                                            : 'bg-gray-300 cursor-not-allowed',
-                                ]" class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]">
-                                    <svg v-if="
-                                        isLoading &&
-                                        props.order.status === 'reviewed'
-                                    " class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                        viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                            stroke-width="4">
-                                        </circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                        </path>
+                                        (!$page.props.auth.can.order_approve &&
+                                            !$page.props.auth.can.order_manage)
+                                    "
+                                    :class="[
+                                        !$page.props.auth.can.order_approve &&
+                                        !$page.props.auth.can.order_manage
+                                            ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
+                                            : props.order.status == 'reviewed'
+                                              ? 'bg-yellow-500 hover:bg-yellow-600'
+                                              : statusOrder.indexOf(
+                                                      props.order.status,
+                                                  ) >
+                                                  statusOrder.indexOf(
+                                                      'reviewed',
+                                                  )
+                                                ? 'bg-green-500'
+                                                : 'bg-gray-300 cursor-not-allowed',
+                                    ]"
+                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]"
+                                >
+                                    <svg
+                                        v-if="
+                                            isLoading &&
+                                            props.order.status === 'reviewed'
+                                        "
+                                        class="animate-spin h-5 w-5 mr-2"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            class="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            stroke-width="4"
+                                        ></circle>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
                                     </svg>
                                     <template v-else>
-                                        <img src="/assets/images/approved.png" class="w-5 h-5 mr-2" alt="Approve" />
-                                        <span class="text-sm font-bold text-white">{{
-                                            statusOrder.indexOf(props.order.status) >
+                                        <img
+                                            src="/assets/images/approved.png"
+                                            class="w-5 h-5 mr-2"
+                                            alt="Approve"
+                                        />
+                                        <span
+                                            class="text-sm font-bold text-white"
+                                            >{{
+                                                statusOrder.indexOf(
+                                                    props.order.status,
+                                                ) >
                                                 statusOrder.indexOf("reviewed")
-                                                ? "Approved"
-                                                : isType["is_approve"] ? "Please Wait..." : "Approve"
-                                        }}</span>
+                                                    ? "Approved"
+                                                    : isType["is_approve"]
+                                                      ? "Please Wait..."
+                                                      : "Approve"
+                                            }}</span
+                                        >
                                     </template>
                                 </button>
-                                <span v-show="props.order?.approved_by" class="text-sm text-gray-600">
-                                    On {{ moment(props.order?.approved_at).format('DD/MM/YYYY HH:mm') }}
+                                <span
+                                    v-show="props.order?.approved_by"
+                                    class="text-sm text-gray-600"
+                                >
+                                    On
+                                    {{
+                                        moment(props.order?.approved_at).format(
+                                            "DD/MM/YYYY HH:mm",
+                                        )
+                                    }}
                                 </span>
-                                <span v-show="props.order?.approved_by" class="text-sm text-gray-600">
+                                <span
+                                    v-show="props.order?.approved_by"
+                                    class="text-sm text-gray-600"
+                                >
                                     By {{ props.order?.approved_by?.name }}
                                 </span>
                             </div>
-                            <div v-if="props.order.status === 'reviewed'"
-                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div
+                                v-if="props.order.status === 'reviewed'"
+                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"
+                            ></div>
                         </div>
 
                         <!-- Process button -->
-                        <div class="relative" v-if="props.order.status !== 'rejected'">
+                        <div
+                            class="relative"
+                            v-if="props.order.status !== 'rejected'"
+                        >
                             <div class="flex flex-col">
-                                <button @click="
-                                    changeStatus(
-                                        props.order.id,
-                                        'in_process',
-                                        'is_process'
-                                    )
-                                    " :disabled="isType['is_process'] ||
+                                <button
+                                    @click="
+                                        changeStatus(
+                                            props.order.id,
+                                            'in_process',
+                                            'is_process',
+                                        )
+                                    "
+                                    :disabled="
+                                        isType['is_process'] ||
                                         props.order.status !== 'approved' ||
-                                        (!$page.props.auth.can.order_processing && !$page.props.auth.can.order_manage)
-                                        " :class="[
-                                    (!$page.props.auth.can.order_processing && !$page.props.auth.can.order_manage)
-                                        ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
-                                        : props.order.status === 'approved'
-                                        ? 'bg-yellow-500 hover:bg-yellow-600'
-                                        : statusOrder.indexOf(props.order.status) >
-                                            statusOrder.indexOf('approved')
-                                            ? 'bg-green-500'
-                                            : 'bg-gray-300 cursor-not-allowed',
-                                ]" class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]">
-                                    <svg v-if="
-                                        isType['is_process'] &&
-                                        props.order.status == 'approved'
-                                    " class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                        viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                            stroke-width="4">
-                                        </circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                        </path>
+                                        (!$page.props.auth.can
+                                            .order_processing &&
+                                            !$page.props.auth.can.order_manage)
+                                    "
+                                    :class="[
+                                        !$page.props.auth.can
+                                            .order_processing &&
+                                        !$page.props.auth.can.order_manage
+                                            ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
+                                            : props.order.status === 'approved'
+                                              ? 'bg-yellow-500 hover:bg-yellow-600'
+                                              : statusOrder.indexOf(
+                                                      props.order.status,
+                                                  ) >
+                                                  statusOrder.indexOf(
+                                                      'approved',
+                                                  )
+                                                ? 'bg-green-500'
+                                                : 'bg-gray-300 cursor-not-allowed',
+                                    ]"
+                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]"
+                                >
+                                    <svg
+                                        v-if="
+                                            isType['is_process'] &&
+                                            props.order.status == 'approved'
+                                        "
+                                        class="animate-spin h-5 w-5 mr-2"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            class="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            stroke-width="4"
+                                        ></circle>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
                                     </svg>
                                     <template v-else>
-                                        <img src="/assets/images/inprocess.png" class="w-5 h-5 mr-2" alt="Process" />
-                                        <span class="text-sm font-bold text-white">{{
-                                            statusOrder.indexOf(props.order.status) >
+                                        <img
+                                            src="/assets/images/inprocess.png"
+                                            class="w-5 h-5 mr-2"
+                                            alt="Process"
+                                        />
+                                        <span
+                                            class="text-sm font-bold text-white"
+                                            >{{
+                                                statusOrder.indexOf(
+                                                    props.order.status,
+                                                ) >
                                                 statusOrder.indexOf("approved")
-                                                ? "Processed"
-                                                : isType['is_process'] ? "Please Wait..." : "Process"
-                                        }}</span>
+                                                    ? "Processed"
+                                                    : isType["is_process"]
+                                                      ? "Please Wait..."
+                                                      : "Process"
+                                            }}</span
+                                        >
                                     </template>
                                 </button>
-                                <span v-show="props.order?.processed_by" class="text-sm text-gray-600">
-                                    On {{ moment(props.order?.processed_at).format('DD/MM/YYYY HH:mm') }}
+                                <span
+                                    v-show="props.order?.processed_by"
+                                    class="text-sm text-gray-600"
+                                >
+                                    On
+                                    {{
+                                        moment(
+                                            props.order?.processed_at,
+                                        ).format("DD/MM/YYYY HH:mm")
+                                    }}
                                 </span>
-                                <span v-show="props.order?.processed_by" class="text-sm text-gray-600">
+                                <span
+                                    v-show="props.order?.processed_by"
+                                    class="text-sm text-gray-600"
+                                >
                                     By {{ props.order?.processed_by?.name }}
                                 </span>
                             </div>
-                            <div v-if="props.order.status === 'approved'"
-                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div
+                                v-if="props.order.status === 'approved'"
+                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"
+                            ></div>
                         </div>
 
                         <!-- Dispatch button -->
-                        <div class="relative" v-if="props.order.status !== 'rejected'">
+                        <div
+                            class="relative"
+                            v-if="props.order.status !== 'rejected'"
+                        >
                             <div class="flex flex-col">
-                                <button @click="showDispatchForm = true                                    " :disabled="isType['is_dispatch'] ||
-                                    props.order.status !== 'in_process' ||
-                                    (!$page.props.auth.can.order_dispatch && !$page.props.auth.can.order_manage)
-                                    " :class="[
-                                        (!$page.props.auth.can.order_dispatch && !$page.props.auth.can.order_manage)
+                                <button
+                                    @click="showDispatchForm = true"
+                                    :disabled="
+                                        isType['is_dispatch'] ||
+                                        props.order.status !== 'in_process' ||
+                                        (!$page.props.auth.can.order_dispatch &&
+                                            !$page.props.auth.can.order_manage)
+                                    "
+                                    :class="[
+                                        !$page.props.auth.can.order_dispatch &&
+                                        !$page.props.auth.can.order_manage
                                             ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
-                                            : props.order.status === 'in_process'
-                                            ? 'bg-yellow-500 hover:bg-yellow-600'
-                                            : statusOrder.indexOf(props.order.status) >
-                                                statusOrder.indexOf('in_process')
+                                            : props.order.status ===
+                                                'in_process'
+                                              ? 'bg-yellow-500 hover:bg-yellow-600'
+                                              : statusOrder.indexOf(
+                                                      props.order.status,
+                                                  ) >
+                                                  statusOrder.indexOf(
+                                                      'in_process',
+                                                  )
                                                 ? 'bg-green-500'
                                                 : 'bg-gray-300 cursor-not-allowed',
-                                    ]" class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]">
-                                    <svg v-if="
-                                        isType['is_dispatch'] &&
-                                        props.order.status === 'in_process'
-                                    " class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                        viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                            stroke-width="4">
-                                        </circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                        </path>
+                                    ]"
+                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]"
+                                >
+                                    <svg
+                                        v-if="
+                                            isType['is_dispatch'] &&
+                                            props.order.status === 'in_process'
+                                        "
+                                        class="animate-spin h-5 w-5 mr-2"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            class="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            stroke-width="4"
+                                        ></circle>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
                                     </svg>
                                     <template v-else>
-                                        <img src="/assets/images/dispatch.png" class="w-5 h-5 mr-2" alt="Dispatch" />
-                                        <span class="text-sm font-bold text-white">{{
-                                            statusOrder.indexOf(props.order.status) >
-                                                statusOrder.indexOf("in_process")
-                                                ? "Dispatched"
-                                                : isType['is_dispatch'] ? "Please Wait..." : "Dispatch"
-                                        }}</span>
+                                        <img
+                                            src="/assets/images/dispatch.png"
+                                            class="w-5 h-5 mr-2"
+                                            alt="Dispatch"
+                                        />
+                                        <span
+                                            class="text-sm font-bold text-white"
+                                            >{{
+                                                statusOrder.indexOf(
+                                                    props.order.status,
+                                                ) >
+                                                statusOrder.indexOf(
+                                                    "in_process",
+                                                )
+                                                    ? "Dispatched"
+                                                    : isType["is_dispatch"]
+                                                      ? "Please Wait..."
+                                                      : "Dispatch"
+                                            }}</span
+                                        >
                                     </template>
                                 </button>
-                                <span v-show="props.order?.dispatched_at" class="text-sm text-gray-600">
-                                    On {{ moment(props.order?.dispatched_at).format('DD/MM/YYYY HH:mm') }}
+                                <span
+                                    v-show="props.order?.dispatched_at"
+                                    class="text-sm text-gray-600"
+                                >
+                                    On
+                                    {{
+                                        moment(
+                                            props.order?.dispatched_at,
+                                        ).format("DD/MM/YYYY HH:mm")
+                                    }}
                                 </span>
-                                <span v-show="props.order?.dispatched_by" class="text-sm text-gray-600">
+                                <span
+                                    v-show="props.order?.dispatched_by"
+                                    class="text-sm text-gray-600"
+                                >
                                     By {{ props.order?.dispatched_by?.name }}
                                 </span>
                             </div>
-                            <div v-if="props.order.status === 'in_process'"
-                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div
+                                v-if="props.order.status === 'in_process'"
+                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"
+                            ></div>
                         </div>
 
                         <!-- Order Delivery Indicators -->
                         <!-- Delivered Status -->
-                        <div class="relative" v-if="props.order.status !== 'rejected'">
+                        <div
+                            class="relative"
+                            v-if="props.order.status !== 'rejected'"
+                        >
                             <div class="flex flex-col">
-                                <button :class="[
-                                    props.order.status === 'dispatched'
-                                        ? 'bg-yellow-500 hover:bg-yellow-600'
-                                        : statusOrder.indexOf(
-                                            props.order.status
-                                        ) > statusOrder.indexOf('dispatched')
-                                            ? 'bg-green-500'
-                                            : 'bg-gray-300 cursor-not-allowed',
-                                ]" class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px]"
-                                    disabled>
-                                    <img src="/assets/images/delivery.png" class="w-5 h-5 mr-2" alt="dispatched" />
+                                <button
+                                    :class="[
+                                        props.order.status === 'dispatched'
+                                            ? 'bg-yellow-500 hover:bg-yellow-600'
+                                            : statusOrder.indexOf(
+                                                    props.order.status,
+                                                ) >
+                                                statusOrder.indexOf(
+                                                    'dispatched',
+                                                )
+                                              ? 'bg-green-500'
+                                              : 'bg-gray-300 cursor-not-allowed',
+                                    ]"
+                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px]"
+                                    disabled
+                                >
+                                    <img
+                                        src="/assets/images/delivery.png"
+                                        class="w-5 h-5 mr-2"
+                                        alt="dispatched"
+                                    />
                                     <span class="text-sm font-bold text-white">
                                         {{
                                             statusOrder.indexOf(
-                                                props.order.status
-                                            ) > statusOrder.indexOf("dispatched")
+                                                props.order.status,
+                                            ) >
+                                            statusOrder.indexOf("dispatched")
                                                 ? "Delivered"
                                                 : "Waiting to be Delivered"
                                         }}
                                     </span>
                                 </button>
-                                <span v-show="props.order?.delivered_at" class="text-sm text-gray-600">
-                                    On {{ moment(props.order?.delivered_at).format('DD/MM/YYYY HH:mm') }}
+                                <span
+                                    v-show="props.order?.delivered_at"
+                                    class="text-sm text-gray-600"
+                                >
+                                    On
+                                    {{
+                                        moment(
+                                            props.order?.delivered_at,
+                                        ).format("DD/MM/YYYY HH:mm")
+                                    }}
                                 </span>
-                                <span v-show="props.order?.delivered_by" class="text-sm text-gray-600">
+                                <span
+                                    v-show="props.order?.delivered_by"
+                                    class="text-sm text-gray-600"
+                                >
                                     By {{ props.order?.delivered_by?.name }}
                                 </span>
                             </div>
 
                             <!-- Pulse Indicator if currently at this status -->
-                            <div v-if="props.order.status === 'dispatched'"
-                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div
+                                v-if="props.order.status === 'dispatched'"
+                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"
+                            ></div>
                         </div>
 
                         <!-- Received Status -->
-                        <div class="relative" v-if="props.order.status !== 'rejected'">
+                        <div
+                            class="relative"
+                            v-if="props.order.status !== 'rejected'"
+                        >
                             <div class="flex flex-col">
-                                <button :class="[
-                                    props.order.status === 'delivered'
-                                        ? 'bg-yellow-400'
-                                        : statusOrder.indexOf(
-                                            props.order.status
-                                        ) > statusOrder.indexOf('delivered')
-                                            ? 'bg-green-500'
-                                            : 'bg-gray-300 cursor-not-allowed',
-                                ]" class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px]"
-                                    disabled>
-                                    <img src="/assets/images/received.png" class="w-5 h-5 mr-2" alt="Received" />
+                                <button
+                                    :class="[
+                                        props.order.status === 'delivered'
+                                            ? 'bg-yellow-400'
+                                            : statusOrder.indexOf(
+                                                    props.order.status,
+                                                ) >
+                                                statusOrder.indexOf('delivered')
+                                              ? 'bg-green-500'
+                                              : 'bg-gray-300 cursor-not-allowed',
+                                    ]"
+                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px]"
+                                    disabled
+                                >
+                                    <img
+                                        src="/assets/images/received.png"
+                                        class="w-5 h-5 mr-2"
+                                        alt="Received"
+                                    />
                                     <span class="text-sm font-bold text-white">
                                         {{
                                             statusOrder.indexOf(
-                                                props.order.status
+                                                props.order.status,
                                             ) > statusOrder.indexOf("delivered")
-                                            ? "Received"
-                                            : "Waiting to be Received"
+                                                ? "Received"
+                                                : "Waiting to be Received"
                                         }}
                                     </span>
                                 </button>
-                                <span v-show="props.order?.received_at" class="text-sm text-gray-600">
-                                    On {{ moment(props.order?.received_at).format('DD/MM/YYYY HH:mm') }}
+                                <span
+                                    v-show="props.order?.received_at"
+                                    class="text-sm text-gray-600"
+                                >
+                                    On
+                                    {{
+                                        moment(props.order?.received_at).format(
+                                            "DD/MM/YYYY HH:mm",
+                                        )
+                                    }}
                                 </span>
-                                <span v-show="props.order?.received_by" class="text-sm text-gray-600">
+                                <span
+                                    v-show="props.order?.received_by"
+                                    class="text-sm text-gray-600"
+                                >
                                     By {{ props.order?.received_by?.name }}
                                 </span>
                             </div>
 
                             <!-- Pulse Indicator if currently at this status -->
-                            <div v-if="props.order.status === 'delivered'"
-                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div
+                                v-if="props.order.status === 'delivered'"
+                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"
+                            ></div>
                         </div>
 
                         <!-- Rejected button -->
-                        <div class="relative" v-if="props.order.status == 'reviewed' || props.order.status == 'rejected'">
-<div class="flex flex-col">
-                                <button @click="
-                                    changeStatus(
-                                        props.order.id,
-                                        'rejected',
-                                        'is_reject'
-                                    )
-                                    " :disabled="isType['is_reject'] ||
+                        <div
+                            class="relative"
+                            v-if="
+                                props.order.status == 'reviewed' ||
+                                props.order.status == 'rejected'
+                            "
+                        >
+                            <div class="flex flex-col">
+                                <button
+                                    @click="
+                                        changeStatus(
+                                            props.order.id,
+                                            'rejected',
+                                            'is_reject',
+                                        )
+                                    "
+                                    :disabled="
+                                        isType['is_reject'] ||
                                         props.order.status !== 'reviewed' ||
                                         !$page.props.auth.can.order_reject
-                                        " :class="[
-                                    !$page.props.auth.can.order_reject
-                                        ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
-                                        : props.order.status == 'reviewed'
-                                        ? 'bg-red-500 hover:bg-red-600'
-                                        : statusOrder.indexOf(props.order.status) >
-                                            statusOrder.indexOf('reviewed')
-                                            ? 'bg-red-500'
-                                            : 'bg-gray-300 cursor-not-allowed',
-                                ]" class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]">
-                                    <svg v-if="
-                                        isLoading &&
-                                        props.order.status === 'reviewed'
-                                    " class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                        viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                            stroke-width="4">
-                                        </circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                        </path>
+                                    "
+                                    :class="[
+                                        !$page.props.auth.can.order_reject
+                                            ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
+                                            : props.order.status == 'reviewed'
+                                              ? 'bg-red-500 hover:bg-red-600'
+                                              : statusOrder.indexOf(
+                                                      props.order.status,
+                                                  ) >
+                                                  statusOrder.indexOf(
+                                                      'reviewed',
+                                                  )
+                                                ? 'bg-red-500'
+                                                : 'bg-gray-300 cursor-not-allowed',
+                                    ]"
+                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]"
+                                >
+                                    <svg
+                                        v-if="
+                                            isLoading &&
+                                            props.order.status === 'reviewed'
+                                        "
+                                        class="animate-spin h-5 w-5 mr-2"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            class="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            stroke-width="4"
+                                        ></circle>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
                                     </svg>
                                     <template v-else>
-                                        <img src="/assets/images/rejected.png" class="w-5 h-5 mr-2" alt="Rejected" />
-                                        <span class="text-sm font-bold text-white">{{
-                                            props.order.status == 'rejected'
-                                                ? "Rejected"
-                                                : isType["is_reject"] ? "Please Wait..." : "Reject"
-                                        }}</span>
+                                        <img
+                                            src="/assets/images/rejected.png"
+                                            class="w-5 h-5 mr-2"
+                                            alt="Rejected"
+                                        />
+                                        <span
+                                            class="text-sm font-bold text-white"
+                                            >{{
+                                                props.order.status == "rejected"
+                                                    ? "Rejected"
+                                                    : isType["is_reject"]
+                                                      ? "Please Wait..."
+                                                      : "Reject"
+                                            }}</span
+                                        >
                                     </template>
                                 </button>
-                                <span v-show="props.order?.rejected_at" class="text-sm text-gray-600">
-                                    On {{ moment(props.order?.rejected_at).format('DD/MM/YYYY HH:mm') }}
+                                <span
+                                    v-show="props.order?.rejected_at"
+                                    class="text-sm text-gray-600"
+                                >
+                                    On
+                                    {{
+                                        moment(props.order?.rejected_at).format(
+                                            "DD/MM/YYYY HH:mm",
+                                        )
+                                    }}
                                 </span>
-                                <span v-show="props.order?.rejected_by" class="text-sm text-gray-600">
+                                <span
+                                    v-show="props.order?.rejected_by"
+                                    class="text-sm text-gray-600"
+                                >
                                     By {{ props.order?.rejected_by?.name }}
                                 </span>
                             </div>
-                            <div v-if="props.order.status === 'reviewed'"
-                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div
+                                v-if="props.order.status === 'reviewed'"
+                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"
+                            ></div>
                         </div>
 
-                         <!-- Restore button -->
-                         <div class="relative" v-if="props.order.status === 'rejected'">
+                        <!-- Restore button -->
+                        <div
+                            class="relative"
+                            v-if="props.order.status === 'rejected'"
+                        >
                             <div class="flex flex-col">
-                                <button @click="
-                                    restoreOrder(
-                                        props.order.id,
-                                        'reviewed',
-                                        'is_restore'
-                                    )
-                                    " :disabled="isRestoring ||
+                                <button
+                                    @click="
+                                        restoreOrder(
+                                            props.order.id,
+                                            'reviewed',
+                                            'is_restore',
+                                        )
+                                    "
+                                    :disabled="
+                                        isRestoring ||
                                         props.order.status !== 'rejected' ||
+                                        !props.order.facility_id ||
                                         !$page.props.auth.can.order_manage
-                                        " :class="[
-                                        !$page.props.auth.can.order_manage
+                                    "
+                                    :class="[
+                                        !$page.props.auth.can.order_manage ||
+                                        !props.order.facility_id
                                             ? 'bg-red-200 text-red-800 cursor-not-allowed opacity-75'
-                                            : 'bg-green-500 hover:bg-green-600'
-                                    ]" class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]">
-                                    <svg v-if="
-                                        isLoading &&
-                                        props.order.status === 'rejected'
-                                    " class="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none"
-                                        viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                            stroke-width="4">
-                                        </circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                        </path>
+                                            : 'bg-green-500 hover:bg-green-600',
+                                    ]"
+                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 min-w-[160px]"
+                                >
+                                    <svg
+                                        v-if="
+                                            isLoading &&
+                                            props.order.status === 'rejected'
+                                        "
+                                        class="animate-spin h-5 w-5 mr-2"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        fill="none"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <circle
+                                            class="opacity-25"
+                                            cx="12"
+                                            cy="12"
+                                            r="10"
+                                            stroke="currentColor"
+                                            stroke-width="4"
+                                        ></circle>
+                                        <path
+                                            class="opacity-75"
+                                            fill="currentColor"
+                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                        ></path>
                                     </svg>
                                     <template v-else>
-                                        <img src="/assets/images/restore.jpg" class="w-5 h-5 mr-2" alt="Restore" />
-                                        <span class="text-sm font-bold text-white">{{ isRestoring ? "Restoring..." : "Restore Order"  }}</span>
+                                        <img
+                                            src="/assets/images/restore.jpg"
+                                            class="w-5 h-5 mr-2"
+                                            alt="Restore"
+                                        />
+                                        <span
+                                            class="text-sm font-bold text-white"
+                                            >{{
+                                                isRestoring
+                                                    ? "Restoring..."
+                                                    : "Restore Order"
+                                            }}</span
+                                        >
                                     </template>
                                 </button>
                             </div>
-                            <div v-if="props.order.status === 'rejected'"
-                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
+                            <div
+                                v-if="props.order.status === 'rejected'"
+                                class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"
+                            ></div>
                         </div>
-                                                  
                     </div>
                 </div>
             </div>
-
-            <!-- Back Order Modal -->
-            <div v-if="showModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
-                <div class="bg-white rounded-lg shadow-xl w-full h-full overflow-hidden">
-                    <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-                        <h3 class="text-lg font-medium text-gray-900">
-                            Back Order Details
-                        </h3>
-                        <button @click="showModal = false" class="text-gray-500 hover:text-gray-700">
-                            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                        </button>
-                    </div>
-                    <div class="p-4 overflow-y-auto h-full">
-                        <div class="mb-4">
-                            <span class="text-sm font-medium text-gray-700">Order #{{ props.order.id }}</span>
-                            <h2 class="text-xl font-bold text-gray-900">
-                                Back Ordered Items
-                            </h2>
-                        </div>
-                        <div class="overflow-auto">
-                            <table class="min-w-full divide-y divide-gray-200 border border-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr class="border-b border-gray-200">
-                                        <th
-                                            class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
-                                            Requested Quantity
-                                        </th>
-                                        <th
-                                            class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Back Order
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    <tr v-for="item in selectedBackOrder" :key="item.id" class="hover:bg-gray-50">
-                                        <td class="px-3 py-3 text-sm text-gray-900 border-r border-gray-200">
-                                            {{ item.allocated_quantity }}
-                                        </td>
-                                        <td class="px-3 py-3 text-sm text-gray-900">
-                                            <table class="min-w-full">
-                                                <thead class="bg-gray-50">
-                                                    <tr>
-                                                        <th
-                                                            class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Quantity
-                                                        </th>
-                                                        <th
-                                                            class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Type
-                                                        </th>
-                                                        <th
-                                                            class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                            Notes
-                                                        </th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody class="bg-white">
-                                                    <tr v-for="backOrder in item.back_order" :key="backOrder.id">
-                                                        <td class="px-3 py-3 text-sm text-gray-900">
-                                                            {{ backOrder.quantity }}
-                                                        </td>
-                                                        <td class="px-3 py-3 text-sm text-gray-900">
-                                                            {{ backOrder.type }}
-                                                        </td>
-                                                        <td class="px-3 py-3 text-sm text-gray-900">
-                                                            {{ backOrder.notes }}
-                                                        </td>
-                                                    </tr>
-                                                </tbody>
-                                            </table>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-                        <div class="mt-4 text-sm text-gray-500">
-                            <p>
-                                These items have been partially received. The
-                                remaining quantities are on back order.
-                            </p>
-                        </div>
-                    </div>
-                    <div class="p-4 border-t border-gray-200 flex justify-end">
-                        <button @click="showModal = false"
-                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors duration-150">
-                            Close
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <Modal :show="showDispatchForm" @close="showDispatchForm = false">
-                <div class="p-6 bg-white rounded-md shadow-md">
-                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
-                        Dispatch Note (Driver Handover Log)
-                    </h2>
-
-                    <form @submit.prevent="createDispatch" class="space-y-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Driver</label>
-                            <Multiselect
-                                v-model="dispatchForm.driver"
-                                :options="driverOptions"
-                                :searchable="true"
-                                :close-on-select="true"
-                                :show-labels="false"
-                                :allow-empty="true"
-                                placeholder="Select Driver"
-                                track-by="id"
-                                label="name"
-                                @select="handleDriverSelect"
-                                :class="{ 'border-red-500': dispatchErrors.driver_id }"
-                            >
-                                <template v-slot:option="{ option }">
-                                    <div
-                                        :class="{
-                                            'add-new-option': option.isAddNew,
-                                        }"
-                                    >
-                                        <span
-                                            v-if="option.isAddNew"
-                                            class="text-indigo-600 font-medium"
-                                        >+ Add New Driver</span>
-                                        <span v-else>
-                                            {{ option.name }}
-                                            <span v-if="option.company" class="text-gray-500 text-sm">
-                                                ({{ option.company.name }})
-                                            </span>
-                                        </span>
-                                    </div>
-                                </template>
-                            </Multiselect>
-                            <p v-if="dispatchErrors.driver_id" class="mt-1 text-sm text-red-600">{{ dispatchErrors.driver_id[0] }}</p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Dispatch Date</label>
-                            <input 
-                                type="date" 
-                                required
-                                v-model="dispatchForm.dispatch_date"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                :class="{ 'border-red-500': dispatchErrors.dispatch_date }"
-                            >
-                            <p v-if="dispatchErrors.dispatch_date" class="mt-1 text-sm text-red-600">{{ dispatchErrors.dispatch_date[0] }}</p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Number of Cartons</label>
-                            <input 
-                                type="number" 
-                                v-model="dispatchForm.no_of_cartoons"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                :class="{ 'border-red-500': dispatchErrors.no_of_cartoons }"
-                            >
-                            <p v-if="dispatchErrors.no_of_cartoons" class="mt-1 text-sm text-red-600">{{ dispatchErrors.no_of_cartoons[0] }}</p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Driver Phone</label>
-                            <input 
-                                type="text" 
-                                required
-                                v-model="dispatchForm.driver_number"    
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                :class="{ 'border-red-500': dispatchErrors.driver_number }"
-                            >
-                            <p v-if="dispatchErrors.driver_number" class="mt-1 text-sm text-red-600">{{ dispatchErrors.driver_number[0] }}</p>
-                        </div>
-
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700">Vehicle Plate Number</label>
-                            <input 
-                                type="text" 
-                                required
-                                v-model="dispatchForm.plate_number"
-                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                :class="{ 'border-red-500': dispatchErrors.plate_number }"
-                            >
-                            <p v-if="dispatchErrors.plate_number" class="mt-1 text-sm text-red-600">{{ dispatchErrors.plate_number[0] }}</p>
-                        </div>
-
-                        <div class="mt-6 flex justify-end space-x-3">
-                            <button 
-                                type="button" 
-                                @click="showDispatchForm = false" 
-                                :disabled="isSaving"
-                                class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors duration-150"
-                            >
-                                Cancel
-                            </button>
-                            <button 
-                                type="submit" 
-                                :disabled="isSaving"
-                                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-150 flex items-center"
-                            >
-                                <span v-if="isSaving" class="mr-2">
-                                    <i class="fas fa-spinner fa-spin"></i>
-                                </span>
-                                {{ isSaving ? 'Creating...' : 'Save and Dispatch' }}
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </Modal>
 
             <Modal :show="showDriverModal" @close="closeDriverModal">
                 <div class="p-6">
-                    <h2 class="text-lg font-medium text-gray-900">Add New Driver</h2>
+                    <h2 class="text-lg font-medium text-gray-900">
+                        Add New Driver
+                    </h2>
 
                     <div class="mt-6">
                         <form @submit.prevent="submitDriver" class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Driver ID</label>
-                                <input 
-                                    type="text" 
-                                    v-model="driverForm.driver_id" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                    :class="{ 'border-red-500': driverErrors.driver_id }"
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Driver ID</label
                                 >
-                                <p v-if="driverErrors.driver_id" class="mt-1 text-sm text-red-600">{{ driverErrors.driver_id[0] }}</p>
+                                <input
+                                    type="text"
+                                    v-model="driverForm.driver_id"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    :class="{
+                                        'border-red-500':
+                                            driverErrors.driver_id,
+                                    }"
+                                />
+                                <p
+                                    v-if="driverErrors.driver_id"
+                                    class="mt-1 text-sm text-red-600"
+                                >
+                                    {{ driverErrors.driver_id[0] }}
+                                </p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Name</label>
-                                <input 
-                                    type="text" 
-                                    v-model="driverForm.name" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                    :class="{ 'border-red-500': driverErrors.name }"
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Name</label
                                 >
-                                <p v-if="driverErrors.name" class="mt-1 text-sm text-red-600">{{ driverErrors.name[0] }}</p>
+                                <input
+                                    type="text"
+                                    v-model="driverForm.name"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    :class="{
+                                        'border-red-500': driverErrors.name,
+                                    }"
+                                />
+                                <p
+                                    v-if="driverErrors.name"
+                                    class="mt-1 text-sm text-red-600"
+                                >
+                                    {{ driverErrors.name[0] }}
+                                </p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Phone</label>
-                                <input 
-                                    type="text" 
-                                    v-model="driverForm.phone" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                    :class="{ 'border-red-500': driverErrors.phone }"
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Phone</label
                                 >
-                                <p v-if="driverErrors.phone" class="mt-1 text-sm text-red-600">{{ driverErrors.phone[0] }}</p>
+                                <input
+                                    type="text"
+                                    v-model="driverForm.phone"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    :class="{
+                                        'border-red-500': driverErrors.phone,
+                                    }"
+                                />
+                                <p
+                                    v-if="driverErrors.phone"
+                                    class="mt-1 text-sm text-red-600"
+                                >
+                                    {{ driverErrors.phone[0] }}
+                                </p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Company</label>
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Company</label
+                                >
                                 <Multiselect
                                     v-model="driverForm.company"
                                     :options="companyOptionsWithAdd"
@@ -1289,43 +2306,62 @@
                                     track-by="id"
                                     label="name"
                                     @select="handleCompanySelect"
-                                    :class="{ 'border-red-500': driverErrors.logistic_company_id }"
+                                    :class="{
+                                        'border-red-500':
+                                            driverErrors.logistic_company_id,
+                                    }"
                                 >
                                     <template v-slot:option="{ option }">
                                         <div
                                             :class="{
-                                                'add-new-option': option.isAddNew,
+                                                'add-new-option':
+                                                    option.isAddNew,
                                             }"
                                         >
                                             <span
                                                 v-if="option.isAddNew"
                                                 class="text-indigo-600 font-medium"
-                                            >+ Add New Company</span>
-                                            <span v-else>{{ option.name }}</span>
+                                                >+ Add New Company</span
+                                            >
+                                            <span v-else>{{
+                                                option.name
+                                            }}</span>
                                         </div>
                                     </template>
                                 </Multiselect>
-                                <p v-if="driverErrors.logistic_company_id" class="mt-1 text-sm text-red-600">{{ driverErrors.logistic_company_id[0] }}</p>
+                                <p
+                                    v-if="driverErrors.logistic_company_id"
+                                    class="mt-1 text-sm text-red-600"
+                                >
+                                    {{ driverErrors.logistic_company_id[0] }}
+                                </p>
                             </div>
 
                             <div class="mt-6 flex justify-end space-x-3">
-                                <button 
-                                    type="button" 
-                                    @click="closeDriverModal" 
+                                <button
+                                    type="button"
+                                    @click="closeDriverModal"
                                     :disabled="isSubmittingDriver"
                                     class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors duration-150"
                                 >
                                     Cancel
                                 </button>
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     :disabled="isSubmittingDriver"
                                     class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-150 flex items-center"
                                 >
-                                    <span v-if="isSubmittingDriver" class="mr-2">
+                                    <span
+                                        v-if="isSubmittingDriver"
+                                        class="mr-2"
+                                    >
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </span>
-                                    {{ isSubmittingDriver ? 'Creating...' : 'Create' }}
+                                    {{
+                                        isSubmittingDriver
+                                            ? "Creating..."
+                                            : "Create"
+                                    }}
                                 </button>
                             </div>
                         </form>
@@ -1335,87 +2371,780 @@
 
             <Modal :show="showCompanyModal" @close="closeCompanyModal">
                 <div class="p-6">
-                    <h2 class="text-lg font-medium text-gray-900">Add New Company</h2>
+                    <h2 class="text-lg font-medium text-gray-900">
+                        Add New Company
+                    </h2>
 
                     <div class="mt-6">
                         <form @submit.prevent="submitCompany" class="space-y-4">
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Name</label>
-                                <input 
-                                    type="text" 
-                                    v-model="companyForm.name" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                    :class="{ 'border-red-500': companyErrors.name }"
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Name</label
                                 >
-                                <p v-if="companyErrors.name" class="mt-1 text-sm text-red-600">{{ companyErrors.name[0] }}</p>
+                                <input
+                                    type="text"
+                                    v-model="companyForm.name"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    :class="{
+                                        'border-red-500': companyErrors.name,
+                                    }"
+                                />
+                                <p
+                                    v-if="companyErrors.name"
+                                    class="mt-1 text-sm text-red-600"
+                                >
+                                    {{ companyErrors.name[0] }}
+                                </p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Email</label>
-                                <input 
-                                    type="email" 
-                                    v-model="companyForm.email" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                    :class="{ 'border-red-500': companyErrors.email }"
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Email</label
                                 >
-                                <p v-if="companyErrors.email" class="mt-1 text-sm text-red-600">{{ companyErrors.email[0] }}</p>
+                                <input
+                                    type="email"
+                                    v-model="companyForm.email"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    :class="{
+                                        'border-red-500': companyErrors.email,
+                                    }"
+                                />
+                                <p
+                                    v-if="companyErrors.email"
+                                    class="mt-1 text-sm text-red-600"
+                                >
+                                    {{ companyErrors.email[0] }}
+                                </p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Incharge Person</label>
-                                <input 
-                                    type="text" 
-                                    v-model="companyForm.incharge_person" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                    :class="{ 'border-red-500': companyErrors.incharge_person }"
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Incharge Person</label
                                 >
-                                <p v-if="companyErrors.incharge_person" class="mt-1 text-sm text-red-600">{{ companyErrors.incharge_person[0] }}</p>
+                                <input
+                                    type="text"
+                                    v-model="companyForm.incharge_person"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    :class="{
+                                        'border-red-500':
+                                            companyErrors.incharge_person,
+                                    }"
+                                />
+                                <p
+                                    v-if="companyErrors.incharge_person"
+                                    class="mt-1 text-sm text-red-600"
+                                >
+                                    {{ companyErrors.incharge_person[0] }}
+                                </p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Incharge Phone</label>
-                                <input 
-                                    type="text" 
-                                    v-model="companyForm.incharge_phone" 
-                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                    :class="{ 'border-red-500': companyErrors.incharge_phone }"
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Incharge Phone</label
                                 >
-                                <p v-if="companyErrors.incharge_phone" class="mt-1 text-sm text-red-600">{{ companyErrors.incharge_phone[0] }}</p>
+                                <input
+                                    type="text"
+                                    v-model="companyForm.incharge_phone"
+                                    class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
+                                    :class="{
+                                        'border-red-500':
+                                            companyErrors.incharge_phone,
+                                    }"
+                                />
+                                <p
+                                    v-if="companyErrors.incharge_phone"
+                                    class="mt-1 text-sm text-red-600"
+                                >
+                                    {{ companyErrors.incharge_phone[0] }}
+                                </p>
                             </div>
 
                             <div>
-                                <label class="block text-sm font-medium text-gray-700">Address</label>
-                                <textarea 
-                                    v-model="companyForm.address" 
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Address</label
+                                >
+                                <textarea
+                                    v-model="companyForm.address"
                                     rows="3"
                                     class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-                                    :class="{ 'border-red-500': companyErrors.address }"
+                                    :class="{
+                                        'border-red-500': companyErrors.address,
+                                    }"
                                 ></textarea>
-                                <p v-if="companyErrors.address" class="mt-1 text-sm text-red-600">{{ companyErrors.address[0] }}</p>
+                                <p
+                                    v-if="companyErrors.address"
+                                    class="mt-1 text-sm text-red-600"
+                                >
+                                    {{ companyErrors.address[0] }}
+                                </p>
                             </div>
 
                             <div class="mt-6 flex justify-end space-x-3">
-                                <button 
-                                    type="button" 
-                                    @click="closeCompanyModal" 
+                                <button
+                                    type="button"
+                                    @click="closeCompanyModal"
                                     :disabled="isSubmittingCompany"
                                     class="px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors duration-150"
                                 >
                                     Cancel
                                 </button>
-                                <button 
-                                    type="submit" 
+                                <button
+                                    type="submit"
                                     :disabled="isSubmittingCompany"
                                     class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors duration-150 flex items-center"
                                 >
-                                    <span v-if="isSubmittingCompany" class="mr-2">
+                                    <span
+                                        v-if="isSubmittingCompany"
+                                        class="mr-2"
+                                    >
                                         <i class="fas fa-spinner fa-spin"></i>
                                     </span>
-                                    {{ isSubmittingCompany ? 'Creating...' : 'Create' }}
+                                    {{
+                                        isSubmittingCompany
+                                            ? "Creating..."
+                                            : "Create"
+                                    }}
                                 </button>
                             </div>
                         </form>
                     </div>
+                </div>
+            </Modal>
+            <!-- Back Order Modal -->
+            <Modal
+                :show="showBackOrderModal"
+                @close="attemptCloseModal"
+                maxWidth="2xl"
+            >
+                <div class="p-6 text-left">
+                    <!-- Modal Header -->
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <div
+                                v-if="showIncompleteBackOrderModal"
+                                class="rounded-full bg-yellow-100 p-3 mr-3"
+                            >
+                                <svg
+                                    class="w-6 h-6 text-yellow-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                    />
+                                </svg>
+                            </div>
+                            <h2 class="text-lg font-semibold text-gray-900">
+                                {{
+                                    showIncompleteBackOrderModal
+                                        ? "Incomplete Back Orders"
+                                        : "Back Order Details"
+                                }}
+                            </h2>
+                        </div>
+                        <button
+                            @click="attemptCloseModal"
+                            class="text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                        >
+                            <svg
+                                class="w-6 h-6"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    stroke-width="2"
+                                    d="M6 18L18 6M6 6l12 12"
+                                ></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Error Message -->
+                    <div
+                        v-if="message"
+                        class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg"
+                    >
+                        <div class="flex items-start">
+                            <div class="flex-shrink-0">
+                                <svg
+                                    class="h-5 w-5 text-red-400"
+                                    viewBox="0 0 20 20"
+                                    fill="currentColor"
+                                >
+                                    <path
+                                        fill-rule="evenodd"
+                                        d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                        clip-rule="evenodd"
+                                    />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-red-800">
+                                    {{ message }}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Summary Section -->
+                    <div
+                        class="mb-6 bg-gradient-to-r from-yellow-50 to-orange-50 p-4 rounded-lg border border-yellow-200"
+                    >
+                        <div
+                            class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm"
+                        >
+                            <div>
+                                <span class="text-gray-600 font-medium"
+                                    >Product:</span
+                                >
+                                <p class="text-gray-900 font-semibold">
+                                    {{ selectedItem?.product?.name }}
+                                </p>
+                            </div>
+                            <div>
+                                <span class="text-gray-600 font-medium"
+                                    >Expected:</span
+                                >
+                                <p class="text-gray-900 font-semibold">
+                                    {{ selectedItem?.quantity_to_release || 0 }}
+                                </p>
+                            </div>
+                            <div>
+                                <span class="text-gray-600 font-medium"
+                                    >Received:</span
+                                >
+                                <p class="text-gray-900 font-semibold">
+                                    {{ selectedItem?.received_quantity || 0 }}
+                                </p>
+                            </div>
+                            <div>
+                                <span class="text-gray-600 font-medium"
+                                    >Mismatches:</span
+                                >
+                                <p class="text-yellow-800 font-semibold">
+                                    {{ missingQuantity }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Additional Info for Incomplete Back Orders -->
+                        <div
+                            v-if="showIncompleteBackOrderModal"
+                            class="mt-4 pt-4 border-t border-yellow-200"
+                        >
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <span class="text-gray-600 font-medium"
+                                        >Existing Back Orders:</span
+                                    >
+                                    <p class="text-gray-900 font-semibold">
+                                        {{ totalExistingDifferences }}
+                                    </p>
+                                </div>
+                                <div>
+                                    <span class="text-gray-600 font-medium"
+                                        >Remaining to Allocate:</span
+                                    >
+                                    <p class="text-yellow-800 font-semibold">
+                                        {{ remainingToAllocate }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Batch Information Section -->
+                    <div class="mb-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3
+                                class="text-lg font-semibold text-gray-900 flex items-center"
+                            >
+                                <svg
+                                    class="w-5 h-5 mr-2 text-indigo-600"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        stroke-width="2"
+                                        d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                                    ></path>
+                                </svg>
+                                Batch Information
+                            </h3>
+                            <div class="text-sm text-gray-500 text-left">
+                                Allocate missing quantity ({{
+                                    missingQuantity
+                                }}) across batches
+                            </div>
+                        </div>
+
+                        <!-- Batch Cards -->
+                        <div class="space-y-4">
+                            <div
+                                v-for="(
+                                    allocation, allocIndex
+                                ) in selectedItem?.inventory_allocations"
+                                :key="allocation.id"
+                                class="bg-white rounded-xl shadow-sm border border-gray-200 p-4"
+                            >
+                                <div
+                                    class="flex items-center justify-between mb-4 text-left"
+                                >
+                                    <div class="flex items-center">
+                                        <div
+                                            class="bg-indigo-100 rounded-full p-2 mr-3"
+                                        >
+                                            <svg
+                                                class="w-4 h-4 text-indigo-600"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    stroke-linecap="round"
+                                                    stroke-linejoin="round"
+                                                    stroke-width="2"
+                                                    d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                                                ></path>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4
+                                                class="text-sm font-semibold text-gray-900"
+                                            >
+                                                Batch:
+                                                {{ allocation.batch_number }}
+                                            </h4>
+                                            <p class="text-xs text-gray-500">
+                                                {{
+                                                    allocation.allocated_quantity
+                                                }}
+                                                units allocated
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        @click="addBatchBackOrder(allocation)"
+                                        :disabled="
+                                            true /* Warehouses are suppliers and cannot record backorders */
+                                        "
+                                        class="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                                    >
+                                        <svg
+                                            class="w-3 h-3 mr-1"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                stroke-linecap="round"
+                                                stroke-linejoin="round"
+                                                stroke-width="2"
+                                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                            ></path>
+                                        </svg>
+                                        Add Issue
+                                    </button>
+                                </div>
+
+                                <!-- Back Order Table for this Batch -->
+                                <div
+                                    v-if="
+                                        getBatchBackOrders(allocation.id)
+                                            .length > 0
+                                    "
+                                    class="mt-4"
+                                >
+                                    <div class="overflow-x-auto">
+                                        <table
+                                            class="min-w-full divide-y divide-gray-200"
+                                        >
+                                            <thead class="bg-gray-50">
+                                                <tr>
+                                                    <th
+                                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    >
+                                                        Issue Type
+                                                    </th>
+                                                    <th
+                                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    >
+                                                        Quantity
+                                                    </th>
+                                                    <th
+                                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    >
+                                                        Notes
+                                                    </th>
+                                                    <th
+                                                        class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                                                    >
+                                                        Actions
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody
+                                                class="bg-white divide-y divide-gray-200 text-left"
+                                            >
+                                                <tr
+                                                    v-for="(
+                                                        row, rowIndex
+                                                    ) in getBatchBackOrders(
+                                                        allocation.id,
+                                                    )"
+                                                    :key="rowIndex"
+                                                    class="hover:bg-gray-50 transition-colors duration-150"
+                                                >
+                                                    <td class="px-4 py-3">
+                                                        <select
+                                                            v-model="row.status"
+                                                            :disabled="
+                                                                true /* Warehouses are suppliers and cannot record backorders */
+                                                            "
+                                                            class="w-full rounded-lg border-gray-200 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm"
+                                                        >
+                                                            <option
+                                                                v-for="status in [
+                                                                    'Missing',
+                                                                    'Damaged',
+                                                                    'Expired',
+                                                                    'Lost',
+                                                                ]"
+                                                                :key="status"
+                                                                :value="status"
+                                                            >
+                                                                {{ status }}
+                                                            </option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="px-4 py-3">
+                                                        <input
+                                                            :disabled="
+                                                                true /* Warehouses are suppliers and cannot record backorders */
+                                                            "
+                                                            type="number"
+                                                            v-model="
+                                                                row.quantity
+                                                            "
+                                                            @input="
+                                                                validateBatchBackOrderQuantity(
+                                                                    row,
+                                                                    allocation,
+                                                                )
+                                                            "
+                                                            min="0"
+                                                            :max="
+                                                                allocation.allocated_quantity
+                                                            "
+                                                            class="w-full rounded-lg border-gray-200 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm"
+                                                        />
+                                                    </td>
+                                                    <td class="px-4 py-3">
+                                                        <input
+                                                            :disabled="
+                                                                true /* Warehouses are suppliers and cannot record backorders */
+                                                            "
+                                                            type="text"
+                                                            v-model="row.notes"
+                                                            placeholder="Optional notes..."
+                                                            class="w-full rounded-lg border-gray-200 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50 text-sm"
+                                                        />
+                                                    </td>
+                                                    <td class="px-4 py-3">
+                                                        <button
+                                                            :disabled="
+                                                                true /* Warehouses are suppliers and cannot record backorders */
+                                                            "
+                                                            @click="
+                                                                removeBatchBackOrder(
+                                                                    row,
+                                                                    rowIndex,
+                                                                )
+                                                            "
+                                                            class="text-red-600 hover:text-red-800 transition-colors duration-150"
+                                                        >
+                                                            <svg
+                                                                xmlns="http://www.w3.org/2000/svg"
+                                                                class="h-5 w-5"
+                                                                fill="none"
+                                                                viewBox="0 0 24 24"
+                                                                stroke="currentColor"
+                                                            >
+                                                                <path
+                                                                    stroke-linecap="round"
+                                                                    stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                                />
+                                                            </svg>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer Actions -->
+                    <div
+                        class="mt-6 flex justify-between items-center text-left"
+                    >
+                        <div class="flex items-center gap-4">
+                            <div class="text-sm">
+                                <span
+                                    :class="{
+                                        'text-green-600': isValidForSave,
+                                        'text-red-600': !isValidForSave,
+                                    }"
+                                >
+                                    {{ totalBatchBackOrderQuantity }}
+                                </span>
+                                <span class="text-gray-600"
+                                    >/ {{ missingQuantity }} items
+                                    recorded</span
+                                >
+                                <div
+                                    v-if="
+                                        missingQuantity > 0 &&
+                                        totalBatchBackOrderQuantity ===
+                                            missingQuantity
+                                    "
+                                    class="text-xs text-green-600 mt-1 flex items-center"
+                                >
+                                    <svg
+                                        class="w-3 h-3 mr-1"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            stroke-width="2"
+                                            d="M5 13l4 4L19 7"
+                                        ></path>
+                                    </svg>
+                                    All missing items accounted for
+                                </div>
+                                <div
+                                    v-else-if="
+                                        missingQuantity > 0 &&
+                                        totalBatchBackOrderQuantity <
+                                            missingQuantity
+                                    "
+                                    class="text-xs text-yellow-600 mt-1"
+                                >
+                                    {{
+                                        missingQuantity -
+                                        totalBatchBackOrderQuantity
+                                    }}
+                                    more items need to be allocated
+                                </div>
+                                <div
+                                    v-else-if="
+                                        totalBatchBackOrderQuantity >
+                                        missingQuantity
+                                    "
+                                    class="text-xs text-red-600 mt-1"
+                                >
+                                    Over-allocated by
+                                    {{
+                                        totalBatchBackOrderQuantity -
+                                        missingQuantity
+                                    }}
+                                    items
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex gap-3">
+                            <button
+                                :disabled="isSaving"
+                                @click="attemptCloseModal"
+                                class="inline-flex justify-center px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-all duration-200"
+                            >
+                                Exit
+                            </button>
+                            <button
+                                @click="saveBackOrders"
+                                :disabled="
+                                    true /* Warehouses are suppliers and cannot record backorders */
+                                "
+                                class="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                            >
+                                {{
+                                    isSaving
+                                        ? "Saving..."
+                                        : "Save Differences and Exit"
+                                }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal :show="showDispatchForm" @close="showDispatchForm = false">
+                <div class="p-6 bg-white rounded-md shadow-md">
+                    <h2 class="text-lg font-semibold text-gray-800 mb-4">
+                        Dispatch Note (Driver Handover Log)
+                    </h2>
+
+                    <form @submit.prevent="createDispatch" class="space-y-4">
+                        <div>
+                            <label
+                                class="block text-sm font-medium text-gray-700"
+                                >Driver</label
+                            >
+                            <Multiselect
+                                v-model="dispatchForm.driver"
+                                :options="driverOptions"
+                                :searchable="true"
+                                :close-on-select="true"
+                                :show-labels="false"
+                                :allow-empty="true"
+                                placeholder="Select Driver"
+                                track-by="id"
+                                label="name"
+                                @select="handleDriverSelect"
+                                :class="{
+                                    'border-red-500': dispatchErrors.driver_id,
+                                }"
+                            >
+                                <template v-slot:option="{ option }">
+                                    <div
+                                        :class="{
+                                            'add-new-option': option.isAddNew,
+                                            'text-blue-600 font-bold':
+                                                option.isAddNew,
+                                        }"
+                                    >
+                                        {{ option.name }}
+                                        <span
+                                            v-if="option.isAddNew"
+                                            class="ml-2"
+                                            >+</span
+                                        >
+                                    </div>
+                                </template>
+                            </Multiselect>
+                            <p
+                                v-if="dispatchErrors.driver_id"
+                                class="text-red-500 text-xs mt-1"
+                            >
+                                {{ dispatchErrors.driver_id[0] }}
+                            </p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Driver Number</label
+                                >
+                                <input
+                                    v-model="dispatchForm.driver_number"
+                                    type="text"
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    placeholder="Enter Driver Phone"
+                                    readonly
+                                />
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Plate Number</label
+                                >
+                                <input
+                                    v-model="dispatchForm.plate_number"
+                                    type="text"
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm font-bold uppercase"
+                                    placeholder="e.g. ABC-1234"
+                                />
+                                <p
+                                    v-if="dispatchErrors.plate_number"
+                                    class="text-red-500 text-xs mt-1"
+                                >
+                                    {{ dispatchErrors.plate_number[0] }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >Dispatch Date</label
+                                >
+                                <input
+                                    v-model="dispatchForm.dispatch_date"
+                                    type="date"
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                />
+                                <p
+                                    v-if="dispatchErrors.dispatch_date"
+                                    class="text-red-500 text-xs mt-1"
+                                >
+                                    {{ dispatchErrors.dispatch_date[0] }}
+                                </p>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-sm font-medium text-gray-700"
+                                    >No. of Cartons</label
+                                >
+                                <input
+                                    v-model="dispatchForm.no_of_cartoons"
+                                    type="number"
+                                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                                    placeholder="Total Cartons"
+                                />
+                                <p
+                                    v-if="dispatchErrors.no_of_cartoons"
+                                    class="text-red-500 text-xs mt-1"
+                                >
+                                    {{ dispatchErrors.no_of_cartoons[0] }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-3 mt-6">
+                            <button
+                                type="button"
+                                @click="showDispatchForm = false"
+                                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                :disabled="isSaving"
+                                class="px-4 py-2 bg-blue-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                            >
+                                {{
+                                    isSaving
+                                        ? "Processing..."
+                                        : "Confirm Dispatch"
+                                }}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </Modal>
         </div>
@@ -1425,7 +3154,7 @@
 <script setup>
 import { computed, onMounted, onBeforeUnmount, ref, watch, h } from "vue";
 import AuthenticatedLayout from "@/Layouts/AuthenticatedLayout.vue";
-import { router, Link } from "@inertiajs/vue3";
+import { router, Link, usePage } from "@inertiajs/vue3";
 import {
     BuildingOfficeIcon,
     EnvelopeIcon,
@@ -1437,23 +3166,30 @@ import {
     TruckIcon,
     ArchiveBoxIcon,
     ClockIcon,
-    PrinterIcon
+    PrinterIcon,
 } from "@heroicons/vue/24/outline";
 import Swal from "sweetalert2";
 import axios from "axios";
 import moment from "moment";
 import Modal from "@/Components/Modal.vue";
 import { useToast } from "vue-toastification";
-import Multiselect from 'vue-multiselect';
+import Multiselect from "vue-multiselect";
 import "vue-multiselect/dist/vue-multiselect.css";
 import "@/Components/multiselect.css";
 
 const toast = useToast();
+const page = usePage();
+const user = computed(() => page.props.auth.user);
+
+const canEditSupplierFields = computed(() => {
+    return ["pending", "reviewed"].includes(props.order.status);
+});
 
 const props = defineProps({
     order: {
         type: Object,
-        required: true,
+        required: false,
+        default: () => null,
     },
     error: String,
     products: Array,
@@ -1461,7 +3197,6 @@ const props = defineProps({
     companyOptions: Array,
 });
 
-const showModal = ref(false);
 const selectedBackOrder = ref(null);
 const showDispatchForm = ref(false);
 const showDriverModal = ref(false);
@@ -1470,33 +3205,391 @@ const showDispatchImagesModal = ref(false);
 const showImageLightbox = ref(false);
 const isSubmittingDriver = ref(false);
 const isSubmittingCompany = ref(false);
+const isSavingQty = ref([]);
+// Back order modal state
+const showBackOrderModal = ref(false);
+const selectedItem = ref(null);
+const batchBackOrders = ref({});
+const showIncompleteBackOrderModal = ref(false);
+const isSaving = ref(false);
+const message = ref("");
+
+// Computed properties for back order modal
+const missingQuantity = computed(() => {
+    if (!selectedItem.value) return 0;
+    return (
+        parseFloat(selectedItem.value.quantity_to_release || 0) -
+        parseFloat(selectedItem.value.received_quantity || 0)
+    );
+});
+
+const totalBatchBackOrderQuantity = computed(() => {
+    let total = 0;
+    Object.values(batchBackOrders.value).forEach((rows) => {
+        rows.forEach((row) => {
+            total += Number(row.quantity || 0);
+        });
+    });
+    return total;
+});
+
+const totalExistingDifferences = computed(() => {
+    if (!selectedItem.value || !selectedItem.value.differences) return 0;
+    return selectedItem.value.differences.reduce(
+        (total, diff) => total + Number(diff.quantity || 0),
+        0,
+    );
+});
+
+const remainingToAllocate = computed(() => {
+    return missingQuantity.value - totalBatchBackOrderQuantity.value;
+});
+
+const isValidForSave = computed(() => {
+    // Check if we have any back orders
+    const hasBackOrders = Object.values(batchBackOrders.value).some(
+        (rows) => rows.length > 0,
+    );
+
+    // Check if all back orders have valid data
+    const allValid = Object.values(batchBackOrders.value).every((rows) => {
+        return rows.every((row) => row.quantity > 0 && row.status);
+    });
+
+    // Check if total matches the missing quantity
+    const totalMatches =
+        totalBatchBackOrderQuantity.value === missingQuantity.value;
+
+    return hasBackOrders && allValid && totalMatches;
+});
+
+// Functions for back order modal
+const openBackOrderModal = (item) => {
+    selectedItem.value = item;
+    batchBackOrders.value = {};
+    showIncompleteBackOrderModal.value = false;
+
+    // If there's no difference between quantity_to_release and received_quantity, no need for differences
+    if (
+        parseFloat(item.quantity_to_release || 0) <=
+            parseFloat(item.received_quantity || 0) &&
+        (!item.differences || item.differences.length === 0)
+    ) {
+        toast.info(
+            "All quantities have been received. No differences to report.",
+        );
+        return;
+    }
+
+    // Only use PackingListDifference (item.differences)
+    if (item.differences && item.differences.length > 0) {
+        item.differences.forEach((difference) => {
+            const allocationId = difference.inventory_allocation_id;
+            if (!batchBackOrders.value[allocationId]) {
+                batchBackOrders.value[allocationId] = [];
+            }
+            // Find the corresponding allocation for this difference
+            const allocation = item.inventory_allocations.find(
+                (alloc) => alloc.id === parseInt(allocationId),
+            );
+            batchBackOrders.value[allocationId].push({
+                id: difference.id, // Store the ID for editing/deleting
+                inventory_allocation_id: allocationId,
+                quantity: difference.quantity,
+                status: difference.status || "Missing",
+                notes: difference.notes,
+                batch_number: allocation?.batch_number || "",
+                barcode: allocation?.barcode || "",
+                isExisting: true, // Flag to indicate this is an existing difference
+            });
+        });
+    }
+
+    showBackOrderModal.value = true;
+};
+
+// Get differences for a specific batch
+const getBatchBackOrders = (allocationId) => {
+    if (!batchBackOrders.value[allocationId]) {
+        batchBackOrders.value[allocationId] = [];
+    }
+    return batchBackOrders.value[allocationId];
+};
+
+// Check if we can add more back orders to an allocation
+const canAddMoreToAllocation = (allocation) => {
+    // First check if there's a mismatch between quantity_to_release and received_quantity
+    if (
+        !selectedItem.value ||
+        !(
+            parseFloat(selectedItem.value.quantity_to_release || 0) >
+            parseFloat(selectedItem.value.received_quantity || 0)
+        )
+    ) {
+        return false;
+    }
+
+    // Get current back orders for this allocation
+    const currentBackOrders = getBatchBackOrders(allocation.id);
+
+    // Calculate total quantity already recorded as differences for this allocation
+    const totalBackOrdered = currentBackOrders.reduce(
+        (sum, diff) => sum + Number(diff.quantity || 0),
+        0,
+    );
+
+    // Calculate remaining quantity to record as differences overall
+    const remainingOverall =
+        missingQuantity.value - totalBatchBackOrderQuantity.value;
+
+    // Can add more if there's still quantity available in this allocation AND we need more differences overall
+    return (
+        totalBackOrdered < allocation.allocated_quantity && remainingOverall > 0
+    );
+};
+
+// Add a difference for a specific batch
+const addBatchBackOrder = (allocation) => {
+    const currentDifferences = getBatchBackOrders(allocation.id);
+
+    // Calculate total missing quantity (difference between quantity_to_release and received_quantity)
+    const totalMissingQuantity = missingQuantity.value;
+
+    // Calculate how much has already been allocated in all differences
+    const totalAlreadyAllocated = totalBatchBackOrderQuantity.value;
+
+    // Calculate how much is still remaining to allocate
+    const remainingToAllocate = totalMissingQuantity - totalAlreadyAllocated;
+
+    // Only add if there's quantity that still needs to be allocated
+    if (remainingToAllocate <= 0) {
+        Swal.fire({
+            title: "Cannot Add Issue",
+            text: "All missing quantity has already been allocated to differences.",
+            icon: "warning",
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 3000,
+        });
+        return;
+    }
+
+    // Add a new difference row for this batch with a default quantity of the remaining to allocate
+    // (user can adjust this as needed)
+    currentDifferences.push({
+        inventory_allocation_id: allocation.id,
+        quantity: 0,
+        status: "Missing",
+        notes: "",
+        batch_number: allocation.batch_number,
+        barcode: allocation.barcode,
+    });
+};
+
+// Remove a difference for a specific batch
+const removeBatchBackOrder = async (row, index) => {
+    message.value = "";
+    if (batchBackOrders.value[row.inventory_allocation_id]) {
+        batchBackOrders.value[row.inventory_allocation_id].splice(index, 1);
+    }
+};
+
+// Validate difference quantity for a specific batch
+const validateBatchBackOrderQuantity = (row, allocation) => {
+    // Ensure quantity is a number and within valid range
+    const qty = Number(row.quantity);
+    if (isNaN(qty) || qty <= 0) {
+        row.quantity = 0;
+        return;
+    }
+
+    // Get all differences for this allocation
+    const allocationDifferences = getBatchBackOrders(allocation.id);
+
+    // Calculate total differences for this allocation except this row
+    const totalOtherRowsInAllocation = allocationDifferences.reduce(
+        (subtotal, difference) => {
+            // Skip the current row being validated
+            if (difference === row) return subtotal;
+            return subtotal + Number(difference.quantity || 0);
+        },
+        0,
+    );
+
+    // Calculate total differences for all allocations except this row
+    const totalOtherRows = Object.values(batchBackOrders.value).reduce(
+        (total, rows) => {
+            return (
+                total +
+                rows.reduce((subtotal, difference) => {
+                    // Skip the current row being validated
+                    if (difference === row) return subtotal;
+                    return subtotal + Number(difference.quantity || 0);
+                }, 0)
+            );
+        },
+        0,
+    );
+
+    // Calculate maximum allowed for this row based on overall missing quantity
+    const maxForThisRowByMissing = missingQuantity.value - totalOtherRows;
+
+    // Calculate maximum allowed for this row based on allocation quantity
+    const maxForThisRowByAllocation =
+        allocation.allocated_quantity - totalOtherRowsInAllocation;
+
+    // Take the smaller of the two maximums
+    const maxForThisRow = Math.min(
+        maxForThisRowByMissing,
+        maxForThisRowByAllocation,
+    );
+
+    // If the quantity exceeds what's available, set it to 0
+    if (qty > maxForThisRow) {
+        row.quantity = 0;
+        Swal.fire({
+            title: "Invalid Quantity",
+            text:
+                qty > maxForThisRowByAllocation
+                    ? `Quantity cannot exceed the allocated quantity for batch ${allocation.batch_number}`
+                    : "The quantity exceeds the remaining missing quantity.",
+            icon: "warning",
+            toast: true,
+            position: "top-end",
+            showConfirmButton: false,
+            timer: 2000,
+        });
+    }
+};
+
+const saveBackOrders = async () => {
+    message.value = "";
+    if (totalBatchBackOrderQuantity.value !== missingQuantity.value) {
+        Swal.fire({
+            title: "Cannot Save",
+            text: `The total difference quantity (${totalBatchBackOrderQuantity.value}) must exactly match the missing quantity (${missingQuantity.value}).`,
+            icon: "error",
+            confirmButtonText: "OK",
+        });
+        return;
+    }
+    const allValid = Object.values(batchBackOrders.value).every((rows) => {
+        return rows.every((row) => row.quantity > 0 && row.status);
+    });
+    if (!allValid) {
+        Swal.fire({
+            title: "Invalid Data",
+            text: "All differences must have a quantity greater than 0 and a valid status.",
+            icon: "error",
+            confirmButtonText: "OK",
+        });
+        return;
+    }
+    isSaving.value = true;
+    // Prepare data for API
+    const differenceData = {
+        order_item_id: selectedItem.value.id,
+        received_quantity: selectedItem.value.received_quantity || 0,
+        differences: [],
+        deleted_differences: [],
+    };
+    Object.entries(batchBackOrders.value).forEach(([allocationId, rows]) => {
+        rows.forEach((row) => {
+            // Only send the fields the backend expects
+            if (row.isExisting && row.id) {
+                differenceData.differences.push({
+                    id: row.id,
+                    inventory_allocation_id: allocationId,
+                    quantity: row.quantity,
+                    status: row.status,
+                    notes: row.notes || null,
+                });
+            } else {
+                differenceData.differences.push({
+                    inventory_allocation_id: allocationId,
+                    quantity: row.quantity,
+                    status: row.status,
+                    notes: row.notes || null,
+                });
+            }
+        });
+    });
+    // Find deleted differences
+    if (selectedItem.value.differences) {
+        const currentDifferenceIds = Object.values(batchBackOrders.value)
+            .flat()
+            .filter((row) => row.isExisting && row.id)
+            .map((row) => row.id);
+        const deletedDifferences = selectedItem.value.differences
+            .filter((diff) => !currentDifferenceIds.includes(diff.id))
+            .map((diff) => diff.id);
+        differenceData.deleted_differences = deletedDifferences;
+    }
+    await axios
+        .post(route("orders.backorder"), differenceData)
+        .then((response) => {
+            isSaving.value = false;
+            showBackOrderModal.value = false;
+            toast.success(response.data || "Differences saved successfully");
+            router.visit(
+                route("orders.show", props.order.id),
+                {},
+                {
+                    preserveScroll: true,
+                    preserveState: false,
+                    replace: true,
+                },
+            );
+        })
+        .catch((error) => {
+            console.log(error.response);
+            isSaving.value = false;
+            toast.error(error.response?.data || "Failed to save differences");
+        });
+};
+
+const attemptCloseModal = () => {
+    if (
+        remainingToAllocate.value > 0 &&
+        totalBatchBackOrderQuantity.value > 0
+    ) {
+        // Show warning if there are unallocated quantities
+        showIncompleteBackOrderModal.value = true;
+    } else {
+        // Close modal directly if everything is allocated or nothing has been entered
+        showBackOrderModal.value = false;
+        showIncompleteBackOrderModal.value = false;
+    }
+};
+
 const dispatchImages = ref([]);
 const currentImageIndex = ref(0);
 const driverForm = ref({
-    driver_id: '',
-    name: '',
-    phone: '',
-    logistic_company_id: '',
+    driver_id: "",
+    name: "",
+    phone: "",
+    logistic_company_id: "",
     company: null,
-    is_active: true
+    is_active: true,
 });
 
 const dispatchForm = ref({
     driver: null,
-    dispatch_date: new Date().toISOString().split('T')[0],
-    no_of_cartoons: '',
-    driver_number: '',
-    plate_number: '',
-    logistic_company_id: ''
+    dispatch_date: new Date().toISOString().split("T")[0],
+    no_of_cartoons: "",
+    driver_number: "",
+    plate_number: "",
+    logistic_company_id: "",
 });
 
 const companyForm = ref({
-    name: '',
-    email: '',
-    incharge_person: '',
-    incharge_phone: '',
-    address: '',
-    is_active: true
+    name: "",
+    email: "",
+    incharge_person: "",
+    incharge_phone: "",
+    address: "",
+    is_active: true,
 });
 
 const driverErrors = ref({});
@@ -1525,18 +3618,33 @@ function syncFormFromOrder() {
 }
 
 onMounted(() => {
-    console.log('Order data:', props.order);
-    console.log('Order items:', props.order.items);
+    console.log("Order data:", props.order);
+    console.log("Order items:", props.order.items);
     syncFormFromOrder();
 });
 
 // When order items are refreshed (e.g. after update), keep form in sync so column and input show same no_of_days
-watch(() => props.order?.items, (items) => {
-    if (items?.length) syncFormFromOrder();
-}, { deep: true });
+watch(
+    () => props.order?.items,
+    (items) => {
+        if (items?.length) syncFormFromOrder();
+    },
+    { deep: true },
+);
 
 const formatDate = (date) => {
     return moment(date).format("DD/MM/YYYY");
+};
+
+const getRemainingQuantity = (item) => {
+    return (
+        parseFloat(item.quantity_to_release || 0) -
+        parseFloat(item.received_quantity || 0)
+    ).toFixed(2);
+};
+
+const isItemInvalidForReceiving = (item) => {
+    return false;
 };
 
 const statusOrder = [
@@ -1550,6 +3658,7 @@ const statusOrder = [
 ];
 
 const isRestoring = ref(false);
+
 const restoreOrder = async () => {
     Swal.fire({
         title: "Are you sure?",
@@ -1557,13 +3666,13 @@ const restoreOrder = async () => {
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3085d6",
-    })
-    .then(async (result) => {
+    }).then(async (result) => {
         if (result.isConfirmed) {
             isRestoring.value = true;
-            await axios.post(route("orders.restore-order"), {
-                order_id: props.order.id,
-            })
+            await axios
+                .post(route("orders.restore-order"), {
+                    order_id: props.order.id,
+                })
                 .then((response) => {
                     isRestoring.value = false;
                     Swal.fire({
@@ -1578,7 +3687,9 @@ const restoreOrder = async () => {
                 .catch((error) => {
                     isRestoring.value = false;
                     console.log(error);
-                    toast.error(error.response?.data || "Failed to restore order");
+                    toast.error(
+                        error.response?.data || "Failed to restore order",
+                    );
                 });
         }
     });
@@ -1590,7 +3701,7 @@ const updateQuantityTimeouts = ref({});
 
 // Cleanup on unmount
 onBeforeUnmount(() => {
-    Object.values(updateQuantityTimeouts.value).forEach(timeout => {
+    Object.values(updateQuantityTimeouts.value).forEach((timeout) => {
         if (timeout) clearTimeout(timeout);
     });
 });
@@ -1598,11 +3709,11 @@ onBeforeUnmount(() => {
 // Debounced input handler
 const handleQuantityInput = (item, type, index) => {
     const timeoutKey = `${item.id}-${type}-${index}`;
-    
+
     if (updateQuantityTimeouts.value[timeoutKey]) {
         clearTimeout(updateQuantityTimeouts.value[timeoutKey]);
     }
-    
+
     updateQuantityTimeouts.value[timeoutKey] = setTimeout(() => {
         updateQuantity(item, type, index);
     }, 500);
@@ -1610,8 +3721,8 @@ const handleQuantityInput = (item, type, index) => {
 
 async function updateQuantity(item, type, index) {
     const days = item.no_of_days ?? item.days;
-    if (type === 'days' && (!days || Number(days) < 1)) {
-        toast.error('No. of days cannot be 0. Please enter at least 1.');
+    if (type === "days" && (!days || Number(days) < 1)) {
+        toast.error("No. of days cannot be 0. Please enter at least 1.");
         return;
     }
     isUpading.value[index] = true;
@@ -1619,14 +3730,18 @@ async function updateQuantity(item, type, index) {
         .post(route("orders.update-quantity"), {
             item_id: item.id,
             quantity: item.quantity_to_release,
-            days: type === 'days' ? Math.max(1, Number(days)) : (days || 1),
+            days: type === "days" ? Math.max(1, Number(days)) : days || 1,
             type,
         })
         .then(() => {
             isUpading.value[index] = false;
-            router.get(route("orders.show", props.order.id), {}, {
-                preserveScroll: true,
-            });
+            router.get(
+                route("orders.show", props.order.id),
+                {},
+                {
+                    preserveScroll: true,
+                },
+            );
         })
         .catch((error) => {
             isUpading.value[index] = false;
@@ -1635,88 +3750,92 @@ async function updateQuantity(item, type, index) {
         });
 }
 
-const isSaving = ref(false);
 const dispatchErrors = ref({});
 
 const createDispatch = async () => {
-        isSaving.value = true;
-        dispatchErrors.value = {};
-        
-        console.log('Dispatch form data:', dispatchForm.value); // Debug form data
+    isSaving.value = true;
+    dispatchErrors.value = {};
 
-        // Validate form data before submission
-        if (!dispatchForm.value.driver) {
-            console.error('Driver not selected');
-            dispatchErrors.value.driver_id = ['Please select a driver'];
+    console.log("Dispatch form data:", dispatchForm.value); // Debug form data
+
+    // Validate form data before submission
+    if (!dispatchForm.value.driver) {
+        console.error("Driver not selected");
+        dispatchErrors.value.driver_id = ["Please select a driver"];
+        isSaving.value = false;
+        return;
+    }
+
+    const formData = {
+        order_id: props.order.id,
+        driver_id: dispatchForm.value.driver?.id,
+        logistic_company_id: dispatchForm.value.logistic_company_id,
+        dispatch_date: dispatchForm.value.dispatch_date,
+        driver_number: dispatchForm.value.driver_number,
+        plate_number: dispatchForm.value.plate_number,
+        no_of_cartoons: dispatchForm.value.no_of_cartoons,
+        status: "dispatched",
+    };
+
+    await axios
+        .post(route("orders.dispatch-info"), formData)
+        .then((response) => {
+            console.log(response.data);
             isSaving.value = false;
-            return;
-        }
+            showDispatchForm.value = false;
+            dispatchForm.value = {
+                driver: null,
+                dispatch_date: "",
+                no_of_cartoons: "",
+                driver_number: "",
+                plate_number: "",
+                logistic_company_id: "",
+            };
 
-        const formData = {
-            order_id: props.order.id,
-            driver_id: dispatchForm.value.driver?.id,
-            logistic_company_id: dispatchForm.value.logistic_company_id,
-            dispatch_date: dispatchForm.value.dispatch_date,
-            driver_number: dispatchForm.value.driver_number,
-            plate_number: dispatchForm.value.plate_number,
-            no_of_cartoons: dispatchForm.value.no_of_cartoons,
-            status: 'dispatched'
-        };
-
-         await axios.post(route('orders.dispatch-info'), formData)
-            .then((response) => {
-                console.log(response.data);
-                isSaving.value = false;
-                showDispatchForm.value = false;
-                dispatchForm.value = {
-                    driver: null,
-                    dispatch_date: '',
-                    no_of_cartoons: '',
-                    driver_number: '',
-                    plate_number: '',
-                    logistic_company_id: ''
-                };
-        
-                Swal.fire({
-                    title: 'Success!',
-                    text: response.data,
-                    icon: 'success',
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#3085d6',
-                }).then(() => {
-                    router.get(route("orders.show", props.order.id));
-                });
-            })
-            .catch((error) => {
-                isSaving.value = false;
-                console.log(error);
-                if (error.response?.status === 422) {
-                    console.log('Validation errors:', error.response.data.errors); // Debug validation errors
-                    dispatchErrors.value = error.response.data.errors;
-                    toast.error('Please check the form for errors');
-                } else {
-                    console.error('Error details:', {
-                        status: error.response?.status,
-                        data: error.response?.data,
-                        message: error.message
-                    }); // Debug detailed error info
-                    
-                    toast.error(error.response?.data || error.response?.data?.message || 'Something went wrong');
-                }
+            Swal.fire({
+                title: "Success!",
+                text: response.data,
+                icon: "success",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#3085d6",
+            }).then(() => {
+                router.get(route("orders.show", props.order.id));
             });
+        })
+        .catch((error) => {
+            isSaving.value = false;
+            console.log(error);
+            if (error.response?.status === 422) {
+                console.log("Validation errors:", error.response.data.errors); // Debug validation errors
+                dispatchErrors.value = error.response.data.errors;
+                toast.error("Please check the form for errors");
+            } else {
+                console.error("Error details:", {
+                    status: error.response?.status,
+                    data: error.response?.data,
+                    message: error.message,
+                }); // Debug detailed error info
+
+                toast.error(
+                    error.response?.data ||
+                        error.response?.data?.message ||
+                        "Something went wrong",
+                );
+            }
+        });
 };
 
 const isType = ref([]);
 // Function to change order status
 const changeStatus = (orderId, newStatus, type) => {
     console.log(orderId, newStatus, type);
-    
+
     // Special handling for approve action - check if quantity_to_release is 0
-    if (newStatus === 'approved') {
+    if (newStatus === "approved") {
         const totalQuantityToRelease = form.value.reduce((total, item) => {
             return total + (parseFloat(item.quantity_to_release) || 0);
         }, 0);
-        
+
         if (totalQuantityToRelease === 0) {
             Swal.fire({
                 title: "No Quantity to Release",
@@ -1726,7 +3845,7 @@ const changeStatus = (orderId, newStatus, type) => {
                 confirmButtonColor: "#d33",
                 cancelButtonColor: "#3085d6",
                 confirmButtonText: "Proceed (Reject Order)",
-                cancelButtonText: "Cancel"
+                cancelButtonText: "Cancel",
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     // Set loading state
@@ -1735,7 +3854,7 @@ const changeStatus = (orderId, newStatus, type) => {
                     await axios
                         .post(route("orders.change-status"), {
                             order_id: orderId,
-                            status: 'rejected',
+                            status: "rejected",
                         })
                         .then((response) => {
                             // Reset loading state
@@ -1751,7 +3870,9 @@ const changeStatus = (orderId, newStatus, type) => {
                                 timer: 3000,
                             }).then(() => {
                                 // Reload the page to show the updated status
-                                router.get(route("orders.show", props.order.id));
+                                router.get(
+                                    route("orders.show", props.order.id),
+                                );
                             });
                         })
                         .catch((error) => {
@@ -1775,7 +3896,7 @@ const changeStatus = (orderId, newStatus, type) => {
             return; // Exit early to prevent normal approval flow
         }
     }
-    
+
     Swal.fire({
         title: "Are you sure?",
         text: `Do you want to change the order status to ${newStatus}?`,
@@ -1843,34 +3964,34 @@ const getStatusProgress = (currentStatus) => {
 const statusProgress = computed(() => getStatusProgress(props.order.status));
 
 const driverOptions = computed(() => {
-    const options = props.drivers.map(driver => ({
+    const options = props.drivers.map((driver) => ({
         id: driver.id,
         name: driver.name,
         phone: driver.phone,
         company: driver.company,
-        isAddNew: false
+        isAddNew: false,
     }));
-    
+
     // Add the "Add New" option at the end
     options.push({
-        id: 'new',
-        name: 'Add New Driver',
-        isAddNew: true
+        id: "new",
+        name: "Add New Driver",
+        isAddNew: true,
     });
-    
+
     return options;
 });
 
 const companyOptionsWithAdd = computed(() => {
     const options = [...props.companyOptions];
-    
+
     // Add the "Add New" option at the end
     options.push({
-        id: 'new',
-        name: 'Add New Company',
-        isAddNew: true
+        id: "new",
+        name: "Add New Company",
+        isAddNew: true,
     });
-    
+
     return options;
 });
 
@@ -1878,8 +3999,8 @@ const handleDriverSelect = (selected) => {
     if (selected && selected.isAddNew) {
         // Reset the selection
         dispatchForm.value.driver = null;
-        dispatchForm.value.driver_number = '';
-        dispatchForm.value.logistic_company_id = '';
+        dispatchForm.value.driver_number = "";
+        dispatchForm.value.logistic_company_id = "";
         // Open the driver modal
         openDriverModal();
     } else if (selected) {
@@ -1890,19 +4011,19 @@ const handleDriverSelect = (selected) => {
     } else {
         // Clear the driver info if deselected
         dispatchForm.value.driver = null;
-        dispatchForm.value.driver_number = '';
-        dispatchForm.value.logistic_company_id = '';
+        dispatchForm.value.driver_number = "";
+        dispatchForm.value.logistic_company_id = "";
     }
 };
 
 const openDriverModal = () => {
     driverForm.value = {
-        driver_id: '',
-        name: '',
-        phone: '',
-        logistic_company_id: '',
+        driver_id: "",
+        name: "",
+        phone: "",
+        logistic_company_id: "",
         company: null,
-        is_active: true
+        is_active: true,
     };
     showDriverModal.value = true;
 };
@@ -1910,12 +4031,12 @@ const openDriverModal = () => {
 const closeDriverModal = () => {
     showDriverModal.value = false;
     driverForm.value = {
-        driver_id: '',
-        name: '',
-        phone: '',
-        logistic_company_id: '',
+        driver_id: "",
+        name: "",
+        phone: "",
+        logistic_company_id: "",
         company: null,
-        is_active: true
+        is_active: true,
     };
     driverErrors.value = {};
 };
@@ -1924,53 +4045,58 @@ const submitDriver = async () => {
     try {
         isSubmittingDriver.value = true;
         driverErrors.value = {};
-        
+
         // Prepare the data to send, ensuring logistic_company_id is set
         const dataToSend = {
             ...driverForm.value,
-            logistic_company_id: driverForm.value.company?.id || driverForm.value.logistic_company_id
+            logistic_company_id:
+                driverForm.value.company?.id ||
+                driverForm.value.logistic_company_id,
         };
-        
+
         // Remove the company object from the data to send
         delete dataToSend.company;
-        
-        const response = await axios.post(route('settings.drivers.store'), dataToSend);
-        
+
+        const response = await axios.post(
+            route("settings.drivers.store"),
+            dataToSend,
+        );
+
         // Create a new driver option
         const newDriver = {
             id: response.data.id,
             name: driverForm.value.name,
             phone: driverForm.value.phone,
             company: driverForm.value.company,
-            isAddNew: false
+            isAddNew: false,
         };
-        
+
         // Add the new driver to the options
         props.drivers.push(newDriver);
-        
+
         // Select the new driver
         dispatchForm.value.driver = newDriver;
         dispatchForm.value.driver_number = newDriver.phone;
         dispatchForm.value.logistic_company_id = newDriver.company?.id;
-        
+
         closeDriverModal();
         Swal.fire({
-            title: 'Success!',
+            title: "Success!",
             text: response.data.message,
-            icon: 'success',
-            confirmButtonText: 'OK',
-            confirmButtonColor: '#3085d6',
+            icon: "success",
+            confirmButtonText: "OK",
+            confirmButtonColor: "#3085d6",
         });
     } catch (error) {
         if (error.response?.status === 422) {
             driverErrors.value = error.response.data.errors;
         } else {
             Swal.fire({
-                title: 'Error!',
-                text: error.response?.data || 'Something went wrong',
-                icon: 'error',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#3085d6',
+                title: "Error!",
+                text: error.response?.data || "Something went wrong",
+                icon: "error",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#3085d6",
             });
         }
     } finally {
@@ -1982,7 +4108,7 @@ const handleCompanySelect = (selected) => {
     if (selected && selected.isAddNew) {
         // Reset the selection
         driverForm.value.company = null;
-        driverForm.value.logistic_company_id = '';
+        driverForm.value.logistic_company_id = "";
         // Open the company modal
         openCompanyModal();
     } else if (selected) {
@@ -1992,19 +4118,19 @@ const handleCompanySelect = (selected) => {
     } else {
         // Clear the company info if deselected
         driverForm.value.company = null;
-        driverForm.value.logistic_company_id = '';
+        driverForm.value.logistic_company_id = "";
     }
 };
 
 const openCompanyModal = () => {
     // Reset the company form
     companyForm.value = {
-        name: '',
-        email: '',
-        incharge_person: '',
-        incharge_phone: '',
-        address: '',
-        is_active: true
+        name: "",
+        email: "",
+        incharge_person: "",
+        incharge_phone: "",
+        address: "",
+        is_active: true,
     };
     showCompanyModal.value = true;
 };
@@ -2012,12 +4138,12 @@ const openCompanyModal = () => {
 const closeCompanyModal = () => {
     showCompanyModal.value = false;
     companyForm.value = {
-        name: '',
-        email: '',
-        incharge_person: '',
-        incharge_phone: '',
-        address: '',
-        is_active: true
+        name: "",
+        email: "",
+        incharge_person: "",
+        incharge_phone: "",
+        address: "",
+        is_active: true,
     };
     companyErrors.value = {};
 };
@@ -2026,41 +4152,44 @@ const submitCompany = async () => {
     try {
         isSubmittingCompany.value = true;
         companyErrors.value = {};
-        
-        const response = await axios.post(route('settings.logistics.companies.store'), companyForm.value);
-        
+
+        const response = await axios.post(
+            route("settings.logistics.companies.store"),
+            companyForm.value,
+        );
+
         // Create a new company option
         const newCompany = {
             id: response.data.id,
             name: companyForm.value.name,
-            isAddNew: false
+            isAddNew: false,
         };
-        
+
         // Add the new company to the options
         props.companyOptions.push(newCompany);
-        
+
         // Select the new company
         driverForm.value.company = newCompany;
         driverForm.value.logistic_company_id = newCompany.id;
-        
+
         closeCompanyModal();
         Swal.fire({
-            title: 'Success!',
+            title: "Success!",
             text: response.data.message,
-            icon: 'success',
-            confirmButtonText: 'OK',
-            confirmButtonColor: '#3085d6',
+            icon: "success",
+            confirmButtonText: "OK",
+            confirmButtonColor: "#3085d6",
         });
     } catch (error) {
         if (error.response?.status === 422) {
             companyErrors.value = error.response.data.errors;
         } else {
             Swal.fire({
-                title: 'Error!',
-                text: error.response?.data || 'Something went wrong',
-                icon: 'error',
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#3085d6',
+                title: "Error!",
+                text: error.response?.data || "Something went wrong",
+                icon: "error",
+                confirmButtonText: "OK",
+                confirmButtonColor: "#3085d6",
             });
         }
     } finally {
@@ -2070,12 +4199,12 @@ const submitCompany = async () => {
 
 const printDispatchNote = (dispatch) => {
     // Implement print functionality
-    console.log('Printing dispatch note:', dispatch);
+    console.log("Printing dispatch note:", dispatch);
 };
 
 const trackDispatch = (dispatch) => {
     // Implement tracking functionality
-    console.log('Tracking dispatch:', dispatch);
+    console.log("Tracking dispatch:", dispatch);
 };
 
 // Dispatch images modal methods
@@ -2090,7 +4219,7 @@ const viewDispatchImages = (dispatch) => {
 
     if (Array.isArray(img)) {
         dispatchImages.value = img.filter(Boolean);
-    } else if (typeof img === 'string') {
+    } else if (typeof img === "string") {
         let parsed = null;
         try {
             parsed = JSON.parse(img);
@@ -2114,17 +4243,17 @@ const closeDispatchImagesModal = () => {
 };
 
 const getImageUrl = (imagePath) => {
-    if (!imagePath) return '';
+    if (!imagePath) return "";
     // If already an absolute URL, return as-is
     if (/^https?:\/\//i.test(imagePath)) return imagePath;
     // Normalize common storage prefixes and leading slashes
-    const normalized = imagePath.replace(/^\/?public\//, '/');
-    return normalized.startsWith('/') ? normalized : '/' + normalized;
+    const normalized = imagePath.replace(/^\/?public\//, "/");
+    return normalized.startsWith("/") ? normalized : "/" + normalized;
 };
 
 const handleImageError = (event) => {
-    console.error('Failed to load image:', event.target.src);
-    event.target.style.display = 'none';
+    console.error("Failed to load image:", event.target.src);
+    event.target.style.display = "none";
 };
 
 const openImageLightbox = (index) => {

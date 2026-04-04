@@ -16,6 +16,7 @@ class MonthlyQuantityReceived extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'warehouse_id',
         'month_year',
         'generated_by',
         'total_quantity',

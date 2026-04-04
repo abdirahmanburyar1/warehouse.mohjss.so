@@ -210,8 +210,18 @@ class InventoryController extends Controller
 			// Filters data
 			$categories = Category::orderBy('name')->pluck('name')->toArray();
 			$dosages = Dosage::orderBy('name')->pluck('name')->toArray();
-			$locations = Location::orderBy('location')->pluck('location')->toArray();
-			$sub_warehouses = Location::whereNotNull('sub_warehouse')->where('sub_warehouse', '!=', '')->distinct()->pluck('sub_warehouse')->toArray();
+			$warehouseName = $user->warehouse_id ? $user->warehouse->name : null;
+			$locations = Location::when($warehouseName, fn($q) => $q->where('warehouse', $warehouseName))
+				->orderBy('location')
+				->pluck('location')
+				->toArray();
+			
+			$sub_warehouses = Location::when($warehouseName, fn($q) => $q->where('warehouse', $warehouseName))
+				->whereNotNull('sub_warehouse')
+				->where('sub_warehouse', '!=', '')
+				->distinct()
+				->pluck('sub_warehouse')
+				->toArray();
 	
 			// Calculate status counts independently of pagination
 			$statusCounts = $this->calculateInventoryStatusCounts($request);
@@ -496,19 +506,33 @@ class InventoryController extends Controller
 			}
 
 			$locations = Location::where('warehouse', $warehouse)
-				->select('id', 'location', 'warehouse')
-				->get()
-				->map(function($location) {
-					return [
-						'id' => $location->id,
-						'location' => $location->location,
-						'warehouse' => $location->warehouse
-					];
-				});
+				->select('id', 'location', 'warehouse', 'sub_warehouse')
+				->get();
 
 			return response()->json($locations, 200);
 		} catch (\Throwable $th) {
 			return response()->json($th->getMessage(), 500);
+		}
+	}
+
+	public function getSubWarehouseLocations(Request $request)
+	{
+		$request->validate([
+			'sub_warehouse' => 'required|string'
+		]);
+
+		try {
+			$user = auth()->user();
+			$warehouseName = $user->warehouse_id ? $user->warehouse->name : null;
+
+			$locations = Location::where('sub_warehouse', $request->sub_warehouse)
+				->when($warehouseName, fn($q) => $q->where('warehouse', $warehouseName))
+				->pluck('location')
+				->toArray();
+
+			return response()->json($locations);
+		} catch (\Exception $e) {
+			return response()->json(['error' => $e->getMessage()], 500);
 		}
 	}
 

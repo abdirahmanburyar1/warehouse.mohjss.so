@@ -336,7 +336,7 @@
                     <div class="flex flex-wrap items-center justify-center gap-4 px-1 py-2">
                         <!-- Review button - shows when actionable or completed -->
                         <div class="relative" v-if="props.asset.status === 'pending_approval' || assetStatusOrder.indexOf(props.asset.status) >= assetStatusOrder.indexOf('reviewed')">
-                            <div class="flex flex-col">
+                            <div class="flex flex-col items-center">
                                 <button @click="changeAssetStatus('reviewed')" 
                                     :disabled="isReviewing || assetStatusOrder.indexOf(props.asset.status) >= assetStatusOrder.indexOf('reviewed') || !(page.props.auth.can.asset_review || page.props.auth.isAdmin)"
                                     :class="[
@@ -359,10 +359,10 @@
                                                 : "Review"
                                     }}</span>
                                 </button>
-                                <span v-show="props.asset?.reviewed_at" class="text-sm text-gray-600">
+                                <span v-show="props.asset?.reviewed_at" class="text-sm text-gray-600 mt-2">
                                     {{ formatDateTime(props.asset?.reviewed_at) }}
                                 </span>
-                                <span v-show="props.asset?.reviewed_by" class="text-sm text-gray-600">
+                                <span v-show="props.asset?.reviewed_by" class="text-sm text-gray-600 mt-0.5">
                                     By {{ props.asset?.reviewed_by?.name }}
                                 </span>
                                 <span v-show="!(page.props.auth.can.asset_review || page.props.auth.isAdmin)" class="text-xs text-gray-500 italic">
@@ -375,7 +375,7 @@
 
                         <!-- Approve button - shows when actionable or completed -->
                         <div class="relative" v-if="props.asset.status === 'reviewed' || assetStatusOrder.indexOf(props.asset.status) >= assetStatusOrder.indexOf('approved')">
-                            <div class="flex flex-col">
+                            <div class="flex flex-col items-center">
                                 <button @click="changeAssetStatus('approved')" 
                                     :disabled="isApproving || assetStatusOrder.indexOf(props.asset.status) >= assetStatusOrder.indexOf('approved') || !(page.props.auth.can.asset_approve || page.props.auth.isAdmin)"
                                     :class="[
@@ -396,10 +396,10 @@
                                             : isApproving ? "Please Wait..." : "Approve"
                                     }}</span>
                                 </button>
-                                <span v-show="props.asset?.approved_at" class="text-sm text-gray-600">
+                                <span v-show="props.asset?.approved_at" class="text-sm text-gray-600 mt-2">
                                     {{ formatDateTime(props.asset?.approved_at) }}
                                 </span>
-                                <span v-show="props.asset?.approved_by" class="text-sm text-gray-600">
+                                <span v-show="props.asset?.approved_by" class="text-sm text-gray-600 mt-0.5">
                                     By {{ props.asset?.approved_by?.name }}
                                 </span>
                                 <span v-show="!(page.props.auth.can.asset_approve || page.props.auth.isAdmin)" class="text-xs text-gray-500 italic">
@@ -412,7 +412,7 @@
 
                         <!-- Reject button - only shows when actionable -->
                         <div class="relative" v-if="(props.asset.status === 'pending_approval' || props.asset.status === 'reviewed') && props.asset.status !== 'rejected'">
-                            <div class="flex flex-col">
+                            <div class="flex flex-col items-center">
                                 <button @click="changeAssetStatus('rejected')" 
                                     :disabled="isRejecting || !(page.props.auth.can.asset_approve || page.props.auth.isAdmin)"
                                     :class="[
@@ -435,16 +435,16 @@
 
                         <!-- Rejected status display - shows when rejected -->
                         <div class="relative" v-if="props.asset.status === 'rejected'">
-                            <div class="flex flex-col">
+                            <div class="flex flex-col items-center">
                                 <button disabled
                                     class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px] bg-red-500">
                                     <img src="/assets/images/rejected.png" class="w-5 h-5 mr-2" alt="Rejected" />
                                     <span class="text-sm font-bold text-white">Rejected</span>
                                 </button>
-                                <span v-show="props.asset?.rejected_at" class="text-sm text-gray-600">
+                                <span v-show="props.asset?.rejected_at" class="text-sm text-gray-600 mt-2">
                                     {{ formatDateTime(props.asset?.rejected_at) }}
                                 </span>
-                                <span v-show="props.asset?.rejected_by" class="text-sm text-gray-600">
+                                <span v-show="props.asset?.rejected_by" class="text-sm text-gray-600 mt-0.5">
                                     By {{ props.asset?.rejected_by?.name }}
                                 </span>
                             </div>
@@ -452,7 +452,7 @@
 
                         <!-- Restore button - shows when rejected -->
                         <div class="relative" v-if="props.asset.status === 'rejected'">
-                            <div class="flex flex-col">
+                            <div class="flex flex-col items-center">
                                 <button @click="changeAssetStatus('pending_approval')" 
                                     :disabled="isRestoring || !(page.props.auth.can.asset_approve || page.props.auth.isAdmin)"
                                     :class="[

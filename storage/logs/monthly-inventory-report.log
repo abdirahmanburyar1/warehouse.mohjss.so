@@ -16,3 +16,1012 @@ Generated 6 items
 Email notification skipped for testing
 Monthly inventory report generated successfully for 2026-02
 An email notification has been sent to abdirahman.buryar@gmail.com
+Generating inventory report for 2026-03 for all warehouses
+
+
+[2026-03-28 23:55:05] Starting report generation for 2026-03
+Previous month: 2026-02
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[42S02]: Base table or view not found: 1146 Table 'mohjss_db.monthly_inventory_reports' doesn't exist (Connection: mysql, SQL: select * from `monthly_inventory_reports` where `month_year` = 2026-02 limit 1)
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:825
+    821▕                     $this->getName(), $query, $this->prepareBindings($bindings), $e
+    822▕                 );
+    823▕             }
+    824▕ 
+  ➜ 825▕             throw new QueryException(
+    826▕                 $this->getName(), $query, $this->prepareBindings($bindings), $e
+    827▕             );
+    828▕         }
+    829▕     }
+
+      [2m+12 vendor frames [22m
+
+  13  app/Console/Commands/GenerateMonthlyInventoryReport.php:125
+      Illuminate\Database\Eloquent\Builder::first()
+
+  14  app/Console/Commands/GenerateMonthlyInventoryReport.php:53
+      App\Console\Commands\GenerateMonthlyInventoryReport::calculateInventoryData("2026-03", "2026-02", "2026-03-01", "2026-03-31")
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+
+
+   ERROR  Command "inventory:generate-monthly-report" is not defined. Did you mean one of these?  
+
+  ⇂ facility:generate-monthly-report  
+  ⇂ inventory:check-low-stock  
+  ⇂ inventory:cleanup-empty  
+  ⇂ inventory:generate-report  
+  ⇂ inventory:notify-expiry-items  
+  ⇂ inventory:notify-low-stock  
+

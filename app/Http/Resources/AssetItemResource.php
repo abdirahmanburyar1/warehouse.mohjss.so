@@ -38,6 +38,10 @@ class AssetItemResource extends JsonResource
                 'district_id' => $this->asset->district_id ?? null,
                 'facility_id' => $this->asset->facility_id ?? null,
                 'sub_location_id' => $this->asset->sub_location_id ?? null,
+                'submitted_at' => $this->asset->submitted_at ?? null,
+                'reviewed_at' => $this->asset->reviewed_at ?? null,
+                'approved_at' => $this->asset->approved_at ?? null,
+                'rejected_at' => $this->asset->rejected_at ?? null,
             ],
             
             // Related model data
@@ -84,8 +88,8 @@ class AssetItemResource extends JsonResource
             ],
             
             'fund_source' => [
-                'id' => $this->asset->fundSource->id ?? null,
-                'name' => $this->asset->fundSource->name ?? null,
+                'id' => $this->fund_source_id ?? $this->asset->fund_source_id ?? null,
+                'name' => ($this->fundSource?->name) ?? ($this->asset->fundSource->name) ?? null,
             ],
             
             // Depreciation data (with calculated fields for each row)
@@ -102,9 +106,9 @@ class AssetItemResource extends JsonResource
             'district_id' => $this->asset->district_id ?? null,
             'facility_id' => $this->asset->facility_id ?? null,
             'sub_location_id' => $this->asset->sub_location_id ?? null,
-            'fund_source_id' => $this->asset->fund_source_id ?? null,
+            'fund_source_id' => $this->fund_source_id ?? $this->asset->fund_source_id ?? null,
             'region_id' => $this->asset->region_id ?? null,
-            'acquisition_date' => $this->asset->acquisition_date ?? null,
+            'acquisition_date' => $this->acquisition_date ?? $this->asset->acquisition_date ?? null,
             'cost' => $this->original_value,
             'total_cost' => $this->original_value,
             'original_value' => $this->original_value,
@@ -115,7 +119,7 @@ class AssetItemResource extends JsonResource
             'location_name' => $this->asset->facility->name ?? null,
             'sub_location_name' => $this->asset->subLocation->name ?? null,
             'region_name' => $this->asset->region->name ?? null,
-            'fund_source_name' => $this->asset->fundSource->name ?? null,
+            'fund_source_name' => $this->fundSource?->name ?? $this->asset->fundSource->name ?? null,
             'category_name' => $this->category->name ?? null,
             'type_name' => $this->type->name ?? null,
             'assignee_name' => $this->assignee->name ?? null,

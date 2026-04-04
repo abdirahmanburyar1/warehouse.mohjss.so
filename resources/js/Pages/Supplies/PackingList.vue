@@ -360,7 +360,7 @@
                                 </div>
                                 <div>
                                     <label class="text-[10px] text-block">Barcode</label>
-                                    <input type="text" v-model="item.barcode" required
+                                    <input type="text" v-model="item.barcode"
                                         :disabled="item.status === 'approved'"
                                         class="block w-full text-xs text-black focus:ring-0 p-1 border-0 bg-transparent border-b border-gray-300" />
                                 </div>
@@ -769,7 +769,6 @@ const validateForm = () => {
             { field: "location", message: "Location selection is required" },
             { field: "batch_number", message: "Batch number is required" },
             { field: "expire_date", message: "Expiry date is required" },
-            { field: "barcode", message: "Barcode is required" },
             { field: "uom", message: "UOM is required" },
         ];
 
@@ -1179,7 +1178,6 @@ const hasRequiredFields = (item) => {
         item.batch_number &&
         item.expire_date &&
         item.uom &&
-        item.barcode &&
         allocatedTotal(item) === item.received_quantity
     );
 };

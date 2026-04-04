@@ -7,6 +7,8 @@ use Inertia\Inertia;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Session\TokenMismatchException;
+use Illuminate\Auth\Access\AuthorizationException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -50,29 +52,35 @@ return Application::configure(basePath: dirname(__DIR__))
             return redirect()->guest(route('login'))->with('error', __('Session expired. Please log in again.'));
         });
 
-        $exceptions->renderable(function (\Illuminate\Http\Exceptions\HttpExceptionInterface $e, $request) {
-            if ($e->getStatusCode() === 403 && $request->is('login')) {
-                return Inertia::render('Auth/Login', [
-                    'error' => $e->getMessage(),
-                    'canResetPassword' => Route::has('password.request'),
-                    'status' => session('status'),
-                ])->toResponse($request)->setStatusCode(403);
+        // Handle authorization exceptions (403 Forbidden / Invalid Session)
+        $exceptions->renderable(function (AuthorizationException $e, $request) {
+            if ($request->header('X-Inertia')) {
+                return response('', 409)
+                    ->header('X-Inertia-Location', route('login'));
             }
-        });
-
-        // Handle authorization exceptions (403 Forbidden)
-        $exceptions->renderable(function (\Illuminate\Auth\Access\AuthorizationException $e, $request) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'error' => 'Access Denied',
-                    'message' => $e->getMessage(),
-                    'required_permission' => $e->getMessage(),
+                    'message' => 'Unauthorized or session invalid.',
                 ], 403);
             }
+            return redirect()->guest(route('login'))->with('error', 'Unauthorized or session invalid. Please log in again.');
+        });
 
-            // For web requests, render the permission denied page directly
-            return Inertia::render('Errors/PermissionDenied', [
-                'permission' => $e->getMessage()
-            ])->toResponse($request)->setStatusCode(403);
+        $exceptions->renderable(function (HttpExceptionInterface $e, $request) {
+            if ($e->getStatusCode() === 403) {
+                if ($request->header('X-Inertia')) {
+                    return response('', 409)
+                        ->header('X-Inertia-Location', route('login'));
+                }
+                if ($request->is('login')) {
+                    return Inertia::render('Auth/Login', [
+                        'error' => $e->getMessage(),
+                        'canResetPassword' => Route::has('password.request'),
+                        'status' => session('status'),
+                    ])->toResponse($request)->setStatusCode(403);
+                }
+                return redirect()->guest(route('login'))->with('error', 'Access denied or session invalid.');
+            }
         });
     })->create();

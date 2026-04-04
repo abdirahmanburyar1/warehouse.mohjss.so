@@ -260,6 +260,8 @@ class GenerateQuarterlyOrders extends Command
                 
                 $orderId = DB::table('orders')->insertGetId([
                     'facility_id' => $facility->id,
+                    'warehouse_id' => $facility->handled_by, // Receiver context (Facility)
+                    'sender_warehouse_id' => $facility->handled_by, // Source Warehouse
                     'user_id' => 1, // System generated order
                     'order_number' => $orderNumber,
                     'order_type' => 'Quarterly Q-'.$targetQuarter,
@@ -463,6 +465,7 @@ class GenerateQuarterlyOrders extends Command
                 if ($neededQuantity > 0) {
                     $inventories = DB::table('inventory_items')
                         ->where('product_id', $item->product_id)
+                        ->where('warehouse_id', $facility->handled_by) // Filter by facility's warehouse
                         ->where('quantity', '>', 0)
                         ->where('expiry_date', '>=', now()->toDateString())
                         ->select('id', 'inventory_id', 'product_id', 'warehouse_id', 'location', 'batch_number', 'expiry_date', 'quantity', 'unit_cost', 'uom', 'source')

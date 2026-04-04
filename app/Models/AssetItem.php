@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\AssetHistory;
-use Illuminate\Support\Facades\Log;
 
 class AssetItem extends Model
 {
@@ -24,10 +23,13 @@ class AssetItem extends Model
         'assignee_id',
         'status',
         'original_value',
+        'fund_source_id',
+        'acquisition_date',
     ];
 
     protected $casts = [
         'original_value' => 'decimal:2',
+        'acquisition_date' => 'date',
     ];
 
     // Relationships
@@ -64,6 +66,11 @@ class AssetItem extends Model
     public function depreciation(): HasMany
     {
         return $this->hasMany(AssetDepreciation::class);
+    }
+
+    public function fundSource(): BelongsTo
+    {
+        return $this->belongsTo(FundSource::class, 'fund_source_id');
     }
 
     // Constants
@@ -199,7 +206,6 @@ class AssetItem extends Model
                 ->where('id', '!=', $mainRecord->id)
                 ->delete();
             
-            Log::info("Cleaned up duplicate depreciation records for asset item {$this->id}, kept record {$mainRecord->id}");
             
             return $mainRecord;
         }

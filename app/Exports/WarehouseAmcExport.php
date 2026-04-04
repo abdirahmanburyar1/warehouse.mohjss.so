@@ -230,7 +230,7 @@ class WarehouseAmcExport implements FromArray, WithHeadings, WithStyles, WithCol
         $year = $parts[0];
         $month = $parts[1];
         
-        $date = \DateTime::createFromFormat('Y-m', $monthYear);
+        $date = \DateTime::createFromFormat('Y-m-d', $monthYear . '-01');
         if (!$date) return $monthYear;
         
         return $date->format('M Y'); // e.g., "Feb 2025"

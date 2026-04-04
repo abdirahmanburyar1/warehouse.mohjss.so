@@ -22,6 +22,7 @@ use App\Models\BackOrder;
 use App\Models\InventoryItem;
 use App\Models\InventoryAllocation;
 use App\Models\PackingListDifference;
+use App\Models\PackingListItem;
 use App\Models\Liquidate;
 use App\Models\ReceivedQuantity;
 use Carbon\Carbon;
@@ -53,115 +54,127 @@ class TransferController extends Controller
                 'status' => 'required|in:reviewed,approved,rejected,in_process,dispatched,delivered,received'
             ]);
 
-            $transfer = Transfer::find($request->transfer_id);
+            $transfer = Transfer::with(['fromWarehouse', 'toWarehouse', 'fromFacility', 'toFacility'])->find($request->transfer_id);
             if(!$transfer){
                 return response()->json("Not Found or you are not authorized to take this action", 500);
             }
             
-            // Determine user's role in the transfer
+            // Determine user's role and authority in the transfer
             $currentUser = auth()->user();
             $currentWarehouse = $currentUser->warehouse;
-            $currentFacility = $currentUser->facility_id;
+            $currentFacilityId = $currentUser->facility_id;
             
+            // User context flags
+            $isCentral = ($currentWarehouse?->type === 'central' || $currentUser->isAdmin());
+            $isRegional = ($currentWarehouse?->type === 'regional');
+            $myRegion = ($currentWarehouse?->region);
+
             // User is sender if their warehouse/facility is the source
-            $isSender = ($transfer->from_warehouse_id === $currentWarehouse?->id) || 
-                       ($transfer->from_facility_id === $currentFacility);
+            $isSender = ($transfer->from_warehouse_id === $currentWarehouse?->id && $currentWarehouse !== null) || 
+                       ($transfer->from_facility_id === $currentFacilityId && $currentFacilityId !== null);
             
             // User is receiver if their warehouse/facility is the destination
-            $isReceiver = ($transfer->to_warehouse_id === $currentWarehouse?->id) || 
-                         ($transfer->to_facility_id === $currentFacility);
+            $isReceiver = ($transfer->to_warehouse_id === $currentWarehouse?->id && $currentWarehouse !== null) || 
+                         ($transfer->to_facility_id === $currentFacilityId && $currentFacilityId !== null);
+
+            // Authority Flags based on Policy
+            $canReviewApprove = false;
+            if ($isCentral) {
+                $canReviewApprove = true;
+            } elseif ($isRegional) {
+                $sourceWarehouse = $transfer->fromWarehouse;
+                
+                // Regional can review/approve if source is Me
+                if ($transfer->from_warehouse_id === $currentWarehouse->id) {
+                    $canReviewApprove = true;
+                } 
+                // Regional can review/approve if source is a facility in my region
+                elseif ($transfer->from_facility_id && $transfer->fromFacility?->region === $myRegion) {
+                    $canReviewApprove = true;
+                }
+                
+                // RESTRICTION: Regional cannot review/approve if source is Central or another Regional warehouse
+                if ($sourceWarehouse && $sourceWarehouse->id !== $currentWarehouse->id) {
+                    $canReviewApprove = false;
+                }
+            }
+
+            // Processing authority (Process/Dispatch)
+            $canProcessDispatch = $isSender; // Rule: central has not process, dispatch if he is not the sender
+
+            // Delivery authority (Deliver/Receive)
+            $canDeliverReceive = $isReceiver;
             
             // Store the old status before making any changes
             $oldStatus = $transfer->status;
             $newStatus = $request->status;
 
-            // pending -> reviewed (SENDER ACTION)
-            if($oldStatus == 'pending' && $newStatus == 'reviewed' && $isSender && auth()->user()->can('transfer.review')){                
+            // pending -> reviewed (REVIEWER ACTION)
+            if($oldStatus == 'pending' && $newStatus == 'reviewed' && $canReviewApprove && auth()->user()->can('transfer.review')){                
                 $transfer->update([
                     'status' => 'reviewed',
                     'reviewed_by' => auth()->id(),
                     'reviewed_at' => now()
                 ]);
-                
-                // Dispatch event for status change
-                //// event(new TransferStatusChanged($transfer, $oldStatus, $newStatus, auth()->id()));
             }
             
-            // pending -> rejected (branch) (SENDER ACTION)
-            if($oldStatus == 'pending' && $newStatus == 'rejected' && $isSender && auth()->user()->can('transfer.approve')){
+            // pending -> rejected (APPROVER ACTION)
+            if($oldStatus == 'pending' && $newStatus == 'rejected' && $canReviewApprove && auth()->user()->can('transfer.approve')){
                 $transfer->update([
                     'status' => 'rejected',
                     'rejected_by' => auth()->id(),
                     'rejected_at' => now()
                 ]);
-                
-                // Dispatch event for status change
-                //// event(new TransferStatusChanged($transfer, $oldStatus, $newStatus, auth()->id()));
             }
             
-            // reviewed -> approved (SENDER ACTION)
-            if($oldStatus == 'reviewed' && $newStatus == 'approved' && $isSender && auth()->user()->can('transfer.approve')){                
+            // reviewed -> approved (APPROVER ACTION)
+            if($oldStatus == 'reviewed' && $newStatus == 'approved' && $canReviewApprove && auth()->user()->can('transfer.approve')){                
                 $transfer->update([
                     'status' => 'approved',
                     'approved_by' => auth()->id(),
                     'approved_at' => now()
                 ]);
-                
-                // Dispatch event for status change
-                //// event(new TransferStatusChanged($transfer, $oldStatus, $newStatus, auth()->id()));
             }
             
-            // reviewed -> rejected (branch) (SENDER ACTION)
-            if($oldStatus == 'reviewed' && $newStatus == 'rejected' && $isSender && auth()->user()->can('transfer.approve')){
+            // reviewed -> rejected (APPROVER ACTION)
+            if($oldStatus == 'reviewed' && $newStatus == 'rejected' && $canReviewApprove && auth()->user()->can('transfer.approve')){
                 $transfer->update([
                     'status' => 'rejected',
                     'rejected_by' => auth()->id(),
                     'rejected_at' => now()
                 ]);
-                
-                // Dispatch event for status change
-                //// event(new TransferStatusChanged($transfer, $oldStatus, $newStatus, auth()->id()));
             }
             
             // approved -> in_process (SENDER ACTION)
-            if($oldStatus == 'approved' && $newStatus == 'in_process' && $isSender && auth()->user()->can('transfer.in_process')){
+            if($oldStatus == 'approved' && $newStatus == 'in_process' && $canProcessDispatch && auth()->user()->can('transfer.in_process')){
                 $transfer->update([
                     'status' => 'in_process',
                     'processed_by' => auth()->id(),
                     'processed_at' => now()
                 ]);
-                
-                // Dispatch event for status change
-                //// event(new TransferStatusChanged($transfer, $oldStatus, $newStatus, auth()->id()));
             }
 
             // in_process -> dispatched (SENDER ACTION)
-            if($oldStatus == 'in_process' && $newStatus == 'dispatched' && $isSender && auth()->user()->can('transfer.dispatch')){
+            if($oldStatus == 'in_process' && $newStatus == 'dispatched' && $canProcessDispatch && auth()->user()->can('transfer.dispatch')){
                 $transfer->update([
                     'status' => 'dispatched',
                     'dispatched_by' => auth()->id(),    
                     'dispatched_at' => now()
                 ]);
-                
-                // Dispatch event for status change
-                //// event(new TransferStatusChanged($transfer, $oldStatus, $newStatus, auth()->id()));
             }
             
             // dispatched -> delivered (RECEIVER ACTION)
-            if($oldStatus == 'dispatched' && $newStatus == 'delivered' && $isReceiver && auth()->user()->can('transfer.deliver')){
+            if($oldStatus == 'dispatched' && $newStatus == 'delivered' && $canDeliverReceive && auth()->user()->can('transfer.deliver')){
                 $transfer->update([
                     'status' => 'delivered',
                     'delivered_by' => auth()->id(),    
                     'delivered_at' => now()
                 ]);
-                
-                // Dispatch event for status change
-                //// event(new TransferStatusChanged($transfer, $oldStatus, $newStatus, auth()->id()));
             }
             
             // delivered -> received (RECEIVER ACTION): only the "to" warehouse/facility can receive; at least one allocation must have received_quantity > 0
             if($oldStatus == 'delivered' && $newStatus == 'received'){
-                if (!$isReceiver) {
+                if (!$canDeliverReceive) {
                     DB::rollBack();
                     return response()->json('You are not authorized to receive this transfer. Only the destination warehouse or facility can receive.', 403);
                 }
@@ -221,25 +234,33 @@ class TransferController extends Controller
                 $query->where('from_warehouse_id', '!=', $currentWarehouse?->id)
                       ->where('to_warehouse_id', '!=', $currentWarehouse?->id);
                 
-                // If regional user, restrict "Other" to their region
+                // If regional user, restrict Visibility based on Policy
                 if ($currentUser->warehouse_id && $currentUser->warehouse->type === 'regional' && $currentUser->warehouse->region) {
+                    $myWarehouseId = $currentUser->warehouse_id;
                     $region = $currentUser->warehouse->region;
-                    $query->where(function($q) use ($region) {
-                        $q->whereHas('fromWarehouse', fn($subQ) => $subQ->where('region', $region))
-                          ->orWhereHas('toWarehouse', fn($subQ) => $subQ->where('region', $region))
-                          ->orWhereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
-                          ->orWhereHas('toFacility', fn($subQ) => $subQ->where('region', $region));
+                    $query->where(function($q) use ($region, $myWarehouseId) {
+                        // Regional Authority: can see if source is a facility in their region
+                        $q->whereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
+                        // Or if destination is a facility in their region AND source is not another warehouse
+                          ->orWhere(function($sub) use ($region) {
+                              $sub->whereHas('toFacility', fn($subQ) => $subQ->where('region', $region))
+                                  ->whereNull('from_warehouse_id');
+                          });
                     });
                 }
             }
         } elseif ($currentUser->warehouse_id && $currentUser->warehouse->type === 'regional' && $currentUser->warehouse->region) {
-             // If no tab selected and regional user, scope to their region globally
+             // If no tab selected and regional user, scope globally based on Policy
+             $myWarehouseId = $currentUser->warehouse_id;
              $region = $currentUser->warehouse->region;
-             $query->where(function($q) use ($region) {
-                $q->whereHas('fromWarehouse', fn($subQ) => $subQ->where('region', $region))
-                  ->orWhereHas('toWarehouse', fn($subQ) => $subQ->where('region', $region))
+             $query->where(function($q) use ($region, $myWarehouseId) {
+                $q->where('from_warehouse_id', $myWarehouseId)
+                  ->orWhere('to_warehouse_id', $myWarehouseId)
                   ->orWhereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
-                  ->orWhereHas('toFacility', fn($subQ) => $subQ->where('region', $region));
+                  ->orWhere(function($sub) use ($region) {
+                      $sub->whereHas('toFacility', fn($subQ) => $subQ->where('region', $region))
+                          ->whereNull('from_warehouse_id');
+                  });
             });
         }
         
@@ -411,22 +432,28 @@ class TransferController extends Controller
                                ->where('to_warehouse_id', '!=', $currentWarehouse?->id);
                 
                 if ($currentUser->warehouse_id && $currentUser->warehouse->type === 'regional' && $currentUser->warehouse->region) {
+                    $myWarehouseId = $currentUser->warehouse_id;
                     $region = $currentUser->warehouse->region;
-                    $statisticsQuery->where(function($q) use ($region) {
-                        $q->whereHas('fromWarehouse', fn($subQ) => $subQ->where('region', $region))
-                          ->orWhereHas('toWarehouse', fn($subQ) => $subQ->where('region', $region))
-                          ->orWhereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
-                          ->orWhereHas('toFacility', fn($subQ) => $subQ->where('region', $region));
+                    $statisticsQuery->where(function($q) use ($region, $myWarehouseId) {
+                        $q->whereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
+                          ->orWhere(function($sub) use ($region) {
+                              $sub->whereHas('toFacility', fn($subQ) => $subQ->where('region', $region))
+                                  ->whereNull('from_warehouse_id');
+                          });
                     });
                 }
             }
         } elseif ($currentUser->warehouse_id && $currentUser->warehouse->type === 'regional' && $currentUser->warehouse->region) {
+             $myWarehouseId = $currentUser->warehouse_id;
              $region = $currentUser->warehouse->region;
-             $statisticsQuery->where(function($q) use ($region) {
-                $q->whereHas('fromWarehouse', fn($subQ) => $subQ->where('region', $region))
-                  ->orWhereHas('toWarehouse', fn($subQ) => $subQ->where('region', $region))
+             $statisticsQuery->where(function($q) use ($region, $myWarehouseId) {
+                $statisticsQuery->where('from_warehouse_id', $myWarehouseId)
+                  ->orWhere('to_warehouse_id', $myWarehouseId)
                   ->orWhereHas('fromFacility', fn($subQ) => $subQ->where('region', $region))
-                  ->orWhereHas('toFacility', fn($subQ) => $subQ->where('region', $region));
+                  ->orWhere(function($sub) use ($region) {
+                      $sub->whereHas('toFacility', fn($subQ) => $subQ->where('region', $region))
+                          ->whereNull('from_warehouse_id');
+                  });
             });
         }
         
@@ -735,6 +762,11 @@ class TransferController extends Controller
                     $rawReason = $detail['transfer_reason'] ?? '';
                     $transferReasonStr = is_string($rawReason) ? trim($rawReason) : (is_array($rawReason) && !empty($rawReason['name']) ? trim($rawReason['name']) : (string) $rawReason);
 
+                    $unitCost = $inventoryItem->unit_cost ?? (\App\Models\InventoryItem::where('product_id', $item['product_id'])
+                        ->whereNotNull('unit_cost')
+                        ->latest()
+                        ->value('unit_cost') ?? 0);
+
                     // Create inventory allocation record for detailed tracking
                     $transferItem->inventory_allocations()->create([
                         'product_id' => $item['product_id'],
@@ -746,8 +778,9 @@ class TransferController extends Controller
                         'uom' => $inventoryItem->uom,
                         'barcode' => $inventoryItem->barcode,
                         'allocation_type' => 'transfer',
-                        'unit_cost' => $inventoryItem->unit_cost ?? 0,
-                        'total_cost' => $quantityToTransfer * ($inventoryItem->unit_cost ?? 0),
+                        'unit_cost' => $unitCost,
+                        'total_cost' => $quantityToTransfer * $unitCost,
+                        'source' => $inventoryItem->source,
                         'transfer_reason' => $transferReasonStr,
                     ]);
 
@@ -1044,13 +1077,16 @@ class TransferController extends Controller
                                 $facilityInventoryItem->quantity += $restoreQty;
                                 $facilityInventoryItem->save();
                             } else {
+                                $unitCost = $allocation->unit_cost ?? (\App\Models\InventoryItem::where("product_id", $allocation->product_id)->whereNotNull("unit_cost")->latest()->value("unit_cost") ?? 0);
                                 FacilityInventoryItem::create([
                                     'facility_inventory_id' => $facilityInventory->id,
                                     'batch_number' => $allocation->batch_number,
                                     'uom'          => $allocation->uom,
                                     'barcode'      => $allocation->barcode,
                                     'expiry_date'  => $allocation->expiry_date,
-                                    'quantity'     => $restoreQty
+                                    'quantity'     => $restoreQty,
+                                    'unit_cost'    => $unitCost,
+                                    'total_cost'   => $unitCost * $restoreQty
                                 ]);
                             }
                         }
@@ -1109,6 +1145,12 @@ class TransferController extends Controller
                             $existingAllocation->allocated_quantity += $allocQty;
                             $existingAllocation->save();
                         } else {
+                            $unitCost = $inventory->unit_cost ?? (PackingListItem::where('product_id', $inventory->product_id)
+                                ->where('batch_number', $inventory->batch_number)
+                                ->whereNotNull('unit_cost')
+                                ->latest()
+                                ->value('unit_cost') ?? 0.00);
+
                             $transferItem->inventory_allocations()->create([
                                 'product_id'       => $inventory->product_id,
                                 'warehouse_id'     => $inventory->warehouse_id,
@@ -1119,8 +1161,9 @@ class TransferController extends Controller
                                 'expiry_date'      => $inventory->expiry_date,
                                 'allocated_quantity' => $allocQty,
                                 'allocation_type'  => $transfer->transfer_type,
-                                'unit_cost'        => $inventory->unit_cost,
-                                'total_cost'       => $inventory->unit_cost * $allocQty,
+                                'unit_cost'        => $unitCost,
+                                'total_cost'       => $unitCost * $allocQty,
+                                'source'           => $inventory->source,
                                 'notes'            => 'Allocated from warehouse inventory ID: ' . $inventory->id
                             ]);
                         }
@@ -1177,8 +1220,9 @@ class TransferController extends Controller
                                 'expiry_date'      => $facilityItem->expiry_date,
                                 'allocated_quantity' => $allocQty,
                                 'allocation_type'  => $transfer->transfer_type,
-                                'unit_cost'        => 0, // Facility items might not have unit cost
-                                'total_cost'       => 0,
+                                'unit_cost'        => $facilityItem->unit_cost ?? (PackingListItem::where('product_id', $facilityItem->product_id)->where('batch_number', $facilityItem->batch_number)->whereNotNull('unit_cost')->latest()->value('unit_cost') ?? 0.00),
+                                'total_cost'       => ($facilityItem->unit_cost ?? (PackingListItem::where('product_id', $facilityItem->product_id)->where('batch_number', $facilityItem->batch_number)->whereNotNull('unit_cost')->latest()->value('unit_cost') ?? 0.00)) * $allocQty,
+                                'source'           => $facilityItem->source,
                                 'notes'            => 'Allocated from facility inventory ID: ' . $facilityItem->id
                             ]);
                         }
@@ -1264,7 +1308,7 @@ class TransferController extends Controller
                 'transfer_id' => 'required|exists:transfers,id',
                 'packing_list_differences' => 'required|array',
                 'packing_list_differences.*.quantity' => 'required|numeric|min:0',
-                'packing_list_differences.*.status' => 'required|in:Missing,Damaged,Expired,Lost,Low Quality',
+                'packing_list_differences.*.status' => 'required|in:Missing,Damaged,Expired,Lost,Low quality',
                 'packing_list_differences.*.notes' => 'nullable|string',
                 'packing_list_differences.*.transfer_item_id' => 'required|exists:transfer_items,id',
             ]);
@@ -1285,7 +1329,9 @@ class TransferController extends Controller
             }
 
             // Find or create BackOrder for this transfer only when there is recorded backorder
-            $backOrder = BackOrder::where('transfer_id', $request->transfer_id)->first();
+            $backOrder = BackOrder::where('transfer_id', $request->transfer_id)
+                ->where('warehouse_id', auth()->user()->warehouse_id)
+                ->first();
 
             if(!$backOrder) {
                 $backOrder = BackOrder::create([
@@ -1293,7 +1339,9 @@ class TransferController extends Controller
                     'back_order_date' => now()->toDateString(),
                     'created_by' => auth()->user()->id,
                     'source_type' => 'transfer',
-                    'reported_by' => $transfer->toFacility->name ?? $transfer->toWarehouse->name ?? 'Unknown',
+                    'warehouse_id' => auth()->user()->warehouse_id,
+                    'facility_id' => $transfer->to_facility_id,
+                    'reported_by' => auth()->user()->load('warehouse')->warehouse->name ?? 'Unknown Warehouse',
                     'total_items' => 0,
                     'total_quantity' => 0,
                 ]);
@@ -1347,10 +1395,7 @@ class TransferController extends Controller
             }
 
             // Update BackOrder totals
-            $backOrder->update([
-                'total_items' => $totalItems,
-                'total_quantity' => $totalQuantity,
-            ]);
+            $backOrder->updateTotals();
 
             //// event(new \App\Events\InventoryUpdated($transfer->from_facility_id));
 
@@ -1425,6 +1470,7 @@ class TransferController extends Controller
                                 $facilityInventoryItem->quantity += $quantityToRestore;
                                 $facilityInventoryItem->save();
                             } else {
+                                $unitCost = $allocation->unit_cost ?? (\App\Models\InventoryItem::where("product_id", $allocation->product_id)->whereNotNull("unit_cost")->latest()->value("unit_cost") ?? 0);
                                 FacilityInventoryItem::create([
                                     'facility_inventory_id' => $facilityInventory->id,
                                     'product_id' => $allocation->product_id,
@@ -1433,6 +1479,8 @@ class TransferController extends Controller
                                     'barcode' => $allocation->barcode,
                                     'expiry_date' => $allocation->expiry_date,
                                     'quantity' => $quantityToRestore,
+                                    'unit_cost' => $unitCost,
+                                    'total_cost' => $unitCost * $quantityToRestore
                                 ]);
                             }
                         } else {
@@ -1441,6 +1489,7 @@ class TransferController extends Controller
                                 'facility_id' => $sourceId,
                                 'quantity' => 0,
                             ]);
+                            $unitCost = $allocation->unit_cost ?? (\App\Models\InventoryItem::where("product_id", $allocation->product_id)->whereNotNull("unit_cost")->latest()->value("unit_cost") ?? 0);
                             FacilityInventoryItem::create([
                                 'facility_inventory_id' => $facilityInventory->id,
                                 'product_id' => $allocation->product_id,
@@ -1449,6 +1498,8 @@ class TransferController extends Controller
                                 'barcode' => $allocation->barcode,
                                 'expiry_date' => $allocation->expiry_date,
                                 'quantity' => $quantityToRestore,
+                                'unit_cost' => $unitCost,
+                                'total_cost' => $unitCost * $quantityToRestore
                             ]);
                         }
                     }
@@ -1653,6 +1704,10 @@ class TransferController extends Controller
                         DB::rollBack();
                         return response()->json('Source inventory record not found for this allocation', 400);
                     }
+                    $unitCost = $allocation->unit_cost ?? (\App\Models\InventoryItem::where('product_id', $allocation->product_id)
+                        ->whereNotNull('unit_cost')
+                        ->latest()
+                        ->value('unit_cost') ?? 0);
                     $facilityInventoryItem = FacilityInventoryItem::create([
                         'facility_inventory_id' => $facilityInventory->id,
                         'batch_number' => $allocation->batch_number,
@@ -1660,6 +1715,8 @@ class TransferController extends Controller
                         'barcode'      => $allocation->barcode,
                         'expiry_date'  => $allocation->expiry_date,
                         'quantity'     => 0,
+                        'unit_cost'    => $unitCost,
+                        'total_cost'   => 0
                     ]);
                 }
 
@@ -1975,6 +2032,10 @@ class TransferController extends Controller
                                         $facilityInventoryItem->save();
                                     } else {
                                         // Create new facility inventory item if it doesn't exist
+                                        $unitCost = $allocation->unit_cost ?? (\App\Models\InventoryItem::where('product_id', $allocation->product_id)
+                                            ->whereNotNull('unit_cost')
+                                            ->latest()
+                                            ->value('unit_cost') ?? 0);
                                         FacilityInventoryItem::create([
                                             'facility_inventory_id' => $facilityInventory->id,
                                             'product_id' => $allocation->product_id,
@@ -1983,8 +2044,8 @@ class TransferController extends Controller
                                             'barcode' => $allocation->barcode,
                                             'expiry_date' => $allocation->expiry_date,
                                             'quantity' => $allocation->allocated_quantity,
-                                            'unit_cost' => $allocation->unit_cost ?? 0,
-                                            'total_cost' => ($allocation->unit_cost ?? 0) * $allocation->allocated_quantity,
+                                            'unit_cost' => $unitCost,
+                                            'total_cost' => $unitCost * $allocation->allocated_quantity,
                                         ]);
                                     }
                                 } else {
@@ -1994,6 +2055,10 @@ class TransferController extends Controller
                                         'product_id' => $allocation->product_id,
                                     ]);
 
+                                    $unitCost = $allocation->unit_cost ?? (\App\Models\InventoryItem::where('product_id', $allocation->product_id)
+                                        ->whereNotNull('unit_cost')
+                                        ->latest()
+                                        ->value('unit_cost') ?? 0);
                                     FacilityInventoryItem::create([
                                         'facility_inventory_id' => $facilityInventory->id,
                                         'product_id' => $allocation->product_id,
@@ -2002,8 +2067,8 @@ class TransferController extends Controller
                                         'barcode' => $allocation->barcode,
                                         'expiry_date' => $allocation->expiry_date,
                                         'quantity' => $allocation->allocated_quantity,
-                                        'unit_cost' => $allocation->unit_cost ?? 0,
-                                        'total_cost' => ($allocation->unit_cost ?? 0) * $allocation->allocated_quantity,
+                                        'unit_cost' => $unitCost,
+                                        'total_cost' => $unitCost * $allocation->allocated_quantity,
                                     ]);
                                 }
                             }

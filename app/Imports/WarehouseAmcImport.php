@@ -31,16 +31,18 @@ class WarehouseAmcImport implements
 
     protected string $importId;
     protected ?string $storedFilePath;
+    protected ?int $warehouseId;
 
     public int $processedRows = 0;
     public int $importedCount = 0;
     public int $updatedCount = 0;
     public array $errors = [];
 
-    public function __construct(string $importId, ?string $storedFilePath = null)
+    public function __construct(string $importId, ?string $storedFilePath = null, ?int $warehouseId = null)
     {
         $this->importId = $importId;
         $this->storedFilePath = $storedFilePath;
+        $this->warehouseId = $warehouseId ?: (auth()->user() ? auth()->user()->warehouse_id : null);
     }
 
     public function registerEvents(): array
@@ -167,6 +169,7 @@ class WarehouseAmcImport implements
                 [
                     'product_id' => $product->id,
                     'month_year' => $monthYear,
+                    'warehouse_id' => $this->warehouseId,
                 ],
                 [
                     'quantity' => (int) round($quantity),

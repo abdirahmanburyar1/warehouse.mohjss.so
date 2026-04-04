@@ -279,6 +279,59 @@ const facilityOptions = computed(() => {
     return (props.facilities || []).filter(f => f.district === form.value.district.name).map((f) => ({ id: f.id, name: f.name, district: f.district, region: f.region }));
 });
 
+// Modal-based item management
+const showItemModal = ref(false);
+const editingItemIndex = ref(null);
+const tempItem = ref({
+    asset_tag: "",
+    asset_name: "",
+    serial_number: "",
+    asset_category_id: null,
+    asset_category: null,
+    asset_type_id: null,
+    asset_type: null,
+    assignee_id: null,
+    assignee: null,
+    status: "functioning",
+    original_value: "",
+});
+
+const openItemModal = (index = null) => {
+    editingItemIndex.value = index;
+    if (index !== null) {
+        tempItem.value = { ...form.value.asset_items[index] };
+    } else {
+        tempItem.value = {
+            asset_tag: "",
+            asset_name: "",
+            serial_number: "",
+            asset_category_id: null,
+            asset_category: null,
+            asset_type_id: null,
+            asset_type: null,
+            assignee_id: null,
+            assignee: null,
+            status: "functioning",
+            original_value: "",
+        };
+    }
+    showItemModal.value = true;
+};
+
+const saveItem = () => {
+    if (!tempItem.value.asset_tag || !tempItem.value.asset_name || !tempItem.value.asset_category_id) {
+        toast.error("Please fill in required item fields (Tag, Name, Category)");
+        return;
+    }
+
+    if (editingItemIndex.value !== null) {
+        form.value.asset_items[editingItemIndex.value] = { ...tempItem.value };
+    } else {
+        form.value.asset_items.push({ ...tempItem.value });
+    }
+    showItemModal.value = false;
+};
+
 const form = ref({
     asset_number: "",
     acquisition_date: "",
@@ -301,7 +354,7 @@ const form = ref({
             asset_type: null,
             assignee_id: null,
             assignee: null,
-            status: "pending_approval",
+            status: "functioning",
             original_value: "",
         },
     ],
@@ -346,7 +399,6 @@ watch(
 const statuses = ref([
     { value: "functioning", label: "Functioning" },
     { value: "not_functioning", label: "Not functioning" },
-    { value: "pending_approval", label: "Pending Approval" },
     { value: "maintenance", label: "Maintenance" },
     { value: "disposed", label: "Disposed" },
 ]);
@@ -714,7 +766,7 @@ const addAssetItem = () => {
         asset_type: null,
         assignee_id: null,
         assignee: null,
-        status: "pending_approval",
+        status: "functioning",
         original_value: "",
     });
 };
@@ -727,52 +779,46 @@ const removeAssetItem = (index) => {
     }
 };
 
-const handleItemCategorySelect = (selected, index) => {
+const handleItemCategorySelect = (selected) => {
     if (!selected) {
-        form.value.asset_items[index].asset_category_id = null;
-        form.value.asset_items[index].asset_category = null;
-        form.value.asset_items[index].asset_type_id = null;
-        form.value.asset_items[index].asset_type = null;
+        tempItem.value.asset_category_id = null;
+        tempItem.value.asset_category = null;
+        tempItem.value.asset_type_id = null;
+        tempItem.value.asset_type = null;
         return;
     }
 
     if (selected.isAddNew) {
-        const currentSelection = form.value.asset_items[index].asset_category;
         showCategoryModal.value = true;
-        form.value.asset_items[index].asset_category_id = currentSelection.id;
-        form.value.asset_items[index].asset_category = currentSelection;
         return;
     }
 
-    form.value.asset_items[index].asset_category_id = selected.id;
-    form.value.asset_items[index].asset_category = selected;
-    form.value.asset_items[index].asset_type_id = null;
-    form.value.asset_items[index].asset_type = null;
+    tempItem.value.asset_category_id = selected.id;
+    tempItem.value.asset_category = selected;
+    tempItem.value.asset_type_id = null;
+    tempItem.value.asset_type = null;
 };
 
-const handleItemTypeSelect = (selected, index) => {
+const handleItemTypeSelect = (selected) => {
     if (!selected) {
-        form.value.asset_items[index].asset_type_id = null;
-        form.value.asset_items[index].asset_type = null;
+        tempItem.value.asset_type_id = null;
+        tempItem.value.asset_type = null;
         return;
     }
 
     if (selected.isAddNew) {
-        const currentSelection = form.value.asset_items[index].asset_type;
         showTypeModal.value = true;
-        form.value.asset_items[index].asset_type_id = currentSelection.id;
-        form.value.asset_items[index].asset_type = currentSelection;
         return;
     }
 
-    form.value.asset_items[index].asset_type_id = selected.id;
-    form.value.asset_items[index].asset_type = selected;
+    tempItem.value.asset_type_id = selected.id;
+    tempItem.value.asset_type = selected;
 };
 
-const handleItemAssigneeSelect = (selected, index) => {
+const handleItemAssigneeSelect = (selected) => {
     if (!selected) {
-        form.value.asset_items[index].assignee_id = null;
-        form.value.asset_items[index].assignee = null;
+        tempItem.value.assignee_id = null;
+        tempItem.value.assignee = null;
         return;
     }
 
@@ -781,13 +827,13 @@ const handleItemAssigneeSelect = (selected, index) => {
         return;
     }
 
-    form.value.asset_items[index].assignee_id = selected.id;
-    form.value.asset_items[index].assignee = selected;
+    tempItem.value.assignee_id = selected.id;
+    tempItem.value.assignee = selected;
 };
 
-const handleItemAssigneeClear = (index) => {
-    form.value.asset_items[index].assignee_id = null;
-    form.value.asset_items[index].assignee = null;
+const handleItemAssigneeClear = () => {
+    tempItem.value.assignee_id = null;
+    tempItem.value.assignee = null;
 };
 
 const submit = async () => {
@@ -977,7 +1023,7 @@ const submit = async () => {
                             <h3 class="text-lg font-semibold text-gray-800">Asset Items</h3>
                             <div class="flex items-center gap-3">
                                 <span class="text-sm text-gray-500">{{ form.asset_items.length }} item(s)</span>
-                                <button type="button" @click="addAssetItem"
+                                <button type="button" @click="openItemModal()"
                                 class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
@@ -992,86 +1038,46 @@ const submit = async () => {
                             <p class="text-sm mt-1">Click "Add Item" above to add the first line.</p>
                         </div>
 
-                        <div v-else class="pb-3 pr-2 overflow-visible">
-                            <table class="min-w-[880px] w-full border-collapse">
-                                <thead>
-                                    <tr class="bg-gray-50 border-b border-gray-200">
-                                        <th class="px-2 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-10">#</th>
-                                        <th class="px-2 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[95px]">Asset Tag</th>
-                                        <th class="px-2 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[110px]">Asset Name</th>
-                                        <th class="px-2 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[85px]">Serial</th>
-                                        <th class="px-2 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[130px]">Category</th>
-                                        <th class="px-2 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[120px]">Type</th>
-                                        <th class="px-2 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[120px]">Assignee</th>
-                                        <th class="px-2 py-2.5 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider min-w-[80px]">Value</th>
-                                        <th class="px-2 py-2.5 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider w-14">Action</th>
+                        <div v-else class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-12">#</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Asset Tag</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Asset Name</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Category</th>
+                                        <th class="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                        <th class="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider w-32">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-white divide-y divide-gray-100">
                                     <tr v-for="(item, index) in form.asset_items" :key="index" class="hover:bg-gray-50/80 transition-colors">
-                                        <td class="px-2 py-2 text-sm text-gray-500 font-medium align-top">{{ index + 1 }}</td>
-                                        <td class="px-2 py-2 align-top">
-                                            <input :id="`asset_tag_${index}`" type="text"
-                                                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                placeholder="e.g. INV-000123" v-model="item.asset_tag" required />
+                                        <td class="px-4 py-3 text-sm text-gray-500 font-medium">{{ index + 1 }}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-900">{{ item.asset_tag || '-' }}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-900">{{ item.asset_name || '-' }}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-900">{{ item.asset_category?.name || '-' }}</td>
+                                        <td class="px-4 py-3">
+                                            <span :class="{
+                                                'px-2 py-1 text-xs font-medium rounded-full': true,
+                                                'bg-green-100 text-green-700': item.status === 'functioning',
+                                                'bg-red-100 text-red-700': item.status === 'not_functioning',
+                                                'bg-yellow-100 text-yellow-700': item.status === 'maintenance',
+                                                'bg-gray-100 text-gray-700': item.status === 'disposed'
+                                            }">
+                                                {{ item.status ? item.status.charAt(0).toUpperCase() + item.status.slice(1).replace('_', ' ') : '-' }}
+                                            </span>
                                         </td>
-                                        <td class="px-2 py-2 align-top">
-                                            <input :id="`asset_name_${index}`" type="text"
-                                                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                placeholder="e.g. Dell Latitude 7420" v-model="item.asset_name" required />
-                                        </td>
-                                        <td class="px-2 py-2 align-top">
-                                            <input :id="`serial_number_${index}`" type="text"
-                                                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                placeholder="Serial" v-model="item.serial_number" required />
-                                        </td>
-                                        <td class="px-2 py-2 align-top w-[130px]">
-                                            <Multiselect v-model="item.asset_category" :options="categoryOptions"
-                                                :searchable="true" :close-on-select="true" :show-labels="false"
-                                                :allow-empty="true" placeholder="Category" track-by="id" label="name"
-                                                class="text-sm multiselect-compact multiselect-asset-table multiselect-asset-category"
-                                                @select="(selected) => handleItemCategorySelect(selected, index)">
-                                                <template v-slot:option="{ option }">
-                                                    <div :class="{ 'add-new-option': option.isAddNew }">
-                                                        <span v-if="option.isAddNew" class="text-indigo-600 font-medium">+ Add New Category</span>
-                                                        <span v-else>{{ option.name }}</span>
-                                                    </div>
-                                                </template>
-                                            </Multiselect>
-                                        </td>
-                                        <td class="px-2 py-2 align-top w-[120px]">
-                                            <Multiselect v-model="item.asset_type"
-                                                :options="getFilteredTypeOptions(item.asset_category)"
-                                                :searchable="true" :close-on-select="true" :show-labels="false"
-                                                :allow-empty="true" placeholder="Type" track-by="id" label="name"
-                                                :disabled="!item.asset_category" class="text-sm multiselect-compact multiselect-asset-table multiselect-asset-type"
-                                                @select="(selected) => handleItemTypeSelect(selected, index)">
-                                                <template v-slot:option="{ option }">
-                                                    <div :class="{ 'add-new-option': option.isAddNew }">
-                                                        <span v-if="option.isAddNew" class="text-indigo-600 font-medium">+ Add New Type</span>
-                                                        <span v-else>{{ option.name }}</span>
-                                                    </div>
-                                                </template>
-                                            </Multiselect>
-                                        </td>
-                                        <td class="px-2 py-2 align-top w-[120px]">
-                                            <Multiselect v-model="item.assignee" :options="assigneeOptions"
-                                                :searchable="true" :close-on-select="true" :show-labels="false"
-                                                :allow-empty="true" placeholder="Assignee" track-by="id" label="name"
-                                                class="text-sm multiselect-compact multiselect-asset-table multiselect-asset-assignee"
-                                                @select="(selected) => handleItemAssigneeSelect(selected, index)"
-                                                @clear="() => handleItemAssigneeClear(index)" />
-                                        </td>
-                                        <td class="px-2 py-2 align-top">
-                                            <input :id="`original_value_${index}`" type="number" step="0.01" min="0"
-                                                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                placeholder="0.00" v-model="item.original_value" required />
-                                        </td>
-                                        <td class="px-2 py-2 text-center align-top w-16">
+                                        <td class="px-4 py-3 text-right space-x-2">
+                                            <button type="button" @click="openItemModal(index)"
+                                                class="text-indigo-600 hover:text-indigo-900 p-1 rounded-md hover:bg-indigo-50"
+                                                title="Edit Item">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                </svg>
+                                            </button>
                                             <button type="button" @click="removeAssetItem(index)"
-                                                class="inline-flex items-center justify-center w-8 h-8 rounded-md text-red-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
-                                                :disabled="form.asset_items.length === 1"
-                                                title="Remove row">
+                                                class="text-red-600 hover:text-red-900 p-1 rounded-md hover:bg-red-50"
+                                                title="Remove Item">
                                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                 </svg>
@@ -1219,6 +1225,113 @@ const submit = async () => {
                     </SecondaryButton>
                     <PrimaryButton @click="createAssignee" :disabled="isSavingAssignee">
                         {{ isSavingAssignee ? 'Saving...' : 'Save' }}
+                    </PrimaryButton>
+                </div>
+            </div>
+        </Modal>
+
+        <!-- Item Detail Modal -->
+        <Modal :show="showItemModal" @close="showItemModal = false" maxWidth="4xl">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6 border-b pb-4">
+                    <h2 class="text-2xl font-bold text-indigo-900">
+                        {{ editingItemIndex !== null ? 'Edit Asset Item' : 'Add New Asset Item' }}
+                    </h2>
+                    <button @click="showItemModal = false" class="text-gray-400 hover:text-gray-600 transition-colors">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Left Column -->
+                    <div class="space-y-5">
+                        <div>
+                            <InputLabel for="modal_asset_tag" value="Asset Tag" required />
+                            <input id="modal_asset_tag" type="text"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                placeholder="e.g. INV-001234" v-model="tempItem.asset_tag" />
+                        </div>
+                        <div>
+                            <InputLabel for="modal_asset_name" value="Asset Name" required />
+                            <input id="modal_asset_name" type="text"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                placeholder="e.g. Dell Latitude Laptop" v-model="tempItem.asset_name" />
+                        </div>
+                        <div>
+                            <InputLabel for="modal_serial_number" value="Serial Number" required />
+                            <input id="modal_serial_number" type="text"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                placeholder="Manufacturer Serial" v-model="tempItem.serial_number" />
+                        </div>
+                        <div>
+                            <InputLabel for="modal_status" value="Status" required />
+                            <select id="modal_status" v-model="tempItem.status"
+                                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <option v-for="status in statuses" :key="status.value" :value="status.value">{{ status.label }}</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Right Column -->
+                    <div class="space-y-5">
+                        <div>
+                            <InputLabel value="Category" required />
+                            <Multiselect v-model="tempItem.asset_category" :options="categoryOptions"
+                                :searchable="true" :close-on-select="true" :show-labels="false"
+                                placeholder="Select Category" track-by="id" label="name"
+                                class="mt-1" @select="handleItemCategorySelect">
+                                <template v-slot:option="{ option }">
+                                    <div :class="{ 'add-new-option': option.isAddNew }">
+                                        <span v-if="option.isAddNew" class="text-indigo-600 font-medium">+ Add New Category</span>
+                                        <span v-else>{{ option.name }}</span>
+                                    </div>
+                                </template>
+                            </Multiselect>
+                        </div>
+                        <div>
+                            <InputLabel value="Type" required />
+                            <Multiselect v-model="tempItem.asset_type"
+                                :options="getFilteredTypeOptions(tempItem.asset_category)"
+                                :searchable="true" :close-on-select="true" :show-labels="false"
+                                placeholder="Select Type" track-by="id" label="name"
+                                :disabled="!tempItem.asset_category" class="mt-1"
+                                @select="handleItemTypeSelect">
+                                <template v-slot:option="{ option }">
+                                    <div :class="{ 'add-new-option': option.isAddNew }">
+                                        <span v-if="option.isAddNew" class="text-indigo-600 font-medium">+ Add New Type</span>
+                                        <span v-else>{{ option.name }}</span>
+                                    </div>
+                                </template>
+                            </Multiselect>
+                        </div>
+                        <div>
+                            <InputLabel value="Assignee" />
+                            <Multiselect v-model="tempItem.assignee" :options="assigneeOptions"
+                                :searchable="true" :close-on-select="true" :show-labels="false"
+                                placeholder="Select Assignee" track-by="id" label="name"
+                                class="mt-1" @select="handleItemAssigneeSelect"
+                                @clear="handleItemAssigneeClear" />
+                        </div>
+                        <div>
+                            <InputLabel for="modal_original_value" value="Original Value" required />
+                            <div class="mt-1 relative rounded-md shadow-sm">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">$</span>
+                                </div>
+                                <input id="modal_original_value" type="number" step="0.01" min="0"
+                                    class="block w-full pl-7 rounded-md border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                    placeholder="0.00" v-model="tempItem.original_value" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 flex justify-end gap-3 border-t pt-5">
+                    <SecondaryButton @click="showItemModal = false">Cancel</SecondaryButton>
+                    <PrimaryButton @click="saveItem">
+                        {{ editingItemIndex !== null ? 'Update Item' : 'Add Item' }}
                     </PrimaryButton>
                 </div>
             </div>

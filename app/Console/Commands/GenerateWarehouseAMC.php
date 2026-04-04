@@ -8,6 +8,7 @@ use App\Models\IssueQuantityItem;
 use App\Models\ReorderLevel;
 use App\Models\Product;
 use App\Models\WarehouseAmc;
+use App\Models\Warehouse;
 use App\Services\WarehouseAmcCalculationService;
 use Illuminate\Console\Command;
 use Carbon\Carbon;
@@ -54,56 +55,68 @@ class GenerateWarehouseAMC extends Command
 
         $this->info('Starting AMC and Reorder Level generation...');
 
-        try {
-            // Get the target month (default to last month)
-            $targetMonth = $monthArg ?: Carbon::now()->subMonth()->format('Y-m');
-
-            $this->info("Processing AMC for month: {$targetMonth}");
-
-            // Get up to 12 months of data (needed for 70% deviation screening reselection)
-            $months = $this->getLastMonthsWithReports($targetMonth, 12);
-
-            if (empty($months)) {
-                $this->error('No issue quantity reports found for the target period.');
-                return 1;
-            }
-
-            $this->info('Found months: ' . implode(', ', $months));
-
-            // Calculate AMC for each product using 70% deviation screening
-            $amcData = $this->calculateAMCWithScreening($months);
-
-            if (empty($amcData)) {
-                $this->error('No AMC data calculated. Check if there are issue quantity items.');
-                return 1;
-            }
-
-            // Update or create reorder levels
-            $this->updateReorderLevels($amcData);
-
-            // Sync monthly consumption to warehouse_amcs (for Warehouse AMC report / export)
-            $this->syncWarehouseAmcs($amcData, $months);
-
-            $this->info('AMC and Reorder Level generation completed successfully!');
-            return 0;
-
-        } catch (\Exception $e) {
-            $this->error('Error generating AMC: ' . $e->getMessage());
+        $warehouses = Warehouse::all();
+        if ($warehouses->isEmpty()) {
+            $this->error('No warehouses found.');
             return 1;
         }
+
+        foreach ($warehouses as $warehouse) {
+            $this->info("Processing Warehouse: {$warehouse->name} (ID: {$warehouse->id})");
+
+            try {
+                // Get the target month (default to last month)
+                $targetMonth = $monthArg ?: Carbon::now()->subMonth()->format('Y-m');
+
+                $this->info("Processing AMC for month: {$targetMonth} for {$warehouse->name}");
+
+                // Get up to 12 months of data (needed for 70% deviation screening reselection)
+                $months = $this->getLastMonthsWithReports($targetMonth, $warehouse->id, 12);
+
+                if (empty($months)) {
+                    $this->warn("No issue quantity reports found for {$warehouse->name} in the target period.");
+                    continue;
+                }
+
+                $this->info('Found months: ' . implode(', ', $months));
+
+                // Calculate AMC for each product using 70% deviation screening
+                $amcData = $this->calculateAMCWithScreening($months, $warehouse->id);
+
+                if (empty($amcData)) {
+                    $this->warn("No AMC data calculated for {$warehouse->name}.");
+                    continue;
+                }
+
+                // Update or create reorder levels
+                $this->updateReorderLevels($amcData, $warehouse->id);
+
+                // Sync monthly consumption to warehouse_amcs
+                $this->syncWarehouseAmcs($amcData, $months, $warehouse->id);
+
+                $this->info("AMC and Reorder Level generation completed successfully for {$warehouse->name}!");
+
+            } catch (\Exception $e) {
+                $this->error("Error for {$warehouse->name}: " . $e->getMessage());
+            }
+        }
+
+        return 0;
     }
 
     /**
      * Get the last N months that have issue quantity reports (newest first)
      */
-    private function getLastMonthsWithReports(string $targetMonth, int $limit = 12): array
+    private function getLastMonthsWithReports(string $targetMonth, int $warehouseId, int $limit = 12): array
     {
         $months = [];
         $currentMonth = Carbon::createFromFormat('Y-m', $targetMonth);
 
         for ($i = 0; $i < $limit; $i++) {
             $monthToCheck = $currentMonth->copy()->subMonths($i)->format('Y-m');
-            $report = IssueQuantityReport::where('month_year', $monthToCheck)->first();
+            $report = IssueQuantityReport::where('month_year', $monthToCheck)
+                ->where('warehouse_id', $warehouseId)
+                ->first();
             if ($report) {
                 $months[] = $monthToCheck;
             }
@@ -116,7 +129,7 @@ class GenerateWarehouseAMC extends Command
      * Calculate AMC for each product using 70% deviation screening (same formula as WarehouseAmcCalculationService).
      * Data from issue quantity reports; months ordered newest first for screening.
      */
-    private function calculateAMCWithScreening(array $months): array
+    private function calculateAMCWithScreening(array $months, int $warehouseId): array
     {
         $amcData = [];
         $this->info("Looking for data in months: " . implode(', ', $months));
@@ -131,6 +144,7 @@ class GenerateWarehouseAMC extends Command
                 DB::raw('COALESCE(SUM(iqi.quantity), 0) as monthly_quantity')
             ])
             ->where('p.is_active', true)
+            ->where('iqr.warehouse_id', $warehouseId) // Filter by warehouse ID
             ->where(function ($query) use ($months) {
                 $query->whereIn('iqr.month_year', $months)
                     ->orWhereNull('iqr.month_year');
@@ -213,7 +227,7 @@ class GenerateWarehouseAMC extends Command
      * Update or create reorder levels with the calculated AMC using bulk operations
      * Creates reorder levels for ALL products, even those without issue quantity data
      */
-    private function updateReorderLevels(array $amcData): void
+    private function updateReorderLevels(array $amcData, int $warehouseId): void
     {
         // Get ALL products that should have reorder levels
         $allProducts = Product::select('id', 'name')
@@ -222,8 +236,8 @@ class GenerateWarehouseAMC extends Command
 
         $this->info("Total products to process: " . $allProducts->count());
 
-        // Get existing reorder levels for all products
-        $existingReorderLevels = ReorderLevel::pluck('product_id')->toArray();
+        // Get existing reorder levels for all products in this warehouse
+        $existingReorderLevels = ReorderLevel::where('warehouse_id', $warehouseId)->pluck('product_id')->toArray();
 
         $toUpdate = [];
         $toCreate = [];
@@ -247,6 +261,7 @@ class GenerateWarehouseAMC extends Command
                 // Update existing reorder level
                 $toUpdate[] = [
                     'product_id' => $productId,
+                    'warehouse_id' => $warehouseId,
                     'amc' => $amcValue
                 ];
                 $updated++;
@@ -260,6 +275,7 @@ class GenerateWarehouseAMC extends Command
                 // Create new reorder level
                 $toCreate[] = [
                     'product_id' => $productId,
+                    'warehouse_id' => $warehouseId,
                     'amc' => $amcValue,
                     'lead_time' => 5, // Default lead time
                     'created_at' => now(),
@@ -278,7 +294,9 @@ class GenerateWarehouseAMC extends Command
         // Bulk update existing records
         if (!empty($toUpdate)) {
             foreach ($toUpdate as $updateData) {
-                $reorderLevel = ReorderLevel::where('product_id', $updateData['product_id'])->first();
+                $reorderLevel = ReorderLevel::where('product_id', $updateData['product_id'])
+                    ->where('warehouse_id', $updateData['warehouse_id'])
+                    ->first();
                 if ($reorderLevel) {
                     $reorderLevel->amc = $updateData['amc'];
                     $reorderLevel->save(); // This will trigger the boot method to calculate reorder_level
@@ -291,6 +309,7 @@ class GenerateWarehouseAMC extends Command
             foreach ($toCreate as $createData) {
                 $reorderLevel = new ReorderLevel();
                 $reorderLevel->product_id = $createData['product_id'];
+                $reorderLevel->warehouse_id = $createData['warehouse_id'];
                 $reorderLevel->amc = $createData['amc'];
                 $reorderLevel->lead_time = $createData['lead_time'];
                 $reorderLevel->save(); // This will trigger the boot method to calculate reorder_level
@@ -312,7 +331,7 @@ class GenerateWarehouseAMC extends Command
      * Sync monthly consumption from issue quantity data into warehouse_amcs table
      * so the Warehouse AMC report and exports have data when run from schedule or "Run now".
      */
-    private function syncWarehouseAmcs(array $amcData, array $months): void
+    private function syncWarehouseAmcs(array $amcData, array $months, int $warehouseId): void
     {
         $synced = 0;
         foreach ($amcData as $productId => $data) {
@@ -321,6 +340,7 @@ class GenerateWarehouseAMC extends Command
                 WarehouseAmc::updateOrCreate(
                     [
                         'product_id' => $productId,
+                        'warehouse_id' => $warehouseId,
                         'month_year' => $monthYear,
                     ],
                     [

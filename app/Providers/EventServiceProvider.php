@@ -38,6 +38,9 @@ class EventServiceProvider extends ServiceProvider
     public function boot(): void
     {
         \App\Models\User::observe(\App\Observers\UserObserver::class);
+        \App\Models\Liquidate::observe(\App\Observers\LiquidationObserver::class);
+        \App\Models\Disposal::observe(\App\Observers\DisposalObserver::class);
+        \App\Models\ReceivedBackorder::observe(\App\Observers\ReceivedBackorderObserver::class);
         Event::listen(JobFailed::class, [\App\Listeners\LogFailedQueueJob::class, 'handle']);
     }
 

@@ -187,7 +187,7 @@
                                             <td class="px-4 py-3 border border-gray-300 text-sm text-gray-900 print:px-2 print:py-2 print:text-xs">{{ item.product.name }}</td>
                                             <td class="px-4 py-3 border border-gray-300 text-sm text-gray-900 print:px-2 print:py-2 print:text-xs">{{ item.product.category?.name || 'N/A' }}</td>
                                             <td class="px-4 py-3 border border-gray-300 text-sm text-gray-900 print:px-2 print:py-2 print:text-xs">{{ item.uom }}</td>
-                                            <td class="px-4 py-3 border border-gray-300 text-sm text-gray-900 print:px-2 print:py-2 print:text-xs">{{ item.barcode }}</td>
+                                            <td class="px-4 py-3 border border-gray-300 text-sm text-gray-900 print:px-2 print:py-2 print:text-xs">{{ item.barcode || 'N/A' }}</td>
                                             <td class="px-4 py-3 border border-gray-300 text-sm text-gray-900 print:px-2 print:py-2 print:text-xs">{{ item.batch_number }}</td>
                                             <td class="px-4 py-3 border border-gray-300 text-sm text-gray-900 print:px-2 print:py-2 print:text-xs">{{ item.location }}</td>
                                             <td class="px-4 py-3 border border-gray-300 text-sm text-gray-900 print:px-2 print:py-2 print:text-xs">{{ formatNumber(item.quantity) }}</td>

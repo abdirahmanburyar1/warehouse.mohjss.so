@@ -13,20 +13,17 @@ class Liquidate extends Model
         parent::boot();
 
         static::creating(function ($liquidate) {
-            // Use a more robust approach to handle concurrent creation
-            do {
-                $latestLiquidate = static::latest()->first();
-                $nextId = $latestLiquidate ? intval(substr($latestLiquidate->liquidate_id, -7)) + 1 : 1;
-                $liquidate->liquidate_id = str_pad($nextId, 7, '0', STR_PAD_LEFT);
-                
-                // Check if this ID already exists (in case of race condition)
-                $exists = static::where('liquidate_id', $liquidate->liquidate_id)->exists();
-                if ($exists) {
-                    // If ID exists, increment and try again
-                    $nextId++;
-                    $liquidate->liquidate_id = str_pad($nextId, 7, '0', STR_PAD_LEFT);
-                }
-            } while ($exists);
+            $latestLiquidate = static::orderBy('id', 'desc')->first();
+            $nextId = $latestLiquidate ? intval(substr($latestLiquidate->liquidate_id, -7)) + 1 : 1;
+            
+            $generatedId = str_pad($nextId, 7, '0', STR_PAD_LEFT);
+            while (static::where('liquidate_id', $generatedId)->exists()) {
+                $nextId++;
+                $generatedId = str_pad($nextId, 7, '0', STR_PAD_LEFT);
+            }
+            
+            $liquidate->liquidate_id = $generatedId;
+            $liquidate->status = 'pending';
         });
     }
 
@@ -46,6 +43,7 @@ class Liquidate extends Model
         'warehouse',
         'rejection_reason',
         'back_order_id',
+        'warehouse_id',
         'packing_list_id',
         'order_id',
         'transfer_id',

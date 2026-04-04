@@ -38,7 +38,8 @@ class ReceivedBackorderController extends Controller
             abort(403, 'You do not have permission to view received backorders.');
         }
 
-        $query = ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)
+        $user = auth()->user();
+        $query = ReceivedBackorder::where('warehouse_id', $user->warehouse_id)
             ->with([
             'receivedBy', 'reviewedBy', 'approvedBy', 'rejectedBy', 'backOrder', 'warehouse', 'facility',
             'packingList:id,packing_list_number',
@@ -91,16 +92,16 @@ class ReceivedBackorderController extends Controller
 
         // Get statistics
         $stats = [
-            'total' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->count(),
-            'pending' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->where('status', 'pending')->count(),
-            'reviewed' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->where('status', 'reviewed')->count(),
-            'approved' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->where('status', 'approved')->count(),
-            'rejected' => ReceivedBackorder::where('warehouse_id', auth()->user()->warehouse_id)->where('status', 'rejected')->count(),
-            'total_quantity' => \App\Models\ReceivedBackorderItem::whereHas('receivedBackorder', function($q) {
-                $q->where('warehouse_id', auth()->user()->warehouse_id);
+            'total' => ReceivedBackorder::where('warehouse_id', $user->warehouse_id)->count(),
+            'pending' => ReceivedBackorder::where('warehouse_id', $user->warehouse_id)->where('status', 'pending')->count(),
+            'reviewed' => ReceivedBackorder::where('warehouse_id', $user->warehouse_id)->where('status', 'reviewed')->count(),
+            'approved' => ReceivedBackorder::where('warehouse_id', $user->warehouse_id)->where('status', 'approved')->count(),
+            'rejected' => ReceivedBackorder::where('warehouse_id', $user->warehouse_id)->where('status', 'rejected')->count(),
+            'total_quantity' => \App\Models\ReceivedBackorderItem::whereHas('receivedBackorder', function($q) use ($user) {
+                $q->where('warehouse_id', $user->warehouse_id);
             })->sum('quantity'),
-            'total_cost' => \App\Models\ReceivedBackorderItem::whereHas('receivedBackorder', function($q) {
-                $q->where('warehouse_id', auth()->user()->warehouse_id);
+            'total_cost' => \App\Models\ReceivedBackorderItem::whereHas('receivedBackorder', function($q) use ($user) {
+                $q->where('warehouse_id', $user->warehouse_id);
             })->sum('total_cost'),
         ];
 
@@ -203,15 +204,6 @@ class ReceivedBackorderController extends Controller
 
             $receivedBackorder = ReceivedBackorder::create($validated);
 
-            // Notify users with review permission (next action = review)
-            $reviewers = User::withPermission('received-backorder-review')
-                ->where('is_active', true)
-                ->whereNotNull('email')
-                ->where('id', '!=', auth()->id())
-                ->get();
-            foreach ($reviewers as $user) {
-                $user->notify(new ReceivedBackorderActionRequired($receivedBackorder, ReceivedBackorderActionRequired::ACTION_NEEDS_REVIEW));
-            }
 
             DB::commit();
 
@@ -233,7 +225,9 @@ class ReceivedBackorderController extends Controller
             abort(403, 'You do not have permission to view this received backorder.');
         }
 
-        if ($receivedBackorder->warehouse_id != auth()->user()->warehouse_id) {
+        // Allow Central Warehouse users with global view permission to see all records
+        $user = auth()->user();
+        if ( $receivedBackorder->warehouse_id != $user->warehouse_id) {
             abort(403, 'Unauthorized.');
         }
 
@@ -248,13 +242,16 @@ class ReceivedBackorderController extends Controller
             'facility'
         ]);
 
+        // Authorization for actions (Central platform: only own records)
+        $isOwner = $receivedBackorder->warehouse_id == $user->warehouse_id;
+        $receivedBackorder->setAttribute('can_review', $isOwner && $user->hasPermission('received-backorder-review'));
+        $receivedBackorder->setAttribute('can_approve', $isOwner && $user->hasPermission('received-backorder-approve'));
+        $receivedBackorder->setAttribute('can_reject', $isOwner && $user->hasPermission('received-backorder-reject'));
+
         return inertia('Supplies/ReceivedBackorder/Show', [
             'receivedBackorder' => $receivedBackorder,
         ]);
     }
-
-
-
 
 
     /**
@@ -319,21 +316,6 @@ class ReceivedBackorderController extends Controller
             'note' => $validated['note'] ?? $receivedBackorder->note,
         ]);
 
-        // Notify users with approve/reject permission (next action)
-        $approvers = User::withPermission('received-backorder-approve')
-            ->where('is_active', true)
-            ->whereNotNull('email')
-            ->where('id', '!=', auth()->id())
-            ->get();
-        $rejectors = User::withPermission('received-backorder-reject')
-            ->where('is_active', true)
-            ->whereNotNull('email')
-            ->where('id', '!=', auth()->id())
-            ->get();
-        $recipients = $approvers->merge($rejectors)->unique('id');
-        foreach ($recipients as $user) {
-            $user->notify(new ReceivedBackorderActionRequired($receivedBackorder, ReceivedBackorderActionRequired::ACTION_READY_FOR_APPROVAL));
-        }
 
         return back()->with('success', 'Received backorder reviewed successfully.');
     }
@@ -438,18 +420,9 @@ class ReceivedBackorderController extends Controller
                 $this->createReceivedQuantityRecord($receivedBackorder);
             }
 
-            // Update the packing list quantity if packing_list_id exists
-            // Note: For physical count adjustments, packing list updates are handled in the job
-            if ($receivedBackorder->packing_list_id && $receivedBackorder->type !== 'physical_count_adjustment') {
-                $packingList = PackingListItem::where('packing_list_id', $receivedBackorder->packing_list_id)
-                    ->where('product_id', $receivedBackorder->product_id)
-                    ->first();
-                
-                if ($packingList) {
-                    $packingList->increment('quantity', $receivedBackorder->quantity);
-                    $packingList->save();
-                }
-            }
+            // Note: Source item quantities (Packing List, Transfer, Order) are now updated 
+            // during the physical receipt step in SupplyController@receive, 
+            // so we don't increment them again here.
 
             DB::commit();
 
@@ -741,18 +714,7 @@ class ReceivedBackorderController extends Controller
                 }
             }
 
-            logger()->info('Warehouse transfer inventory updated successfully', [
-                'received_backorder_id' => $receivedBackorder->id,
-                'transfer_id' => $receivedBackorder->transfer_id,
-                'warehouse_id' => $warehouseId,
-                'items_processed' => $items->count()
-            ]);
         } catch (\Exception $e) {
-            logger()->error('Error in handleWarehouseTransferInventory', [
-                'received_backorder_id' => $receivedBackorder->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             throw $e;
         }
     }
@@ -1244,18 +1206,7 @@ class ReceivedBackorderController extends Controller
                 }
             }
 
-            logger()->info('Packing list inventory updated successfully', [
-                'received_backorder_id' => $receivedBackorder->id,
-                'packing_list_id' => $receivedBackorder->packing_list_id,
-                'warehouse_id' => $warehouseId
-            ]);
-
         } catch (\Exception $e) {
-            logger()->error('Error in handlePackingListInventory', [
-                'received_backorder_id' => $receivedBackorder->id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             throw $e;
         }
     }

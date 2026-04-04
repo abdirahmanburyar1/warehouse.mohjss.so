@@ -42,7 +42,7 @@ class MonthlyConsumptionReport extends Model
      */
     public function getMonthYearAttribute($value)
     {
-        return Carbon::createFromFormat('Y-m', $value);
+        return Carbon::createFromFormat('Y-m-d', $value . '-01');
     }
 
     /**

@@ -28,21 +28,23 @@ class MohInventoryImport implements
     SkipsEmptyRows,
     WithEvents
 {
-    public $mohInventoryId;
+    public int $warehouseId;
+    public ?string $warehouseName;
+    public int $mohInventoryId;
     public ?string $importId;
     public ?string $storedFilePath;
     public int $createdCount = 0;
     public int $missingProductRows = 0;
-    private int $totalRows = 0;
-    private int $processedRows = 0;
-    /** @var array<string,true> */
-    private array $missingProductsSet = [];
-    /** @var string[] */
+    public array $missingProductsSet = [];
     public array $missingProductsSample = [];
+    public int $totalRows = 0;
+    public int $processedRows = 0;
 
-    public function __construct(int $mohInventoryId, ?string $importId = null, ?string $storedFilePath = null)
+    public function __construct(int $mohInventoryId, int $warehouseId, ?string $warehouseName = null, ?string $importId = null, ?string $storedFilePath = null)
     {
         $this->mohInventoryId = $mohInventoryId;
+        $this->warehouseId = $warehouseId;
+        $this->warehouseName = $warehouseName;
         $this->importId = $importId;
         $this->storedFilePath = $storedFilePath;
     }
@@ -71,8 +73,8 @@ class MohInventoryImport implements
         $expiryDateValue = $row['expiry_date'] ?? $row['Expiry Date'] ?? $row['EXPIRY_DATE'] ?? $row['expiry'] ?? null;
         $expiryDate = $this->parseExpiryDate($expiryDateValue);
 
-        $warehouseId = auth()->user()->warehouse_id;
-        $warehouseName = auth()->user()->warehouse?->name ?? 'Main Warehouse';
+        $warehouseId = $this->warehouseId;
+        $warehouseName = $this->warehouseName;
 
         // Location is stored as a STRING (not an id) across inventory tables.
         // Ensure the (warehouse name + location string) exists in locations table; create it if missing.
@@ -98,7 +100,6 @@ class MohInventoryImport implements
             MohInventoryItem::create([
                 'moh_inventory_id' => $this->mohInventoryId,
                 'product_id' => $product->id,
-                'warehouse_id' => $warehouseId,
                 'quantity' => (int) $quantity,
                 'expiry_date' => $expiryDate,
                 'batch_number' => trim($row['batch_no'] ?? $row['Batch No'] ?? $row['BATCH_NO'] ?? $row['batch_number'] ?? '') ?: null,
@@ -109,6 +110,7 @@ class MohInventoryImport implements
                 'source' => trim($row['source'] ?? $row['Source'] ?? $row['SOURCE'] ?? '') ?: 'Excel Import',
                 'unit_cost' => (float) ($row['unit_cost'] ?? $row['Unit Cost'] ?? $row['UNIT_COST'] ?? $row['unit_cost'] ?? $row['UnitCost'] ?? 0),
                 'total_cost' => (float) ($row['unit_cost'] ?? $row['Unit Cost'] ?? $row['UNIT_COST'] ?? $row['unit_cost'] ?? $row['UnitCost'] ?? 0) * (float) $quantity,
+                'warehouse_id' => $warehouseId,
             ]);
 
             $this->createdCount++;

@@ -34,7 +34,11 @@ class ExpiredController extends Controller
         $sixMonthsFromNow = $today->copy()->addMonths(6);
         $oneYearFromNow = $today->copy()->addYear();
     
-        $query = InventoryItem::query();
+        $query = InventoryItem::query()
+            ->select('product_id', 'warehouse_id', 'expiry_date', 'batch_number', 'location', 'barcode', 'uom')
+            ->selectRaw('SUM(quantity) as quantity')
+            ->selectRaw('MIN(id) as id')
+            ->groupBy('product_id', 'warehouse_id', 'expiry_date', 'batch_number', 'location', 'barcode', 'uom');
     
         $query->with(['product.dosage:id,name', 'product.category:id,name', 'warehouse']);
     
@@ -339,7 +343,8 @@ class ExpiredController extends Controller
                 'disposed_at' => Carbon::now(),
                 'status' => 'pending',
                 'source' => 'Expiry',
-                'warehouse' => $inventory->location,
+                'warehouse' => $warehouseName,
+                'warehouse_id' => $inventory->warehouse_id,
             ]);
 
             // Create disposal item so detail page shows items and total
@@ -373,8 +378,15 @@ class ExpiredController extends Controller
                 $user->notify(new DisposalActionRequired($disposal, DisposalActionRequired::ACTION_NEEDS_REVIEW));
             }
 
-            // Remove from inventory
-            $inventory->delete();
+            // Remove from inventory - remove all items sharing these characteristics to handle grouped UI
+            // Remove from inventory - remove all matching items in this grouped batch
+            InventoryItem::where('product_id', $inventory->product_id)
+                ->where('warehouse_id', $inventory->warehouse_id)
+                ->where('batch_number', $inventory->batch_number)
+                ->where('expiry_date', $inventory->expiry_date)
+                ->where('location', $inventory->location)
+                ->where('barcode', $inventory->barcode)
+                ->delete();
             
             // Commit the transaction
             DB::commit();

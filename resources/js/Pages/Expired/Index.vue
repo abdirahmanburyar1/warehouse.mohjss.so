@@ -576,6 +576,7 @@ function getResults(page = 1) {
 const isDisposing = ref(false)
 
 const submitDisposal = async () => {
+    if (isDisposing.value) return;
     isDisposing.value = true
     const formData = new FormData();
     formData.append('id', selectedItem.value.id);

@@ -35,10 +35,6 @@
                                 <!-- Approved Icon -->
                                 <img v-else-if="props.liquidate.status === 'approved'" src="/assets/images/approved.png"
                                     class="w-4 h-4" alt="Approved" />
-
-                                <!-- Rejected Icon -->
-                                <img v-else-if="props.liquidate.status === 'rejected'" src="/assets/images/rejected.png"
-                                class="w-4 h-4" alt="Rejected" />
                             </span>
                             {{ props.liquidate.status.toUpperCase() }}
                         </span>
@@ -107,25 +103,7 @@
                         </svg>
                         <span class="text-sm text-gray-600">Approved At: {{ formatDate(props.liquidate.approved_at) }}</span>
                     </div>
-                    <div v-if="props.liquidate.rejectedBy" class="flex items-center">
-                        <svg class="h-4 w-4 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <span class="text-sm text-gray-600">Rejected By: {{ props.liquidate.rejectedBy.name }}</span>
-                    </div>
-                    <div v-if="props.liquidate.rejected_at" class="flex items-center">
-                        <svg class="h-4 w-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        <span class="text-sm text-gray-600">Rejected At: {{ formatDate(props.liquidate.rejected_at) }}</span>
-                    </div>
-                    <div v-if="props.liquidate.rejection_reason" class="flex items-start">
-                        <svg class="h-4 w-4 text-red-400 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
-                        </svg>
-                        <span class="text-sm text-gray-600">Reason: {{ props.liquidate.rejection_reason }}</span>
-                    </div>
-                    <div v-if="!props.liquidate.reviewed_at && !props.liquidate.approved_at && !props.liquidate.rejected_at" class="flex items-center">
+                    <div v-if="!props.liquidate.reviewed_at && !props.liquidate.approved_at" class="flex items-center">
                         <svg class="h-4 w-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
@@ -161,16 +139,7 @@
                 </div>
             </div>
 
-            <!-- Status Stage Timeline -->
-            <div v-if="props.liquidate.status == 'rejected'">
-                <div class="flex flex-col items-center">
-                    <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10 bg-white border-red-500">
-                        <img src="/assets/images/rejected.png" class="w-7 h-7" alt="Rejected" />
-                    </div>
-                    <h1 class="mt-3 text-2xl text-red-600 font-bold ">Rejected</h1>
-                </div>
-            </div>
-            <div v-else class="col-span-2 mb-6">
+            <div class="col-span-2 mb-6 px-6">
                 <div class="relative">
                     <!-- Timeline Track Background -->
                     <div class="absolute top-7 left-0 right-0 h-2 bg-gray-200 z-0"></div>
@@ -443,7 +412,7 @@
                         <div class="relative">
                             <div class="flex flex-col">
                                 <button @click="changeStatus(props.liquidate.id, 'reviewed', 'is_reviewing')" 
-                                    :disabled="isType['is_reviewing'] || props.liquidate.status !== 'pending' || !$page.props.auth.can.liquidation_review"
+                                    :disabled="isType['is_reviewing'] || props.liquidate.status !== 'pending' || !$page.props.auth.can.liquidation_review || !props.liquidate.can_review"
                                     :class="[
                                         props.liquidate.status === 'pending'
                                             ? 'bg-yellow-500 hover:bg-yellow-600'
@@ -467,16 +436,21 @@
                                 <span v-show="props.liquidate?.reviewed_by" class="text-sm text-gray-600">
                                     By {{ props.liquidate?.reviewed_by?.name }}
                                 </span>
+                                <!-- Authority Indicator -->
+                                <span v-if="props.liquidate.status === 'pending' && !props.liquidate.can_review && $page.props.auth.user.warehouse?.type === 'central'" 
+                                    class="text-[10px] text-blue-600 mt-1 font-medium italic">
+                                    * Reviewed by Regional Warehouse
+                                </span>
                             </div>
                             <div v-if="props.liquidate.status === 'pending'"
                                 class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
                         </div>
 
                         <!-- Approved button -->
-                        <div class="relative" v-if="props.liquidate.status !== 'rejected'">
+                        <div class="relative">
                             <div class="flex flex-col">
                                 <button @click="changeStatus(props.liquidate.id, 'approved', 'is_approve')" 
-                                    :disabled="isType['is_approve'] || props.liquidate.status !== 'reviewed' || !$page.props.auth.can.liquidation_approve"
+                                    :disabled="isType['is_approve'] || props.liquidate.status !== 'reviewed' || !$page.props.auth.can.liquidation_approve || !props.liquidate.can_approve"
                                     :class="[
                                         props.liquidate.status === 'reviewed'
                                         ? 'bg-yellow-500 hover:bg-yellow-600'
@@ -512,51 +486,22 @@
                                 <span v-show="props.liquidate?.approved_by" class="text-sm text-gray-600">
                                     By {{ props.liquidate?.approved_by?.name }}
                                 </span>
+                                <!-- Authority Indicator -->
+                                <div class="flex flex-col mt-1">
+                                    <span v-if="props.liquidate.status === 'reviewed' && !props.liquidate.can_approve && $page.props.auth.user.warehouse?.type === 'regional'" 
+                                        class="text-[10px] text-blue-600 font-medium italic">
+                                        * Approval by Central Warehouse
+                                    </span>
+                                    <span v-if="props.liquidate.status === 'pending' && $page.props.auth.user.warehouse?.type === 'central'" 
+                                        class="text-[10px] text-amber-600 font-medium italic">
+                                        * Awaiting Regional Review
+                                    </span>
+                                </div>
                             </div>
                             <div v-if="props.liquidate.status === 'reviewed'"
                                 class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
                         </div>
 
-                        <!-- Rejected button -->
-                        <div class="relative" v-if="props.liquidate.status !== 'rejected' && props.liquidate.status !== 'approved'">
-                            <div class="flex flex-col">
-                                <button @click="rejectLiquidation()" 
-                                    :disabled="isType['is_reject'] || props.liquidate.status !== 'reviewed' || !$page.props.auth.can.liquidation_reject"
-                                    :class="[
-                                        props.liquidate.status === 'reviewed'
-                                            ? 'bg-red-500 hover:bg-red-600'
-                                            : 'bg-gray-300 cursor-not-allowed',
-                                    ]" 
-                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px]">
-                                    <img src="/assets/images/rejected.png" class="w-5 h-5 mr-2" alt="Reject" />
-                                    <span class="text-sm font-bold text-white">{{
-                                        isType['is_reject'] ? "Please Wait..." : "Reject"
-                                    }}</span>
-                                </button>
-                                <span v-show="props.liquidate?.rejected_at" class="text-sm text-gray-600">
-                                    On {{ moment(props.liquidate?.rejected_at).format('DD/MM/YYYY HH:mm') }}
-                                </span>
-                                <span v-show="props.liquidate?.rejected_by" class="text-sm text-gray-600">
-                                    By {{ props.liquidate?.rejectedBy?.name }}
-                                </span>
-                            </div>
-                        </div>
-
-                        <!-- Restore button -->
-                        <div class="relative" v-if="props.liquidate.status === 'rejected'">
-                            <div class="flex flex-col">
-                                <button @click="restoreLiquidation()" 
-                                    :disabled="isType['is_restore'] || !$page.props.auth.can.liquidation_edit"
-                                    class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px] bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                    </svg>
-                                    <span class="text-sm font-bold text-white">{{
-                                        isType['is_restore'] ? "Please Wait..." : "Restore"
-                                    }}</span>
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -597,8 +542,6 @@ const isLoading = ref(false);
 const isType = ref({
     is_reviewing: false,
     is_approve: false,
-    is_reject: false,
-    is_restore: false
 });
 
 // Attachment dropdown states
@@ -707,137 +650,6 @@ const changeStatus = (liquidateId, newStatus, type) => {
     });
 };
 
-const rejectLiquidation = () => {
-    Swal.fire({
-        title: 'Reject Liquidation',
-        icon: 'warning',
-        html: '<div class="mb-3 flex flex-col"><label class="form-label">Reason for rejection</label><textarea id="rejection-reason" class="form-control" rows="3" placeholder="Enter your reason here..."></textarea></div>',
-        showCancelButton: true,
-        confirmButtonColor: '#EF4444',
-        cancelButtonColor: '#6B7280',
-        confirmButtonText: 'Reject',
-        cancelButtonText: 'Cancel',
-        showLoaderOnConfirm: true,
-        preConfirm: () => {
-            const reason = document.getElementById('rejection-reason').value;
-            if (!reason.trim()) {
-                Swal.showValidationMessage('Please provide a reason for rejection');
-                return false;
-            }
-            return reason;
-        },
-        allowOutsideClick: () => !Swal.isLoading()
-    }).then(async (result) => {
-        if (result.isConfirmed && result.value) {
-            // Set loading state
-            isType.value.is_reject = true;
-
-            await axios
-                .post(route('liquidate-disposal.liquidates.reject', props.liquidate.id), {
-                    reason: result.value
-                }, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    withCredentials: true
-                })
-                .then((response) => {
-                    // Reset loading state
-                    isType.value.is_reject = false;
-
-                    Swal.fire({
-                        title: "Updated!",
-                        text: "Liquidation has been rejected.",
-                        icon: "success",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                    }).then(() => {
-                        // Reload the page to show the updated status
-                        router.reload();
-                    });
-                })
-                .catch((error) => {
-                    // Reset loading state
-                    isType.value.is_reject = false;
-
-                    Swal.fire({
-                        title: "Error!",
-                        text:
-                            error.response?.data?.message ||
-                            "Failed to reject liquidation",
-                        icon: "error",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                    });
-                });
-        }
-    });
-};
-
-const restoreLiquidation = () => {
-    Swal.fire({
-        title: 'Restore Liquidation',
-        text: 'Are you sure you want to restore this liquidation to pending status?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#6B7280',
-        confirmButtonText: 'Yes, restore it!',
-        cancelButtonText: 'Cancel'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            // Set loading state
-            isType.value.is_restore = true;
-
-            await axios
-                .post(route('liquidate-disposal.liquidates.rollback', props.liquidate.id), {}, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    withCredentials: true
-                })
-                .then((response) => {
-                    // Reset loading state
-                    isType.value.is_restore = false;
-
-                    Swal.fire({
-                        title: "Updated!",
-                        text: "Liquidation has been restored.",
-                        icon: "success",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                    }).then(() => {
-                        // Reload the page to show the updated status
-                        router.reload();
-                    });
-                })
-                .catch((error) => {
-                    // Reset loading state
-                    isType.value.is_restore = false;
-
-                    Swal.fire({
-                        title: "Error!",
-                        text:
-                            error.response?.data?.message ||
-                            "Failed to restore liquidation",
-                        icon: "error",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                    });
-                });
-        }
-    });
-};
 
 // Lifecycle hooks for dropdown management
 onMounted(() => {

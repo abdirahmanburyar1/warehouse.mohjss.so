@@ -23,7 +23,9 @@ class BackOrder extends Model
         'attach_documents',
         'created_by',
         'updated_by',
-        'reported_by'
+        'reported_by',
+        'warehouse_id',
+        'facility_id'
     ];
 
     protected $casts = [
@@ -82,6 +84,16 @@ class BackOrder extends Model
     public function disposal(): HasOne
     {
         return $this->hasOne(Disposal::class);
+    }
+    
+    public function warehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class);
+    }
+
+    public function facility(): BelongsTo
+    {
+        return $this->belongsTo(Facility::class);
     }
 
     /**

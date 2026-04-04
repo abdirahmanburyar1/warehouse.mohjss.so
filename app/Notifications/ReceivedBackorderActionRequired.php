@@ -40,15 +40,29 @@ class ReceivedBackorderActionRequired extends Notification implements ShouldQueu
     {
         $rbNumber = $this->receivedBackorder->received_backorder_number ?? '#' . $this->receivedBackorder->id;
         $type = $this->receivedBackorder->type ? str_replace('_', ' ', $this->receivedBackorder->type) : 'N/A';
-        $path = route('supplies.received-backorder.show', [$this->receivedBackorder->id], false);
-        $showUrl = str_starts_with($path, 'http') ? $path : rtrim(config('app.url'), '/') . (str_starts_with($path, '/') ? $path : '/' . $path);
+        
+        // Determine the correct base URL based on the recipient's primary platform
+        $baseUrl = config('app.url'); // Default to current platform
+        
+        if ($notifiable->warehouse_id) {
+            $warehouseType = $notifiable->warehouse->type ?? null;
+            if ($warehouseType === 'central') {
+                $baseUrl = 'https://warehouse.mohjss.so';
+            } elseif ($warehouseType === 'regional') {
+                $baseUrl = 'https://regionalwrjss.vistawims.com';
+            }
+        } elseif ($notifiable->facility_id) {
+            $baseUrl = 'https://hcjss.vistawims.com';
+        }
+
+        $showUrl = rtrim($baseUrl, '/') . '/supplies/received-backorder/' . $this->receivedBackorder->id;
 
         if ($this->action === self::ACTION_NEEDS_REVIEW) {
             $subject = 'Received back order ' . $rbNumber . ' needs your review';
             $line1 = 'A received back order has been submitted and needs your review.';
         } else {
             $subject = 'Received back order ' . $rbNumber . ' is ready for approval';
-            $line1 = 'Received back order ' . $rbNumber . ' has been reviewed and is ready for your approval or rejection.';
+            $line1 = 'Received back order ' . $rbNumber . ' has been reviewed and is ready for your approval.';
         }
 
         return (new MailMessage)

@@ -83,15 +83,7 @@
                             <p class="text-xs text-gray-500">Approved At: {{ formatDate(disposal.approved_at) }}</p>
                         </div>
                     </div>
-                    <div v-if="disposal.rejected_at" class="flex items-center">
-                        <div>
-                            <p class="text-sm font-medium text-gray-500">Rejected By</p>
-                            <p class="text-sm text-gray-900">{{ disposal.rejectedBy?.name || 'N/A' }}</p>
-                            <p class="text-xs text-gray-500">Rejected At: {{ formatDate(disposal.rejected_at) }}</p>
-                            <p v-if="disposal.rejection_reason" class="text-xs text-red-600 mt-1">{{ disposal.rejection_reason }}</p>
-                        </div>
-                    </div>
-                    <div v-if="!disposal.reviewed_at && !disposal.approved_at && !disposal.rejected_at" class="flex items-center">
+                    <div v-if="!disposal.reviewed_at && !disposal.approved_at" class="flex items-center">
                         <svg class="h-4 w-4 text-gray-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                         </svg>
@@ -101,18 +93,7 @@
             </div>
         </div>
 
-        <!-- Status Stage Timeline -->
-        <div v-if="disposal.status == 'rejected'" class="mb-6">
-            <div class="flex flex-col items-center">
-                <div class="w-14 h-14 rounded-full border-4 flex items-center justify-center z-10 bg-white border-red-500">
-                    <svg class="w-7 h-7 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                </div>
-                <h1 class="mt-3 text-2xl text-red-600 font-bold">Rejected</h1>
-            </div>
-        </div>
-        <div v-else class="col-span-2 mb-6">
+        <div class="col-span-2 mb-6 px-6">
             <div class="relative">
                 <!-- Timeline Track Background -->
                 <div class="absolute top-7 left-0 right-0 h-2 bg-gray-200 z-0"></div>
@@ -286,7 +267,7 @@
                     <div class="relative">
                         <div class="flex flex-col">
                             <button @click="changeStatus(disposal.id, 'reviewed', 'is_reviewing')" 
-                                :disabled="isType['is_reviewing'] || disposal.status !== 'pending' || !$page.props.auth.can.disposal_review"
+                                :disabled="isType['is_reviewing'] || disposal.status !== 'pending' || !$page.props.auth.can.disposal_review || !props.disposal.can_review"
                                 :class="[
                                     disposal.status === 'pending'
                                     ? 'bg-yellow-500 hover:bg-yellow-600'
@@ -312,16 +293,21 @@
                             <span v-show="disposal?.reviewed_by" class="text-sm text-gray-600">
                                 By {{ disposal?.reviewed_by?.name }}
                             </span>
+                            <!-- Authority Indicator -->
+                            <span v-if="disposal.status === 'pending' && !props.disposal.can_review && $page.props.auth.user.warehouse?.type === 'central'" 
+                                class="text-[10px] text-blue-600 mt-1 font-medium italic">
+                                * Review by Regional Warehouse
+                            </span>
                         </div>
                         <div v-if="disposal.status === 'pending'"
                             class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
                     </div>
 
                     <!-- Approved button -->
-                    <div class="relative" v-if="disposal.status !== 'rejected'">
+                    <div class="relative">
                         <div class="flex flex-col">
                             <button @click="changeStatus(disposal.id, 'approved', 'is_approve')" 
-                                :disabled="isType['is_approve'] || disposal.status !== 'reviewed' || !$page.props.auth.can.disposal_approve"
+                                :disabled="isType['is_approve'] || disposal.status !== 'reviewed' || !$page.props.auth.can.disposal_approve || !props.disposal.can_approve"
                                 :class="[
                                     disposal.status === 'reviewed'
                                     ? 'bg-yellow-500 hover:bg-yellow-600'
@@ -359,52 +345,20 @@
                             <span v-show="disposal?.approved_by" class="text-sm text-gray-600">
                                 By {{ disposal?.approved_by?.name }}
                             </span>
+                            <!-- Authority Indicator -->
+                            <div class="flex flex-col mt-1">
+                                <span v-if="disposal.status === 'reviewed' && !props.disposal.can_approve && $page.props.auth.user.warehouse?.type === 'regional'" 
+                                    class="text-[10px] text-blue-600 font-medium italic">
+                                    * Approval by Central Warehouse
+                                </span>
+                                <span v-if="disposal.status === 'pending' && $page.props.auth.user.warehouse?.type === 'central'" 
+                                    class="text-[10px] text-amber-600 font-medium italic">
+                                    * Awaiting Regional Review
+                                </span>
+                            </div>
                         </div>
                         <div v-if="disposal.status === 'reviewed'"
                             class="absolute -top-2 -right-2 w-4 h-4 bg-yellow-400 rounded-full animate-pulse"></div>
-                    </div>
-
-                    <!-- Rejected button -->
-                    <div class="relative" v-if="disposal.status !== 'rejected' && disposal.status !== 'approved'">
-                        <div class="flex flex-col">
-                            <button @click="rejectDisposal()" 
-                                :disabled="isType['is_reject'] || disposal.status !== 'reviewed' || !$page.props.auth.can.disposal_reject"
-                                :class="[
-                                    disposal.status === 'reviewed'
-                                        ? 'bg-red-500 hover:bg-red-600'
-                                        : 'bg-gray-300 cursor-not-allowed',
-                                ]" 
-                                class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px]">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                </svg>
-                                <span class="text-sm font-bold text-white">{{
-                                    isType['is_reject'] ? "Please Wait..." : "Reject"
-                                }}</span>
-                            </button>
-                            <span v-show="disposal?.rejected_at" class="text-sm text-gray-600">
-                                On {{ moment(disposal?.rejected_at).format('DD/MM/YYYY HH:mm') }}
-                            </span>
-                            <span v-show="disposal?.rejected_by" class="text-sm text-gray-600">
-                                By {{ disposal?.rejectedBy?.name }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Restore button -->
-                    <div class="relative" v-if="disposal.status === 'rejected'">
-                        <div class="flex flex-col">
-                            <button @click="restoreDisposal()" 
-                                :disabled="isType['is_restore'] || !$page.props.auth.can.disposal_edit"
-                                class="inline-flex items-center justify-center px-4 py-2 rounded-lg shadow-sm transition-colors duration-150 text-white min-w-[160px] bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed">
-                                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                                </svg>
-                                <span class="text-sm font-bold text-white">{{
-                                    isType['is_restore'] ? "Please Wait..." : "Restore"
-                                }}</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -437,8 +391,6 @@ const isLoading = ref(false);
 const isType = ref({
     is_reviewing: false,
     is_approve: false,
-    is_reject: false,
-    is_restore: false
 });
 
 const formatDate = (date) => {
@@ -457,8 +409,7 @@ const getStatusClasses = (status) => {
     const classes = {
         pending: 'bg-yellow-100 text-yellow-800',
         reviewed: 'bg-blue-100 text-blue-800',
-        approved: 'bg-green-100 text-green-800',
-        rejected: 'bg-red-100 text-red-800'
+        approved: 'bg-green-100 text-green-800'
     };
     return classes[status] || 'bg-gray-100 text-gray-800';
 };
@@ -483,7 +434,6 @@ const changeStatus = (disposalId, newStatus, type) => {
             const routeMap = {
                 'reviewed': 'review',
                 'approved': 'approve',
-                'rejected': 'reject'
             };
             
             const routeName = routeMap[newStatus] || newStatus;
@@ -532,137 +482,6 @@ const changeStatus = (disposalId, newStatus, type) => {
                 });
         }
     });
-};
+}
 
-const rejectDisposal = () => {
-    Swal.fire({
-        title: 'Reject Disposal',
-        icon: 'warning',
-        html: '<div class="mb-3 flex flex-col"><label class="form-label">Reason for rejection</label><textarea id="rejection-reason" class="form-control" rows="3" placeholder="Enter your reason here..."></textarea></div>',
-        showCancelButton: true,
-        confirmButtonColor: '#EF4444',
-        cancelButtonColor: '#6B7280',
-        confirmButtonText: 'Reject',
-        cancelButtonText: 'Cancel',
-        showLoaderOnConfirm: true,
-        preConfirm: () => {
-            const reason = document.getElementById('rejection-reason').value;
-            if (!reason.trim()) {
-                Swal.showValidationMessage('Please provide a reason for rejection');
-                return false;
-            }
-            return reason;
-        },
-        allowOutsideClick: () => !Swal.isLoading()
-    }).then(async (result) => {
-        if (result.isConfirmed && result.value) {
-            // Set loading state
-            isType.value.is_reject = true;
-
-            await axios
-                .post(route('liquidate-disposal.disposals.reject', props.disposal.id), {
-                    reason: result.value
-                }, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    withCredentials: true
-                })
-                .then((response) => {
-                    // Reset loading state
-                    isType.value.is_reject = false;
-
-                    Swal.fire({
-                        title: "Updated!",
-                        text: "Disposal has been rejected.",
-                        icon: "success",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                    }).then(() => {
-                        // Reload the page to show the updated status
-                        router.reload();
-                    });
-                })
-                .catch((error) => {
-                    // Reset loading state
-                    isType.value.is_reject = false;
-
-                    Swal.fire({
-                        title: "Error!",
-                        text:
-                            error.response?.data?.message ||
-                            "Failed to reject disposal",
-                        icon: "error",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                    });
-                });
-        }
-    });
-};
-
-const restoreDisposal = () => {
-    Swal.fire({
-        title: 'Restore Disposal',
-        text: 'Are you sure you want to restore this disposal to pending status?',
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#6B7280',
-        confirmButtonText: 'Yes, restore it!',
-        cancelButtonText: 'Cancel'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            // Set loading state
-            isType.value.is_restore = true;
-
-            await axios
-                .post(route('liquidate-disposal.disposals.rollback', props.disposal.id), {}, {
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                    },
-                    withCredentials: true
-                })
-                .then((response) => {
-                    // Reset loading state
-                    isType.value.is_restore = false;
-
-                    Swal.fire({
-                        title: "Updated!",
-                        text: "Disposal has been restored.",
-                        icon: "success",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                    }).then(() => {
-                        // Reload the page to show the updated status
-                        router.reload();
-                    });
-                })
-                .catch((error) => {
-                    // Reset loading state
-                    isType.value.is_restore = false;
-
-                    Swal.fire({
-                        title: "Error!",
-                        text:
-                            error.response?.data?.message ||
-                            "Failed to restore disposal",
-                        icon: "error",
-                        toast: true,
-                        position: "top-end",
-                        showConfirmButton: false,
-                        timer: 3000,
-                    });
-                });
-        }
-    });
-};
 </script> 

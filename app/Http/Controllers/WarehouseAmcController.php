@@ -22,6 +22,7 @@ class WarehouseAmcController extends Controller
      */
     public function index(Request $request)
     {
+        $user = auth()->user();
 
         // Get the selected year, default to current year
         $selectedYear = $request->get('year', now()->year);
@@ -69,11 +70,12 @@ class WarehouseAmcController extends Controller
 
         // Apply year filter
         if ($request->filled('year')) {
-            $query->whereExists(function ($subQuery) use ($request) {
+            $query->whereExists(function ($subQuery) use ($request, $user) {
                 $subQuery->select(DB::raw(1))
                     ->from('warehouse_amcs')
                     ->whereColumn('warehouse_amcs.product_id', 'products.id')
-                    ->where('warehouse_amcs.month_year', 'like', $request->year . '-%');
+                    ->where('warehouse_amcs.month_year', 'like', $request->year . '-%')
+                    ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id));
             });
         }
 
@@ -87,7 +89,11 @@ class WarehouseAmcController extends Controller
         $products = $query->get();
 
         // Determine if AMC should be shown (only for the latest year with data)
-        $latestMonthYear = WarehouseAmc::max('month_year');
+        $latestAmcQuery = WarehouseAmc::query();
+        if ($user->warehouse_id) {
+            $latestAmcQuery->where('warehouse_id', $user->warehouse_id);
+        }
+        $latestMonthYear = $latestAmcQuery->max('month_year');
         $latestYear = $latestMonthYear ? substr($latestMonthYear, 0, 4) : null;
         $showAmc = $latestYear && (string) $selectedYear === (string) $latestYear;
 
@@ -110,9 +116,14 @@ class WarehouseAmcController extends Controller
 
             // Get consumption data for each month (per selected year)
             foreach ($monthYears as $monthYear) {
-                $consumption = WarehouseAmc::where('product_id', $product->id)
-                    ->where('month_year', $monthYear)
-                    ->value('quantity') ?? 0;
+                $consumptionQuery = WarehouseAmc::where('product_id', $product->id)
+                    ->where('month_year', $monthYear);
+                
+                if ($user->warehouse_id) {
+                    $consumptionQuery->where('warehouse_id', $user->warehouse_id);
+                }
+
+                $consumption = $consumptionQuery->value('quantity') ?? 0;
                 
                 $row['months'][$monthYear] = $consumption;
             }
@@ -143,12 +154,18 @@ class WarehouseAmcController extends Controller
      */
     public function getData(Request $request)
     {
+        $user = auth()->user();
         $query = WarehouseAmc::query()
             ->with([
                 'product:id,name,category_id,dosage_id',
                 'product.category:id,name',
                 'product.dosage:id,name'
             ]);
+
+        // Filter by warehouse
+        if ($user->warehouse_id) {
+            $query->where('warehouse_id', $user->warehouse_id);
+        }
 
         // Apply filters
         if ($request->filled('search')) {
@@ -209,15 +226,17 @@ class WarehouseAmcController extends Controller
         }
 
         // Build the pivot table query
+        $user = auth()->user();
         $query = Product::query()
             ->select([
                 'products.id',
                 'products.name'
             ])
-            ->whereExists(function($subQuery) {
+            ->whereExists(function($subQuery) use ($user) {
                 $subQuery->select(DB::raw(1))
                     ->from('warehouse_amcs')
-                    ->whereColumn('warehouse_amcs.product_id', 'products.id');
+                    ->whereColumn('warehouse_amcs.product_id', 'products.id')
+                    ->when($user->warehouse_id, fn($q) => $q->where('warehouse_id', $user->warehouse_id));
             });
 
         // Apply filters
@@ -232,7 +251,11 @@ class WarehouseAmcController extends Controller
         $products = $query->orderBy('products.name')->get();
 
         // Determine if AMC should be shown (only for the latest year with data)
-        $latestMonthYear = WarehouseAmc::max('month_year');
+        $latestAmcQuery = WarehouseAmc::query();
+        if ($user->warehouse_id) {
+            $latestAmcQuery->where('warehouse_id', $user->warehouse_id);
+        }
+        $latestMonthYear = $latestAmcQuery->max('month_year');
         $latestYear = $latestMonthYear ? substr($latestMonthYear, 0, 4) : null;
         $showAmc = $latestYear && (string) $selectedYear === (string) $latestYear;
 
@@ -253,9 +276,14 @@ class WarehouseAmcController extends Controller
 
             // Add consumption data for each month
             foreach ($monthYears as $monthYear) {
-                $consumption = WarehouseAmc::where('product_id', $product->id)
-                    ->where('month_year', $monthYear)
-                    ->value('quantity') ?? 0;
+                $consumptionQuery = WarehouseAmc::where('product_id', $product->id)
+                    ->where('month_year', $monthYear);
+                
+                if ($user->warehouse_id) {
+                    $consumptionQuery->where('warehouse_id', $user->warehouse_id);
+                }
+
+                $consumption = $consumptionQuery->value('quantity') ?? 0;
                 
                 $row[$monthYear] = $consumption;
             }
@@ -311,7 +339,7 @@ class WarehouseAmcController extends Controller
             if ($fileSize > $largeFileThreshold) {
                 try {
                     $storedPath = $file->store('warehouse-amc-imports', 'local');
-                    Excel::queueImport(new WarehouseAmcImport($importId, $storedPath), $storedPath)->onQueue('imports');
+                    Excel::queueImport(new WarehouseAmcImport($importId, $storedPath, auth()->user()->warehouse_id), $storedPath)->onQueue('imports');
                     return response()->json([
                         'success' => true,
                         'message' => 'Large file detected. Import has been queued and will process in the background.',
@@ -324,7 +352,7 @@ class WarehouseAmcController extends Controller
             }
 
             $storedPath = $file->store('warehouse-amc-imports', 'local');
-            $import = new WarehouseAmcImport($importId, $storedPath);
+            $import = new WarehouseAmcImport($importId, $storedPath, auth()->user()->warehouse_id);
             Excel::import($import, $storedPath);
             $results = $import->getResults();
 

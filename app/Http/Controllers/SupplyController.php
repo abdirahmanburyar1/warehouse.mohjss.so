@@ -123,7 +123,7 @@ class SupplyController extends Controller
         if (!auth()->user()->hasPermission('purchase-order-view')) {
             abort(403, 'Unauthorized: You do not have permission to view purchase orders.');
         }
-        $po = PurchaseOrder::with('items.product','supplier','documents.uploader','creator','approvedBy','rejectedBy','reviewedBy')->find($id);
+        $po = PurchaseOrder::with('items.product','supplier','documents.uploader','creator','approvedBy','rejectedBy','reviewedBy')->where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($id);
         return inertia("Supplies/PurchaseO/Show", [
             'po' => $po
         ]);
@@ -212,7 +212,9 @@ class SupplyController extends Controller
     public function getTransferBackOrder(Request $request, $id)
     {
         try {
-            $transfer = Transfer::find($id);
+            $transfer = Transfer::where(function($q) {
+                $q->orWhere('to_warehouse_id', auth()->user()->warehouse_id);
+            })->findOrFail($id);
             if (! $transfer) {
                 return response()->json(['error' => 'Transfer not found'], 404);
             }
@@ -325,11 +327,14 @@ class SupplyController extends Controller
             
             // Load back order with relations so we can fulfill liquidate columns from it
             $backOrder = BackOrder::with(['transfer.toWarehouse', 'transfer.toFacility'])
+                ->where('warehouse_id', auth()->user()->warehouse_id)
                 ->findOrFail($request->back_order_id);
             $sourceLocation = $this->resolveFacilityWarehouseFromBackOrder($backOrder);
             
-            // Check if there is already a liquidation for this back order
-            $liquidate = Liquidate::where('back_order_id', $request->back_order_id)->first();
+            // Check if there is already a pending liquidation for this back order to consolidate items
+            $liquidate = Liquidate::where('back_order_id', $request->back_order_id)
+                ->where('status', 'pending')
+                ->first();
             
             $liquidateIsNew = false;
             if (!$liquidate) {
@@ -337,6 +342,7 @@ class SupplyController extends Controller
                 $liquidate = Liquidate::create([
                     'liquidated_by' => auth()->id(),
                     'liquidated_at' => now(),
+                    'warehouse_id' => auth()->user()->warehouse_id,
                     'status' => 'pending',
                     'source' => $sourceLocation['warehouse'] ?: $sourceLocation['facility'] ?: $this->resolveSourceFromBackOrder($backOrder),
                     'facility' => $sourceLocation['facility'],
@@ -419,9 +425,9 @@ class SupplyController extends Controller
             // Update the packing list difference to mark as finalized
             $packingListDiff = PackingListDifference::find($request->id);
             if ($packingListDiff) {
-                $packingListDiff->update([
-                    'finalized' => true
-                ]);
+                $packingListDiff->original_quantity = $packingListDiff->original_quantity ?? $packingListDiff->quantity;
+                $packingListDiff->finalized = 1;
+                $packingListDiff->save();
                 
                 // Update inventory allocation if it exists
                 if ($packingListDiff->inventory_allocation_id) {
@@ -433,17 +439,7 @@ class SupplyController extends Controller
                 }
             }
 
-            // Notify users with liquidation-review permission when new liquidation is created (next action = review)
-            if ($liquidateIsNew) {
-                $reviewers = User::withPermission('liquidation-review')
-                    ->where('is_active', true)
-                    ->whereNotNull('email')
-                    ->where('id', '!=', auth()->id())
-                    ->get();
-                foreach ($reviewers as $user) {
-                    $user->notify(new LiquidationActionRequired($liquidate, LiquidationActionRequired::ACTION_NEEDS_REVIEW));
-                }
-            }
+            // Notifications suppressed for backorder liquidations as they are auto-approved upon completion
             
             // Handle attachments if any
             if ($request->hasFile('attachments')) {
@@ -467,6 +463,18 @@ class SupplyController extends Controller
                 $liquidateItem->update(['attachments' => $attachments]);
             }
             
+            // Check if all items for this backorder are finalized
+            $remaining = PackingListDifference::where('back_order_id', $backOrder->id)
+                ->where(function($q) {
+                    $q->whereNull('finalized')->orWhere('finalized', 0)->orWhere('finalized', '');
+                })->count();
+
+            if ($remaining === 0) {
+                // Auto-approve consolidated headers as they don't need manual review
+                Disposal::where('back_order_id', $backOrder->id)->where('status', 'pending')->update(['status' => 'approved']);
+                Liquidate::where('back_order_id', $backOrder->id)->where('status', 'pending')->update(['status' => 'approved']);
+            }
+
             DB::commit();
             
             return response()->json('Item liquidated successfully', 200);
@@ -485,11 +493,14 @@ class SupplyController extends Controller
             
             // Load back order with relations so we can fulfill disposal columns from it
             $backOrder = BackOrder::with(['transfer.toWarehouse', 'transfer.toFacility'])
+                ->where('warehouse_id', auth()->user()->warehouse_id)
                 ->findOrFail($request->back_order_id);
             $sourceLocation = $this->resolveFacilityWarehouseFromBackOrder($backOrder);
             
-            // Check if there is already a disposal for this back order
-            $disposal = Disposal::where('back_order_id', $request->back_order_id)->first();
+            // Check if there is already a pending disposal for this back order to consolidate items
+            $disposal = Disposal::where('back_order_id', $request->back_order_id)
+                ->where('status', 'pending')
+                ->first();
             
             $disposalIsNew = false;
             if (!$disposal) {
@@ -497,6 +508,7 @@ class SupplyController extends Controller
                 $disposal = Disposal::create([
                     'disposed_by' => auth()->id(),
                     'disposed_at' => now(),
+                    'warehouse_id' => auth()->user()->warehouse_id,
                     'status' => 'pending',
                     'source' => $sourceLocation['warehouse'] ?: $sourceLocation['facility'] ?: $this->resolveSourceFromBackOrder($backOrder),
                     'facility' => $sourceLocation['facility'],
@@ -582,9 +594,9 @@ class SupplyController extends Controller
             // Update the packing list difference to mark as finalized
             $packingListDiff = PackingListDifference::find($request->id);
             if ($packingListDiff) {
-                $packingListDiff->update([
-                    'finalized' => true
-                ]);
+                $packingListDiff->original_quantity = $packingListDiff->original_quantity ?? $packingListDiff->quantity;
+                $packingListDiff->finalized = 1;
+                $packingListDiff->save();
                 
                 // Update inventory allocation if it exists
                 if ($packingListDiff->inventory_allocation_id) {
@@ -596,17 +608,7 @@ class SupplyController extends Controller
                 }
             }
 
-            // Notify users with disposal-review permission when new disposal is created from back order (next action = review)
-            if ($disposalIsNew) {
-                $reviewers = User::withPermission('disposal-review')
-                    ->where('is_active', true)
-                    ->whereNotNull('email')
-                    ->where('id', '!=', auth()->id())
-                    ->get();
-                foreach ($reviewers as $user) {
-                    $user->notify(new DisposalActionRequired($disposal, DisposalActionRequired::ACTION_NEEDS_REVIEW));
-                }
-            }
+            // Notifications suppressed for backorder disposals as they are auto-approved upon completion
             
             // Handle attachments if any
             if ($request->hasFile('attachments')) {
@@ -630,6 +632,18 @@ class SupplyController extends Controller
                 $disposalItem->update(['attachments' => $attachments]);
             }
             
+            // Check if all items for this backorder are finalized
+            $remaining = PackingListDifference::where('back_order_id', $backOrder->id)
+                ->where(function($q) {
+                    $q->whereNull('finalized')->orWhere('finalized', 0)->orWhere('finalized', '');
+                })->count();
+
+            if ($remaining === 0) {
+                // Auto-approve consolidated headers as they don't need manual review
+                Disposal::where('back_order_id', $backOrder->id)->where('status', 'pending')->update(['status' => 'approved']);
+                Liquidate::where('back_order_id', $backOrder->id)->where('status', 'pending')->update(['status' => 'approved']);
+            }
+
             DB::commit();
             
             return response()->json('Item disposed successfully', 200);
@@ -690,7 +704,9 @@ class SupplyController extends Controller
             $allRecordsWithId = PackingListDifference::where('id', $request->id)->get();
             logger()->info('All records with ID ' . $request->id . ':', $allRecordsWithId->toArray());
             
-            $backOrder = BackOrder::with(['packingList', 'order', 'transfer'])->find($request->back_order_id);
+            $backOrder = BackOrder::with(['packingList', 'order', 'transfer'])
+                ->where('warehouse_id', auth()->user()->warehouse_id)
+                ->find($request->back_order_id);
             
             if (!$packingListDiff) {
                 return response()->json([
@@ -827,38 +843,44 @@ class SupplyController extends Controller
             
             if ($backOrder->packing_list_id) {
                 $backOrderType = 'Packing List';
-                // Packing list back order - already has packing_list_id
             } elseif ($backOrder->order_id) {
                 $backOrderType = 'order';
                 $orderId = $backOrder->order_id;
-                // Get facility_id from the order if available
                 if ($backOrder->order && $backOrder->order->facility_id) {
                     $facilityId = $backOrder->order->facility_id;
                 }
             } elseif ($backOrder->transfer_id) {
                 $backOrderType = 'transfer';
                 $transferId = $backOrder->transfer_id;
-                // Get facility_id from the transfer if available
                 if ($backOrder->transfer && $backOrder->transfer->to_facility_id) {
                     $facilityId = $backOrder->transfer->to_facility_id;
                 }
             }
             
-            // Create a received back order record (pending approval)
-            $receivedBackorder = \App\Models\ReceivedBackorder::create([
-                'received_by' => auth()->user()->id,
-                'received_at' => now(),
-                'status' => 'pending',
-                'type' => $backOrderType,
-                'warehouse_id' => $warehouseIdForReceived,
-                'facility_id' => $facilityId,
-                'back_order_id' => $request->back_order_id,
-                'packing_list_id' => $backOrder->packing_list_id,
-                'order_id' => $orderId,
-                'transfer_id' => $transferId,
-                'packing_list_number' => $noteLabel,
-                'purchase_order_id' => $request->purchase_order_id,
-            ]);
+            // Check if there is already a pending received backorder record for this back order to consolidate items
+            // Also scope by current user's warehouse to avoid cross-warehouse consolidation
+            $receivedBackorder = \App\Models\ReceivedBackorder::where('back_order_id', $request->back_order_id)
+                ->where('warehouse_id', auth()->user()->warehouse_id)
+                ->where('status', 'pending')
+                ->first();
+
+            if (!$receivedBackorder) {
+                // Create a new received back order record (pending approval)
+                $receivedBackorder = \App\Models\ReceivedBackorder::create([
+                    'received_by' => auth()->user()->id,
+                    'received_at' => now(),
+                    'status' => 'pending',
+                    'type' => $backOrderType,
+                    'warehouse_id' => auth()->user()->warehouse_id,
+                    'facility_id' => $facilityId,
+                    'back_order_id' => $request->back_order_id,
+                    'packing_list_id' => $backOrder->packing_list_id,
+                    'order_id' => $orderId,
+                    'transfer_id' => $transferId,
+                    'packing_list_number' => $noteLabel,
+                    'purchase_order_id' => $request->purchase_order_id,
+                ]);
+            }
             
             // Create the received backorder item
             $receivedBackorder->items()->create([
@@ -875,15 +897,7 @@ class SupplyController extends Controller
                 'note' => "Received from Back Order: {$noteLabel}",
             ]);
 
-            // Notify users with received-backorder review permission (next action = review)
-            $reviewers = User::withPermission('received-backorder-review')
-                ->where('is_active', true)
-                ->whereNotNull('email')
-                ->where('id', '!=', auth()->id())
-                ->get();
-            foreach ($reviewers as $user) {
-                $user->notify(new ReceivedBackorderActionRequired($receivedBackorder, ReceivedBackorderActionRequired::ACTION_NEEDS_REVIEW));
-            }
+            // Notifications suppressed for backorder receives as they are auto-approved upon completion
             
             // Update inventory allocation if it exists
             if ($packingListDiff->inventory_allocation_id) {
@@ -894,21 +908,52 @@ class SupplyController extends Controller
                 }
             }
             
+            // 🆕 Update source items (Packing List, Transfer, or Order)
+            if ($isTransferBackOrder && isset($transferItem)) {
+                $transferItem->increment('quantity', $receivedQuantity);
+            } elseif ($packingListItem) {
+                $packingListItem->increment('quantity', $receivedQuantity);
+            }
+            
+            if ($backOrder->order_id) {
+                $orderItemSource = \App\Models\OrderItem::where('order_id', $backOrder->order_id)
+                    ->where('product_id', $productIdForRow)
+                    ->first();
+                if ($orderItemSource) {
+                    $orderItemSource->increment('received_quantity', $receivedQuantity);
+                }
+            }
+            
             // Decrement the packing list difference quantity
             $packingListDiff->decrement('quantity', $receivedQuantity);
 
             // When fully received (remaining = 0), mark as finalized and store original quantity for display
             if ($packingListDiff->quantity <= 0) {
-                $packingListDiff->update([
-                    'finalized' => true,
-                    'original_quantity' => $originalQuantity,
-                ]);
+                $packingListDiff->original_quantity = $originalQuantity ?? $packingListDiff->original_quantity ?? ($packingListDiff->quantity + $receivedQuantity);
+                $packingListDiff->finalized = 1;
+                $packingListDiff->save();
             }
             
             // Note: Inventory is not updated directly during receive action
             // The received quantities are stored in ReceivedBackorder and BackOrderHistory
             // Inventory will be updated only when the received backorder is approved
             
+            // Check if all items for this backorder are finalized
+            $remaining = PackingListDifference::where('back_order_id', $backOrder->id)
+                ->where(function($q) {
+                    $q->whereNull('finalized')->orWhere('finalized', 0)->orWhere('finalized', '');
+                })->count();
+
+            if ($remaining === 0) {
+                // Auto-approve consolidated headers as they don't need manual review
+                Disposal::where('back_order_id', $backOrder->id)->where('status', 'pending')->update(['status' => 'approved']);
+                Liquidate::where('back_order_id', $backOrder->id)->where('status', 'pending')->update(['status' => 'approved']);
+                
+                // Note: Auto-approving ReceivedBackorder headers. 
+                // In a future phase, we should ensure inventory update logic is triggered.
+                \App\Models\ReceivedBackorder::where('back_order_id', $backOrder->id)->where('status', 'pending')->update(['status' => 'approved']);
+            }
+
             // Commit the transaction
             DB::commit();
             
@@ -930,22 +975,33 @@ class SupplyController extends Controller
 
     public function backOrder(Request $request)
     {
-        $packingList = PackingList::whereIn('status', ['pending', 'approved'])
-            ->whereHas('items.differences', fn ($q) => $q->where('finalized', 0))
-            ->select('id', 'packing_list_number')
-            ->with('purchaseOrder:id,po_number')
+        $warehouseId = auth()->user()->warehouse_id;
+
+        // Fetch all pending backorders for this warehouse
+        $allBackOrders = BackOrder::where('warehouse_id', $warehouseId)
+            ->whereHas('differences', fn ($q) => $q->where('finalized', 0))
+            ->with([
+                'packingList:id,packing_list_number,purchase_order_id',
+                'packingList.purchaseOrder:id,po_number',
+                'transfer:id,transferID,from_warehouse_id,to_warehouse_id',
+                'order:id,order_number,facility_id'
+            ])
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // Transfers that have back orders (same concept as packing list back orders)
-        $transferBackOrders = Transfer::query()
-            ->whereHas('backorders.differences', fn ($q) => $q->where('quantity', '>', 0)->where('finalized', 0))
-            ->select('id', 'transferID')
-            ->orderBy('created_at', 'desc')
-            ->get();
+        // Categorize for frontend compatibility
+        $packingLists = $allBackOrders->filter(fn($bo) => $bo->packing_list_id)
+            ->map(fn($bo) => $bo->packingList)
+            ->unique('id')
+            ->values();
+
+        $transferBackOrders = $allBackOrders->filter(fn($bo) => $bo->transfer_id)
+            ->map(fn($bo) => $bo->transfer)
+            ->unique('id')
+            ->values();
 
         return inertia('Supplies/BackOrder', [
-            'packingList' => $packingList,
+            'packingList' => $packingLists,
             'transferBackOrders' => $transferBackOrders,
         ]);
     }
@@ -1160,6 +1216,7 @@ class SupplyController extends Controller
                         'ref_no' => $request->ref_no,
                         'pk_date' => $request->pk_date,
                         'status' => 'pending',
+                        'warehouse_id' => auth()->user()->warehouse_id,
                         'confirmed_by' => auth()->id(),
                         'confirmed_at' => now(),
                     ]
@@ -1176,7 +1233,10 @@ class SupplyController extends Controller
                 if ($hasBackOrderItems) {
                     // Create or update parent BackOrder
                     $backOrder = BackOrder::firstOrCreate(
-                        ['packing_list_id' => $packingList->id],
+                        [
+                            'packing_list_id' => $packingList->id,
+                            'warehouse_id' => auth()->user()->warehouse_id
+                        ],
                         [
                             'back_order_date' => now()->toDateString(),
                             'created_by' => auth()->id(),
@@ -2005,6 +2065,12 @@ class SupplyController extends Controller
             abort(403, 'Unauthorized: You do not have permission to view packing lists.');
         }
         $query = PackingList::with([
+            'items' => function($q) {
+                $q->select('packing_list_id', 'product_id')
+                  ->selectRaw('SUM(quantity) as quantity')
+                  ->selectRaw('SUM(total_cost) as total_cost')
+                  ->groupBy('packing_list_id', 'product_id');
+            },
             'items.product.category',
             'items.product.dosage', 
             'purchaseOrder.supplier',
@@ -2015,8 +2081,8 @@ class SupplyController extends Controller
             'reviewedBy',
             'backOrder'
         ])
-        ->select('packing_lists.*')
         ->where('packing_lists.warehouse_id', auth()->user()->warehouse_id)
+        ->select('packing_lists.*')
         ->selectRaw('
             CASE 
                 WHEN (
@@ -2038,7 +2104,8 @@ class SupplyController extends Controller
                     ), "%"
                 )
                 ELSE "0%" 
-            END as fulfillment_rate
+            END as fulfillment_rate,
+            (SELECT COALESCE(SUM(pli.total_cost), 0) FROM packing_list_items pli WHERE pli.packing_list_id = packing_lists.id) as total_cost
         ');
 
         // Apply filters
@@ -2172,6 +2239,7 @@ class SupplyController extends Controller
             'reviewedBy:id,name',
             'rejectedBy:id,name',
         ])
+        ->where('warehouse_id', auth()->user()->warehouse_id)
         ->find($id);
 
         $warehouses = Warehouse::select('id', 'name')->get();
@@ -2193,9 +2261,11 @@ class SupplyController extends Controller
             ]);
     
             $location = Location::updateOrCreate([
-                'id' => $request->id
+                'id' => $request->id,
+                'warehouse' => auth()->user()->warehouse?->name
             ],[
-                'location' => $request->location
+                'location' => $request->location,
+                'warehouse' => auth()->user()->warehouse?->name
             ]);
     
             return response()->json([
@@ -2267,6 +2337,7 @@ class SupplyController extends Controller
                             'created_by' => auth()->id(),
                             'status' => 'pending',
                             'source_type' => 'packing_list',
+                            'warehouse_id' => auth()->user()->warehouse_id,
                             'reported_by' => auth()->user()->load('warehouse')->warehouse->name ?? 'Unknown Warehouse'
                         ]
                     );
@@ -2717,10 +2788,10 @@ class SupplyController extends Controller
 
     public function listBackOrders()
     {
-        $backOrders = \App\Models\BackOrder::with([
+        $backOrders = BackOrder::with([
             'packingList.purchaseOrder.supplier',
             'creator',
-        ])->get();
+        ])->where('warehouse_id', auth()->user()->warehouse_id)->get();
         return response()->json($backOrders);
     }
 
@@ -2729,6 +2800,9 @@ class SupplyController extends Controller
         try {
             $histories = BackOrderHistory::with(['product.dosage','product.category', 'performer'])
             ->where('back_order_id', $backOrderId)
+            ->whereHas('backOrder', function($q) {
+                $q->where('warehouse_id', auth()->user()->warehouse_id);
+            })
             ->get();
         return response()->json($histories, 200);
         } catch (\Throwable $th) {
@@ -2743,7 +2817,7 @@ class SupplyController extends Controller
             'attachments.*' => 'file|mimes:pdf|max:10240', // 10MB max per file
         ]);
 
-        $backOrder = \App\Models\BackOrder::findOrFail($backOrderId);
+        $backOrder = BackOrder::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($backOrderId);
         $existing = $backOrder->attach_documents ?? [];
         $newFiles = [];
         foreach ($request->file('attachments') as $file) {
@@ -2765,7 +2839,7 @@ class SupplyController extends Controller
     public function deleteBackOrderAttachment(Request $request, $backOrderId)
     {
         $request->validate(['file_path' => 'required|string']);
-        $backOrder = \App\Models\BackOrder::findOrFail($backOrderId);
+        $backOrder = BackOrder::where('warehouse_id', auth()->user()->warehouse_id)->findOrFail($backOrderId);
         $files = $backOrder->attach_documents ?? [];
         $files = array_filter($files, function($file) use ($request) {
             if ($file['path'] === $request->file_path) {
@@ -2850,6 +2924,7 @@ class SupplyController extends Controller
         // Update or create inventory item with batch details
         $inventoryItem = InventoryItem::where('inventory_id', $inventory->id)
             ->where('batch_number', $packingListItem->batch_number)
+            ->where('location', $packingListItem->location)
             ->where('warehouse_id', $warehouseId)
             ->first();
 

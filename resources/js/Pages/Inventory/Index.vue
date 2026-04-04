@@ -47,6 +47,9 @@ const showEditLocationModal = ref(false);
 const editingItem = ref(null);
 const newLocation = ref("");
 const isUpdatingLocation = ref(false);
+const selectedSubWarehouse = ref("");
+const availableLocations = ref([]);
+const isLoadingSubLocations = ref(false);
 
 // Upload states
 const showUploadModal = ref(false);
@@ -213,6 +216,14 @@ function formatQty(qty) {
 // Edit location functions
 const openEditLocationModal = (item, inventory) => {
     editingItem.value = { ...item, inventory: inventory };
+    
+    // Set the initial sub-warehouse if the location exists
+    // We try to find which sub-warehouse this location belongs to from the props.locations if available
+    // But since the items only store 'location' string, we might not know the sub-warehouse immediately
+    // For now, we'll let the user select it.
+    
+    selectedSubWarehouse.value = "";
+    availableLocations.value = [];
     newLocation.value = item.location || "";
     showEditLocationModal.value = true;
 };
@@ -221,8 +232,34 @@ const closeEditLocationModal = () => {
     showEditLocationModal.value = false;
     editingItem.value = null;
     newLocation.value = "";
+    selectedSubWarehouse.value = "";
+    availableLocations.value = [];
     isUpdatingLocation.value = false;
 };
+
+// Watch for sub-warehouse selection to load locations
+watch(selectedSubWarehouse, async (newVal) => {
+    if (newVal) {
+        isLoadingSubLocations.value = true;
+        try {
+            const response = await axios.get(route("inventories.get-sub-warehouse-locations"), {
+                params: { sub_warehouse: newVal }
+            });
+            availableLocations.value = response.data;
+            // If the current location is in the new list, keep it, otherwise clear it
+            if (!availableLocations.value.includes(newLocation.value)) {
+                // newLocation.value = ""; // Don't clear if we want to show current
+            }
+        } catch (error) {
+            console.error("Error fetching sub-warehouse locations:", error);
+            toast.error("Failed to load locations for selected sub-warehouse");
+        } finally {
+            isLoadingSubLocations.value = false;
+        }
+    } else {
+        availableLocations.value = [];
+    }
+});
 
 const updateLocation = async () => {
     if (!newLocation.value.trim()) {
@@ -1619,7 +1656,7 @@ onUnmounted(() => {
                     <div class="grid grid-cols-2 gap-4 text-sm">
                         <div>
                             <span class="text-gray-600 font-medium">Product:</span>
-                            <p class="text-gray-900 font-semibold">{{ editingItem?.inventory?.product?.name || 'N/A' }}
+                            <p class="text-gray-900 font-semibold">{{ editingItem?.inventory?.name || 'N/A' }}
                             </p>
                         </div>
                         <div>
@@ -1637,10 +1674,19 @@ onUnmounted(() => {
                     </div>
                 </div>
 
+                <div class="mb-4">
+                    <label for="sub_warehouse" class="block text-sm font-medium text-gray-700 mb-2">Sub Warehouse</label>
+                    <Multiselect v-model="selectedSubWarehouse" :options="props.sub_warehouses || []" :multiple="false" :searchable="true"
+                        :close-on-select="true" :allow-empty="true" placeholder="Select sub-warehouse" class="multiselect--with-icon w-full order-filter-multiselect" />
+                </div>
+
                 <div class="mb-6">
                     <label for="new_location" class="block text-sm font-medium text-gray-700 mb-2">New Location</label>
-                    <Multiselect v-model="newLocation" :options="props.locations || []" :multiple="false" :searchable="true"
-                        :close-on-select="true" :allow-empty="true" class="multiselect--with-icon w-full order-filter-multiselect" />
+                    <Multiselect v-model="newLocation" :options="availableLocations" :multiple="false" :searchable="true"
+                        :close-on-select="true" :allow-empty="true" 
+                        :disabled="!selectedSubWarehouse || isLoadingSubLocations"
+                        :placeholder="isLoadingSubLocations ? 'Loading locations...' : (selectedSubWarehouse ? 'Select a location' : 'Select sub-warehouse first')"
+                        class="multiselect--with-icon w-full order-filter-multiselect" />
                 </div>
 
                 <div class="flex justify-end space-x-3">

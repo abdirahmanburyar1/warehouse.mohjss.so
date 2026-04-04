@@ -159,13 +159,13 @@
                         <span>{{ tab.label }}</span>
                         <span
                             v-if="
-                                props.stats &&
-                                props.stats[tab.value || 'all']
+                                activeStats &&
+                                activeStats[tab.value || 'all']
                             "
                             class="px-2 py-0.5 text-xs rounded-full"
                             :class="`bg-${tab.color}-100 text-${tab.color}-800`"
                         >
-                            {{ props.stats[tab.value || "all"] }}
+                            {{ activeStats[tab.value || "all"] }}
                         </span>
                     </button>
                 </nav>
@@ -246,16 +246,6 @@
                                                 <p class="text-sm text-gray-600">Liquidation/Disposal has been approved for processing</p>
                                             </div>
                                         </div>
-
-                                        <div class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                                            <div class="w-6 h-6 bg-red-500 rounded-full flex items-center justify-center">
-                                                <span class="text-white text-xs font-bold">X</span>
-                                            </div>
-                                            <div>
-                                                <h3 class="font-medium text-gray-900">Rejected</h3>
-                                                <p class="text-sm text-gray-600">Liquidation/Disposal has been rejected and will not proceed</p>
-                                            </div>
-                                        </div>
                                     </div>
 
                                     <!-- Workflow Information -->
@@ -310,6 +300,12 @@ const props = defineProps({
     disposals: Object,
     filters: Object,
     stats: Object,
+    liquidateStats: Object,
+    disposalStats: Object,
+});
+
+const activeStats = computed(() => {
+    return activeTab.value === 'liquidate' ? props.liquidateStats : props.disposalStats;
 });
 
 const can = computed(() => page.props.auth?.can ?? {});
@@ -349,7 +345,6 @@ const statusTabs = [
     { value: 'pending', label: 'Pending', color: 'yellow', image: '/assets/images/pending.png' },
     { value: 'reviewed', label: 'Reviewed', color: 'blue', image: '/assets/images/review.png' },
     { value: 'approved', label: 'Approved', color: 'green', image: '/assets/images/approved.png' },
-    { value: 'rejected', label: 'Rejected', color: 'red', image: '/assets/images/rejected.png' },
 ];
 
 watch([
@@ -377,7 +372,7 @@ function getResult(page = 1) {
     router.get(route('liquidate-disposal.index'), query, {
         preserveState: true,
         preserveScroll: true,
-        only: ['liquidates', 'disposals', 'filters', 'stats']
+        only: ['liquidates', 'disposals', 'filters', 'stats', 'liquidateStats', 'disposalStats']
     });
 }
 </script> 

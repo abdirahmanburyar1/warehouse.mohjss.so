@@ -1,10 +1,6 @@
 <template>
     <Head title="Reports" />
-    <AuthenticatedLayout
-        title="Reports"
-        description="Generate and view all warehouse reports"
-        img="/assets/images/report.png"
-    >
+    <AuthenticatedLayout title="Reports" description="Generate and view all warehouse reports" img="/assets/images/report.png">
         <template #header>
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 Reports
@@ -310,14 +306,6 @@
                                     <td v-for="sc in supplyClassColumns" :key="'sc-val-' + sc" class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.supply_classes[sc] || 0) }}</td>
                                 </tr>
                             </tbody>
-                            <tfoot class="bg-gray-100 font-semibold">
-                                <tr>
-                                    <td colspan="2" class="px-3 py-2 text-sm text-gray-900 border border-gray-300">Total</td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(filteredProductRows.reduce((s, r) => s + (r.total_products || 0), 0)) }}</td>
-                                    <td v-for="cat in categoryColumns" :key="'cat-total-' + cat" class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(filteredProductRows.reduce((s, r) => s + (r.categories[cat] || 0), 0)) }}</td>
-                                    <td v-for="sc in supplyClassColumns" :key="'sc-total-' + sc" class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(filteredProductRows.reduce((s, r) => s + (r.supply_classes[sc] || 0), 0)) }}</td>
-                                </tr>
-                            </tfoot>
                         </table>
                     </div>
                 </div>
@@ -527,6 +515,16 @@
                                 <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.cold_storage_count) }}</td>
                             </tr>
                         </tbody>
+                        <tfoot class="bg-gray-100 font-semibold">
+                            <tr>
+                                <td class="px-3 py-2 text-sm text-gray-900 border border-gray-300">Total</td>
+                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(filteredRows.reduce((s, r) => s + (r.total_facilities || 0), 0)) }}</td>
+                                <td v-for="col in facilitiesReportTypeColumns" :key="col" class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(filteredRows.reduce((s, r) => s + (facilityTypeValue(r, col) || 0), 0)) }}</td>
+                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(filteredRows.reduce((s, r) => s + (r.active || 0), 0)) }}</td>
+                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(filteredRows.reduce((s, r) => s + (r.not_active || 0), 0)) }}</td>
+                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(filteredRows.reduce((s, r) => s + (r.cold_storage_count || 0), 0)) }}</td>
+                            </tr>
+                        </tfoot>
                     </table>
                     </div>
                 </div>
@@ -593,7 +591,7 @@
                         <table class="min-w-full border-collapse border border-gray-300">
                             <thead class="bg-gray-100">
                                 <tr>
-                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300 align-middle">Facility Name</th>
+                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300 align-middle">{{ orderReportNameColumnLabel || 'Facility Name' }}</th>
                                     <th rowspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300 align-middle">Total Orders</th>
                                     <th rowspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300 align-middle">Completed Orders</th>
                                     <th rowspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300 align-middle">Rejected Orders</th>
@@ -620,12 +618,12 @@
                                     <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.rejected_orders) }} ({{ row.rejected_pct }}%)</td>
                                     <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.delivery_ontime_count) }} ({{ row.delivery_ontime_pct }}%)</td>
                                     <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.delivery_late_count) }} ({{ row.delivery_late_pct }}%)</td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.items_good_pct }}%</td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.items_fair_pct }}%</td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.items_poor_pct }}%</td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.qty_good_pct }}%</td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.qty_fair_pct }}%</td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.qty_poor_pct }}%</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.items_fulfillment_good_pct }}%</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.items_fulfillment_fair_pct }}%</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.items_fulfillment_poor_pct }}%</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.qty_fulfillment_good_pct }}%</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.qty_fulfillment_fair_pct }}%</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ row.qty_fulfillment_poor_pct }}%</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -710,7 +708,7 @@
                         <table class="min-w-full border-collapse border border-gray-300">
                             <thead class="bg-gray-100">
                                 <tr>
-                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300 align-middle">Facility Name</th>
+                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300 align-middle">{{ transferReportNameColumnLabel || 'Facility Name' }}</th>
                                     <th rowspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300 align-middle">Total Transfers</th>
                                     <th rowspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300 align-middle">Completed Transfers</th>
                                     <th rowspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300 align-middle">Rejected Transfers</th>
@@ -960,40 +958,40 @@
 
                     <!-- Expiry Report Table -->
                     <div v-show="expiryReportTab === 'table'" class="overflow-x-auto">
-                    <table class="min-w-full border-collapse border border-gray-300">
-                        <thead class="bg-gray-100">
-                            <tr>
-                                <th v-if="expiryReportHasMixedTypes" rowspan="3" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300 align-middle">Type</th>
-                                <th rowspan="3" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300 align-middle">{{ expiryReportNameColumnHeader }}</th>
-                                <th colspan="6" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300">Expiring Status</th>
-                            </tr>
-                            <tr class="bg-gray-100">
-                                <th colspan="2" class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Expiring within next 1 Year</th>
-                                <th colspan="2" class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Expiring within next 6 Months</th>
-                                <th colspan="2" class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Expired</th>
-                            </tr>
-                            <tr class="bg-gray-100">
-                                <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Item No.</th>
-                                <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Total Value</th>
-                                <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Item No.</th>
-                                <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Total Value</th>
-                                <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Item No.</th>
-                                <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Total Value</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white">
-                            <tr v-for="(row, index) in filteredRows" :key="index" class="hover:bg-gray-50">
-                                <td v-if="expiryReportHasMixedTypes" class="px-3 py-2 text-sm text-gray-900 border border-gray-300 capitalize">{{ row.type }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-900 border border-gray-300">{{ row.name || '–' }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.expiring_1_year_item_no) }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ (row.expiring_1_year_value != null && row.expiring_1_year_value !== '') ? formatCostAllowZero(row.expiring_1_year_value) + '$' : '–' }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.expiring_6_months_item_no) }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ (row.expiring_6_months_value != null && row.expiring_6_months_value !== '') ? formatCostAllowZero(row.expiring_6_months_value) + '$' : '–' }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.expired_item_no) }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ (row.expired_value != null && row.expired_value !== '') ? formatCostAllowZero(row.expired_value) + '$' : '–' }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                        <table class="min-w-full border-collapse border border-gray-300">
+                            <thead class="bg-gray-100">
+                                <tr>
+                                    <th v-if="expiryReportHasMixedTypes" rowspan="3" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300 align-middle">Type</th>
+                                    <th rowspan="3" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300 align-middle">{{ expiryReportNameColumnHeader }}</th>
+                                    <th colspan="6" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300">Expiring Status</th>
+                                </tr>
+                                <tr class="bg-gray-100">
+                                    <th colspan="2" class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Expiring within next 1 Year</th>
+                                    <th colspan="2" class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Expiring within next 6 Months</th>
+                                    <th colspan="2" class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Expired</th>
+                                </tr>
+                                <tr class="bg-gray-100">
+                                    <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Item No.</th>
+                                    <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Total Value</th>
+                                    <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Item No.</th>
+                                    <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Total Value</th>
+                                    <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Item No.</th>
+                                    <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">Total Value</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                <tr v-for="(row, index) in filteredRows" :key="index" class="hover:bg-gray-50">
+                                    <td v-if="expiryReportHasMixedTypes" class="px-3 py-2 text-sm text-gray-900 border border-gray-300 capitalize">{{ row.type }}</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 border border-gray-300">{{ row.name || '–' }}</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.expiring_1_year_item_no) }}</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ (row.expiring_1_year_value != null && row.expiring_1_year_value !== '') ? formatCostAllowZero(row.expiring_1_year_value) + '$' : '–' }}</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.expiring_6_months_item_no) }}</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ (row.expiring_6_months_value != null && row.expiring_6_months_value !== '') ? formatCostAllowZero(row.expiring_6_months_value) + '$' : '–' }}</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.expired_item_no) }}</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ (row.expired_value != null && row.expired_value !== '') ? formatCostAllowZero(row.expired_value) + '$' : '–' }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -1001,29 +999,27 @@
                 <div v-else-if="isWarehouseInventoryReport && reportData.length > 0">
                     <div class="overflow-x-auto">
                         <table class="min-w-full border-collapse border border-gray-300">
-                            <thead class="bg-gray-50">
+                            <thead class="bg-gray-50 uppercase tracking-wider">
                                 <tr>
-                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300">Item</th>
-                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300">Category</th>
-                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300">UoM</th>
-                                    <th colspan="3" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300">Item Details (batch level)</th>
-                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Beginning<br>Balance</th>
-                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">QTY<br>Received</th>
-                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">QTY<br>Issued</th>
+                                    <th rowspan="2" class="px-3 py-4 text-left text-xs font-bold text-gray-700 border border-gray-300">Item</th>
+                                    <th rowspan="2" class="px-3 py-4 text-left text-xs font-bold text-gray-700 border border-gray-300">Category</th>
+                                    <th rowspan="2" class="px-3 py-4 text-left text-xs font-bold text-gray-700 border border-gray-300">UoM</th>
+                                    <th colspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300">Item Details (batch level)</th>
+                                    <th rowspan="2" class="px-3 py-4 text-right text-xs font-bold text-gray-700 border border-gray-300">Beginning<br>Balance</th>
+                                    <th rowspan="2" class="px-3 py-4 text-right text-xs font-bold text-gray-700 border border-gray-300">QTY<br>Received</th>
+                                    <th rowspan="2" class="px-3 py-4 text-right text-xs font-bold text-gray-700 border border-gray-300">QTY<br>Issued</th>
                                     <th colspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300">Adjustments</th>
-                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Closing<br>Balance</th>
-                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Total<br>Closing<br>Balance</th>
-                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">AMC</th>
-                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">MOS<br>(Months<br>of Stock)</th>
-                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Stockout<br>Days</th>
-                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Total<br>Cost</th>
+                                    <th rowspan="2" class="px-3 py-4 text-right text-xs font-bold text-gray-700 border border-gray-300">Closing<br>Balance</th>
+                                    <th rowspan="2" class="px-3 py-4 text-right text-xs font-bold text-gray-700 border border-gray-300">Total<br>Closing<br>Balance</th>
+                                    <th rowspan="2" class="px-3 py-4 text-right text-xs font-bold text-gray-700 border border-gray-300">AMC</th>
+                                    <th rowspan="2" class="px-3 py-4 text-right text-xs font-bold text-gray-700 border border-gray-300">MOS<br>(Months<br>of Stock)</th>
+                                    <th rowspan="2" class="px-3 py-4 text-right text-xs font-bold text-gray-700 border border-gray-300">Stockout<br>Days</th>
                                 </tr>
-                                <tr class="bg-gray-50">
-                                    <th class="px-3 py-1 text-left text-xs font-medium text-gray-600 border border-gray-300">Batch No.:</th>
-                                    <th class="px-3 py-1 text-left text-xs font-medium text-gray-600 border border-gray-300">Expiry Date</th>
-                                    <th class="px-3 py-1 text-right text-xs font-medium text-gray-600 border border-gray-300">Unit cost</th>
-                                    <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">(-)</th>
-                                    <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">(+)</th>
+                                <tr class="bg-gray-50 border-t border-gray-200">
+                                    <th class="px-3 py-2 text-left text-xs font-bold text-gray-600 border border-gray-300">Batch No.:</th>
+                                    <th class="px-3 py-2 text-left text-xs font-bold text-gray-600 border border-gray-300">Expiry Date</th>
+                                    <th class="px-3 py-2 text-center text-xs font-bold text-gray-600 border border-gray-300">(-)</th>
+                                    <th class="px-3 py-2 text-center text-xs font-bold text-gray-600 border border-gray-300">(+)</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white">
@@ -1038,126 +1034,152 @@
                                     <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-gray-600 border border-gray-300 align-top">{{ row.uom }}</td>
                                     <td class="px-3 py-2 text-sm text-gray-600 border border-gray-300 whitespace-nowrap">{{ row.batch_no || '–' }}</td>
                                     <td class="px-3 py-2 text-sm text-gray-600 border border-gray-300 whitespace-nowrap">{{ formatExpiry(row.expiry_date) }}</td>
-                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatCost(row.unit_cost) }}</td>
                                     <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.beginning_balance) }}</td>
                                     <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.qty_received) }}</td>
                                     <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.qty_issued) }}</td>
-                                    <td class="px-3 py-2 text-sm text-right border border-gray-300">
-                                        <input v-if="warehouseReportMeta && row.report_item_id" type="number" min="0" class="w-16 px-1 py-0.5 text-right text-sm border border-gray-400 rounded" v-model.number="row.adjustment_neg" @blur="saveReportItemAdjustment(row)" />
-                                        <span v-else>{{ formatNum(row.adjustment_neg) }}</span>
+                                    <td class="px-3 py-2 text-sm text-right border border-gray-300 text-gray-600">
+                                        {{ formatNum(row.adjustment_neg) }}
                                     </td>
-                                    <td class="px-3 py-2 text-sm text-right border border-gray-300">
-                                        <input v-if="warehouseReportMeta && row.report_item_id" type="number" min="0" class="w-16 px-1 py-0.5 text-right text-sm border border-gray-400 rounded" v-model.number="row.adjustment_pos" @blur="saveReportItemAdjustment(row)" />
-                                        <span v-else>{{ formatNum(row.adjustment_pos) }}</span>
+                                    <td class="px-3 py-2 text-sm text-right border border-gray-300 text-gray-600">
+                                        {{ formatNum(row.adjustment_pos) }}
                                     </td>
                                     <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.closing_balance) }}</td>
                                     <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300 align-top font-medium">{{ formatNum(row.total_closing_balance) }}</td>
                                     <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300 align-top font-medium">{{ formatNum(row.amc) }}</td>
                                     <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-right border border-gray-300 align-top font-medium">{{ row.mos ?? '–' }}</td>
                                     <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-right border border-gray-300 align-top">{{ formatNum(row.stockout_days) }}</td>
-                                    <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300 align-top font-medium">{{ formatCost(row.total_cost) }}</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>
-                <!-- Facility LMIS: same design as inventory report, excluding costs -->
-                <div v-else-if="isFacilityLmisReport && reportData.length > 0">
-                <div v-if="facilityReportMeta" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <span class="text-sm font-semibold text-gray-700">Facility LMIS Workflow</span>
-                        <span class="text-sm text-gray-600">{{ facilityReportMeta.facility_name || 'Facility' }}</span>
-                        <span class="text-sm text-gray-500">·</span>
-                        <span class="text-sm text-gray-600">{{ formatReportPeriodShort(facilityReportMeta.report_period) }}</span>
-                        <span class="text-sm text-gray-500">·</span>
-                        <span :class="['rounded-full px-3 py-1 text-xs font-semibold', facilityLmisStatusClass(facilityReportMeta.report_status)]">{{ facilityReportMeta.report_status ? String(facilityReportMeta.report_status).toUpperCase() : '—' }}</span>
+                <!-- Facility LMIS: premium batch-level design -->
+                <div v-else-if="isFacilityLmisReport && groupedItems.length > 0">
+                    <!-- Report Header & Workflow Actions -->
+                    <div class="p-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center flex-wrap gap-4 rounded-t-lg">
+                        <div class="flex items-center gap-4">
+                            <div class="p-2 bg-blue-50 rounded-lg text-blue-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-medium text-gray-900 leading-tight">
+                                    Facility LMIS Report: {{ facilityReportMeta?.facility_name || 'Facility' }}
+                                </h3>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-xs text-gray-500 font-medium uppercase tracking-wider">{{ formatReportPeriodShort(facilityReportMeta.report_period) }}</span>
+                                    <span class="text-gray-300">•</span>
+                                    <span :class="['px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border', facilityLmisStatusClass(facilityReportMeta.report_status)]">
+                                        {{ facilityReportMeta.report_status || 'Unknown' }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+
+                            <!-- Review (Regional or Central level) -->
+                            <button
+                                v-if="facilityReportMeta.report_status === 'submitted'"
+                                type="button"
+                                @click="facilityLmisWorkflowAction('review')"
+                                :disabled="workflowActionLoading"
+                                class="inline-flex items-center px-4 py-2 bg-blue-600 border border-transparent rounded-lg font-bold text-xs text-white uppercase tracking-widest hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 transition-all duration-200 shadow-sm"
+                            >
+                                <span v-if="workflowActionLoading">Processing...</span>
+                                <span v-else>Mark as reviewed</span>
+                            </button>
+
+                            <!-- Approve (Central level only) -->
+                            <button
+                                v-if="facilityReportMeta.report_status === 'reviewed'"
+                                type="button"
+                                @click="facilityLmisWorkflowAction('approve')"
+                                :disabled="workflowActionLoading"
+                                class="inline-flex items-center px-4 py-2 bg-emerald-600 border border-transparent rounded-lg font-bold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 transition-all duration-200 shadow-sm"
+                            >
+                                <span v-if="workflowActionLoading">Processing...</span>
+                                <span v-else>Approve report</span>
+                            </button>
+
+                            <!-- Reject (Central level) -->
+                            <button
+                                v-if="facilityReportMeta.report_status === 'submitted' || facilityReportMeta.report_status === 'reviewed'"
+                                type="button"
+                                @click="facilityLmisWorkflowAction('reject')"
+                                :disabled="workflowActionLoading"
+                                class="inline-flex items-center px-4 py-2 bg-rose-600 border border-transparent rounded-lg font-bold text-xs text-white uppercase tracking-widest hover:bg-rose-700 active:bg-rose-800 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 disabled:opacity-50 transition-all duration-200 shadow-sm"
+                            >
+                                <span v-if="workflowActionLoading">Processing...</span>
+                                <span v-else>Reject report</span>
+                            </button>
+
+                            <!-- Excel Export (Visible if status is not draft) -->
+                            <button
+                                v-if="facilityReportMeta.report_status && facilityReportMeta.report_status !== 'draft'"
+                                type="button"
+                                @click="downloadExcel"
+                                :disabled="downloadingExcel"
+                                class="inline-flex items-center px-4 py-2 bg-emerald-600 border border-transparent rounded-lg font-bold text-xs text-white uppercase tracking-widest hover:bg-emerald-700 active:bg-emerald-800 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 disabled:opacity-50 transition-all duration-200 shadow-sm"
+                            >
+                                <svg v-if="!downloadingExcel" class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                </svg>
+                                <span v-if="downloadingExcel">Exporting...</span>
+                                <span v-else>Export Excel</span>
+                            </button>
+                        </div>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2">
-                        <button
-                            v-if="facilityReportMeta.report_status === 'draft'"
-                            type="button"
-                            @click="facilityLmisWorkflowAction('submit')"
-                            :disabled="workflowActionLoading"
-                            class="inline-flex items-center px-3 py-1.5 bg-blue-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-blue-700 disabled:opacity-50"
-                        >
-                            Submit for review
-                        </button>
-                        <button
-                            v-if="facilityReportMeta.report_status === 'submitted'"
-                            type="button"
-                            @click="facilityLmisWorkflowAction('review')"
-                            :disabled="workflowActionLoading"
-                            class="inline-flex items-center px-3 py-1.5 bg-yellow-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-yellow-700 disabled:opacity-50"
-                        >
-                            Mark as reviewed
-                        </button>
-                        <button
-                            v-if="facilityReportMeta.report_status === 'reviewed'"
-                            type="button"
-                            @click="facilityLmisWorkflowAction('approve')"
-                            :disabled="workflowActionLoading"
-                            class="inline-flex items-center px-3 py-1.5 bg-green-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-green-700 disabled:opacity-50"
-                        >
-                            Approve report
-                        </button>
-                        <button
-                            v-if="['submitted', 'reviewed'].includes(facilityReportMeta.report_status)"
-                            type="button"
-                            @click="facilityLmisWorkflowAction('reject')"
-                            :disabled="workflowActionLoading"
-                            class="inline-flex items-center px-3 py-1.5 bg-red-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-red-700 disabled:opacity-50"
-                        >
-                            Reject report
-                        </button>
+
+                    <!-- Batch-Level Table Container -->
+                    <div class="overflow-x-auto border-b border-gray-200 rounded-b-lg shadow-sm">
+                        <table class="min-w-full border-collapse">
+                            <thead class="bg-gray-50 uppercase tracking-wider">
+                                <tr>
+                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300">Item</th>
+                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300">Category</th>
+                                    <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300">UoM</th>
+                                    <th colspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300">Item Details (batch level)</th>
+                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Beginning<br>Balance</th>
+                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">QTY<br>Received</th>
+                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">QTY<br>Issued</th>
+                                    <th colspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300">Adjustments</th>
+                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Closing<br>Balance</th>
+                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Total<br>Cl. Bal.</th>
+                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">AMC</th>
+                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">MOS</th>
+                                    <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Stockout<br>Days</th>
+                                </tr>
+                                <tr class="bg-gray-50 border-t border-gray-300">
+                                    <th class="px-3 py-2 text-left text-xs font-bold text-gray-600 border border-gray-300">Batch No:</th>
+                                    <th class="px-3 py-2 text-left text-xs font-bold text-gray-600 border border-gray-300">Expiry</th>
+                                    <th class="px-3 py-2 text-center text-xs font-bold text-gray-600 border border-gray-300">(-)</th>
+                                    <th class="px-3 py-2 text-center text-xs font-bold text-gray-600 border border-gray-300">(+)</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                <tr v-for="(row, idx) in groupedItems" :key="idx" class="hover:bg-gray-50 border-t border-gray-200">
+                                    <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-gray-900 border border-gray-300 align-middle">{{ row.item }}</td>
+                                    <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-gray-600 border border-gray-300 align-middle">{{ row.category }}</td>
+                                    <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-gray-600 border border-gray-300 align-middle text-center">{{ row.uom }}</td>
+
+                                    <td class="px-3 py-2 text-sm text-gray-600 border border-gray-300 whitespace-nowrap">{{ row.batch_no || '–' }}</td>
+                                    <td class="px-3 py-2 text-sm text-gray-600 border border-gray-300 whitespace-nowrap">{{ formatExpiry(row.expiry_date) }}</td>
+                                    <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.opening_balance) }}</td>
+                                    <td class="px-3 py-2 text-sm text-right text-green-600 border border-gray-300">{{ formatNum(row.stock_received) }}</td>
+                                    <td class="px-3 py-2 text-sm text-right text-red-600 border border-gray-300">{{ formatNum(row.stock_issued) }}</td>
+                                    <td class="px-3 py-2 text-sm text-right text-gray-900 border border-gray-300">{{ formatNum(row.negative_adjustments) }}</td>
+                                    <td class="px-3 py-2 text-sm text-right text-gray-900 border border-gray-300">{{ formatNum(row.positive_adjustments) }}</td>
+                                    <td class="px-3 py-2 text-sm text-right text-gray-900 border border-gray-300">{{ formatNum(row.closing_balance) }}</td>
+
+                                    <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-right font-medium text-blue-600 border border-gray-300 align-middle">{{ formatNum(row.total_closing_balance) }}</td>
+                                    <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-right text-gray-900 border border-gray-300 align-middle">{{ formatNum(row.amc) }}</td>
+                                    <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-right border border-gray-300 align-middle text-center">{{ row.mos || '0' }}</td>
+                                    <td v-if="row.is_first_batch" :rowspan="row.rowspan" class="px-3 py-2 text-sm text-right text-gray-900 border border-gray-300 align-middle">{{ formatNum(row.stockout_days) }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
-                </div>
-                <!-- Facility LMIS Report Table: same layout as inventory report, no Unit cost / Total cost -->
-                <div class="overflow-x-auto">
-                    <table class="min-w-full border-collapse border border-gray-300">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300">Item</th>
-                                <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300">Category</th>
-                                <th rowspan="2" class="px-3 py-2 text-left text-xs font-bold text-gray-700 border border-gray-300">UoM</th>
-                                <th colspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300">Item Details (batch level)</th>
-                                <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Beginning<br>Balance</th>
-                                <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">QTY<br>Received</th>
-                                <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">QTY<br>Issued</th>
-                                <th colspan="2" class="px-3 py-2 text-center text-xs font-bold text-gray-700 border border-gray-300">Adjustments</th>
-                                <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Closing<br>Balance</th>
-                                <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Total<br>Closing<br>Balance</th>
-                                <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">AMC</th>
-                                <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">MOS<br>(Months<br>of Stock)</th>
-                                <th rowspan="2" class="px-3 py-2 text-right text-xs font-bold text-gray-700 border border-gray-300">Stockout<br>Days</th>
-                            </tr>
-                            <tr class="bg-gray-50">
-                                <th class="px-3 py-1 text-left text-xs font-medium text-gray-600 border border-gray-300">Batch No.:</th>
-                                <th class="px-3 py-1 text-left text-xs font-medium text-gray-600 border border-gray-300">Expiry Date</th>
-                                <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">(-)</th>
-                                <th class="px-3 py-1 text-center text-xs font-medium text-gray-600 border border-gray-300">(+)</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white">
-                            <tr v-for="(row, index) in filteredRows" :key="row.id || index" class="hover:bg-gray-50 border-t border-gray-200">
-                                <td class="px-3 py-2 text-sm text-gray-900 border border-gray-300">{{ row.item }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-600 border border-gray-300">{{ row.category || '–' }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-600 border border-gray-300">{{ row.uom || '–' }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-600 border border-gray-300 whitespace-nowrap">{{ row.batch_no ?? '–' }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-600 border border-gray-300 whitespace-nowrap">{{ formatExpiry(row.expiry_date) }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.opening_balance) }}</td>
-                                <td class="px-3 py-2 text-sm text-green-600 text-right border border-gray-300">{{ formatNum(row.stock_received) }}</td>
-                                <td class="px-3 py-2 text-sm text-red-600 text-right border border-gray-300">{{ formatNum(row.stock_issued) }}</td>
-                                <td class="px-3 py-2 text-sm text-right border border-gray-300">{{ formatNum(row.negative_adjustments) }}</td>
-                                <td class="px-3 py-2 text-sm text-right border border-gray-300">{{ formatNum(row.positive_adjustments) }}</td>
-                                <td class="px-3 py-2 text-sm text-gray-900 text-right border border-gray-300">{{ formatNum(row.closing_balance) }}</td>
-                                <td class="px-3 py-2 text-sm font-medium text-blue-600 text-right border border-gray-300">{{ formatNum(row.closing_balance) }}</td>
-                                <td class="px-3 py-2 text-sm text-right border border-gray-300">{{ formatNum(Math.round(Number(row.amc))) }}</td>
-                                <td class="px-3 py-2 text-sm text-right border border-gray-300">{{ facilityLmisMos(row) }}</td>
-                                <td class="px-3 py-2 text-sm text-right border border-gray-300">{{ formatNum(row.stockout_days) }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
                 </div>
                 <!-- Default Inventory Report Table (Warehouse) -->
                 <div v-else-if="!isProductReport && !isFacilityLmisReport && !isLiquidationDisposalReport && !isExpiryReport && !isFacilitiesReport && !isOrderReport && !isTransferReport && !isProcurementReport && !isAssetReport && !isSubmissionRateReport && reportData.length > 0" class="overflow-x-auto">
@@ -1283,6 +1305,8 @@ const props = defineProps({
     facilities: { type: Array, default: () => [] },
     reportTypes: { type: Array, default: () => [] },
     reportPeriodOptions: { type: Array, default: () => [] },
+    is_central: { type: Boolean, default: false },
+    user_region: { type: String, default: null },
     filters: { type: Object, default: () => ({}) },
 });
 
@@ -1321,6 +1345,45 @@ const filters = ref({
     year: initial.year,
     periodValue: initial.periodValue,
 });
+
+const downloadingExcel = ref(false);
+
+const downloadExcel = () => {
+    downloadingExcel.value = true;
+    const payload = {
+        year: filters.value.year,
+        month: filters.value.periodValue,
+        facility_id: filters.value.warehouse_or_facility,
+        report_period_type: filters.value.report_period
+    };
+
+    axios.post(route('reports.facility-lmis.export'), payload, { responseType: 'blob' })
+        .then(response => {
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            const contentDisposition = response.headers['content-disposition'];
+            let filename = `LMIS_Report_${filters.value.year}_${filters.value.periodValue}.xlsx`;
+            if (contentDisposition) {
+                const parts = contentDisposition.split(';');
+                for (const part of parts) {
+                    if (part.trim().startsWith('filename=')) {
+                        filename = part.split('=')[1].trim().replace(/"/g, '');
+                    }
+                }
+            }
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            downloadingExcel.value = false;
+        })
+        .catch(error => {
+            console.error('Download error:', error);
+            alert('Failed to download Excel report.');
+            downloadingExcel.value = false;
+        });
+};
 
 const reportPeriodOptionsList = computed(() =>
     (props.reportPeriodOptions?.length ? props.reportPeriodOptions : DEFAULT_REPORT_PERIOD_OPTIONS)
@@ -1440,6 +1503,8 @@ const filtersMonthYear = computed(() => {
 
 const reportData = ref([]);
 const expiryReportNameColumnLabel = ref('');
+const orderReportNameColumnLabel = ref('');
+const transferReportNameColumnLabel = ref('');
 const productReportRows = ref([]);
 const categoryColumns = ref([]);
 const supplyClassColumns = ref([]);
@@ -1559,10 +1624,14 @@ const warehouseFacilityOptions = computed(() => {
         ws.forEach(w => {
             opts.push({ value: `warehouse:${w.id}`, label: w.name });
         });
-        const fs = isLiquidationDisposalReport.value ? (liquidationDisposalFacilities.value || []) : (filteredFacilities.value || []);
-        fs.forEach(f => {
-            opts.push({ value: `facility:${f.id}`, label: f.name });
-        });
+        
+        // Procurement report is warehouse-only
+        if (!isProcurementReport.value) {
+            const fs = isLiquidationDisposalReport.value ? (liquidationDisposalFacilities.value || []) : (filteredFacilities.value || []);
+            fs.forEach(f => {
+                opts.push({ value: `facility:${f.id}`, label: f.name });
+            });
+        }
     }
     return opts;
 });
@@ -1608,17 +1677,50 @@ const selectedWarehouseOrFacility = computed({
     },
 });
 
+const groupedItems = computed(() => {
+    if (!reportData.value?.length) return [];
+    if (!isFacilityLmisReport.value && !isWarehouseInventoryReport.value) {
+        return reportData.value;
+    }
+
+    const items = [...reportData.value];
+    const grouped = [];
+    const productGroups = new Map();
+
+    items.forEach(item => {
+        const key = `${item.facility_name || 'wh'}_${item.product_id}`;
+        if (!productGroups.has(key)) {
+            productGroups.set(key, []);
+        }
+        productGroups.get(key).push(item);
+    });
+
+    productGroups.forEach((groupItems) => {
+        groupItems.forEach((item, index) => {
+            grouped.push({
+                ...item,
+                is_first_batch: index === 0,
+                rowspan: groupItems.length
+            });
+        });
+    });
+
+    return grouped;
+});
+
 const filteredRows = computed(() => {
-    if (!searchQuery.value.trim()) return reportData.value;
+    let list = groupedItems.value || [];
+    if (!searchQuery.value.trim()) return list;
     const q = searchQuery.value.toLowerCase();
-    return reportData.value.filter(row => {
+    return list.filter(row => {
         const item = (row.item || '').toLowerCase();
         const facility = (row.facility_name || '').toLowerCase();
         const warehouse = (row.warehouse_name || '').toLowerCase();
         const name = (row.name || '').toLowerCase();
         const district = (row.district_name || '').toLowerCase();
         const whName = (row.warehouse_name || '').toLowerCase();
-        return item.includes(q) || facility.includes(q) || warehouse.includes(q) || name.includes(q) || district.includes(q) || whName.includes(q);
+        const batch = (row.batch_no || '').toLowerCase();
+        return item.includes(q) || facility.includes(q) || warehouse.includes(q) || name.includes(q) || district.includes(q) || whName.includes(q) || batch.includes(q);
     });
 });
 
@@ -2728,15 +2830,8 @@ watch(() => filters.value.report_type, (reportType) => {
     }
 });
 
-const FACILITY_TYPE_LABEL_TO_KEY = {
-    'Primary Health Unit': 'primary_health_unit',
-    'Health Center': 'health_center',
-    'District Hospital': 'district_hospital',
-    'Regional Hospital': 'regional_hospital',
-};
 function facilityTypeValue(row, label) {
-    const key = FACILITY_TYPE_LABEL_TO_KEY[label];
-    return key != null ? (row[key] ?? 0) : 0;
+    return row.types && row.types[label] != null ? row.types[label] : 0;
 }
 
 function formatNum(n) {
@@ -3023,21 +3118,23 @@ async function generateReport() {
                 const d = data.data || {};
                 reportData.value = d.rows || [];
                 orderReportSummary.value = d.summary || {};
+                orderReportNameColumnLabel.value = d.name_column_label || '';
                 productReportRows.value = [];
                 categoryColumns.value = [];
                 supplyClassColumns.value = [];
                 facilitiesReportTypeColumns.value = [];
                 transferReportSummary.value = {};
                 procurementReportSummary.value = {};
-            } else if (filters.value.report_type === 'transfer_report') {
+            } else if (filters.value.report_type === 'facility_monthly_consumption') {
                 const d = data.data || {};
-                reportData.value = d.rows || [];
-                transferReportSummary.value = d.summary || {};
+                reportData.value = d.rows || d || [];
+                facilityReportMeta.value = data.report_meta || null;
                 productReportRows.value = [];
                 categoryColumns.value = [];
                 supplyClassColumns.value = [];
                 facilitiesReportTypeColumns.value = [];
                 orderReportSummary.value = {};
+                transferReportSummary.value = {};
                 procurementReportSummary.value = {};
             } else if (filters.value.report_type === 'procurement_report') {
                 const d = data.data || {};
@@ -3064,6 +3161,17 @@ async function generateReport() {
                 facilitiesReportTypeColumns.value = [];
                 orderReportSummary.value = {};
                 transferReportSummary.value = {};
+                procurementReportSummary.value = {};
+            } else if (filters.value.report_type === 'transfer_report') {
+                const d = data.data || {};
+                reportData.value = d.rows || [];
+                transferReportSummary.value = d.summary || {};
+                transferReportNameColumnLabel.value = d.name_column_label || 'Facility Name';
+                productReportRows.value = [];
+                categoryColumns.value = [];
+                supplyClassColumns.value = [];
+                facilitiesReportTypeColumns.value = [];
+                orderReportSummary.value = {};
                 procurementReportSummary.value = {};
             } else if (filters.value.report_type === 'report_submission_rate') {
                 const d = data.data || {};

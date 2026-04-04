@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use App\Models\Location;
 use App\Models\Warehouse;
 use App\Http\Resources\LocationResource;
@@ -37,7 +38,13 @@ class LocationController extends Controller
         try {
             $request->validate([
                 'id' => 'nullable',
-                'location' => 'required|string|unique:locations,location,' . $request->id,
+                'location' => [
+                    'required',
+                    'string',
+                    Rule::unique('locations')->where(function ($query) use ($request) {
+                        return $query->where('warehouse', $request->warehouse);
+                    })->ignore($request->id)
+                ],
                 'warehouse' => 'required',
                 'sub_warehouse' => 'nullable|string'
             ]);

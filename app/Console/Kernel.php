@@ -15,8 +15,6 @@ class Kernel extends ConsoleKernel
         $schedule->command('assets:notify-warranty-expiring')->daily();
         $schedule->command('assets:generate-maintenance-schedules')->dailyAt('01:10');
         $schedule->command('assets:notify-maintenance-due')->dailyAt('08:00');
-        // Generate inventory report on the first day of each month at 00:01 AM
-        $schedule->command('inventory:generate-report')->monthlyOn(1, '00:01');
         // Generate AMC records on the first day of each month at 00:01 AM
         $schedule->command('warehouse:generate-amc')->monthlyOn(1, '00:01');
         // Send low stock notification emails based on programmable schedule. Command exits if time doesn't match.
@@ -47,11 +45,10 @@ class Kernel extends ConsoleKernel
             ->appendOutputTo(storage_path('logs/monthly-reports.log'))
             ->emailOutputOnFailure(config('mail.admin_address'));
             
-        // Generate monthly inventory reports on the 28th day of each month at 23:55 PM
-        // This ensures the report captures almost all the month's data while still being available before month-end
-        $schedule->command('report:generate-inventory')
-            ->monthlyOn(28, '23:55')
-            ->appendOutputTo(storage_path('logs/monthly-inventory-report.log'));
+        // Generate monthly inventory reports based on programmable schedule. Command exits if time doesn't match.
+        $schedule->command('inventory:generate-report')->everyMinute()
+            ->appendOutputTo(storage_path('logs/monthly-inventory-report.log'))
+            ->emailOutputOnFailure(config('mail.admin_address'));
             
         // Clean up empty inventory items and inventories weekly on Sunday at 2:00 AM
         $schedule->command('inventory:cleanup-empty')

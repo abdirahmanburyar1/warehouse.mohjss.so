@@ -40,15 +40,29 @@ class DisposalActionRequired extends Notification implements ShouldQueue
     {
         $disposalId = $this->disposal->disposal_id ?? '#' . $this->disposal->id;
         $source = $this->disposal->source ? str_replace('_', ' ', $this->disposal->source) : 'N/A';
-        $path = route('liquidate-disposal.disposals.show', [$this->disposal->id], false);
-        $showUrl = str_starts_with($path, 'http') ? $path : rtrim(config('app.url'), '/') . (str_starts_with($path, '/') ? $path : '/' . $path);
+        
+        // Determine the correct base URL based on the recipient's primary platform
+        $baseUrl = config('app.url'); // Default to current platform
+        
+        if ($notifiable->warehouse_id) {
+            $warehouseType = $notifiable->warehouse->type ?? null;
+            if ($warehouseType === 'central') {
+                $baseUrl = 'https://warehouse.mohjss.so';
+            } elseif ($warehouseType === 'regional') {
+                $baseUrl = 'https://regionalwrjss.vistawims.com';
+            }
+        } elseif ($notifiable->facility_id) {
+            $baseUrl = 'https://hcjss.vistawims.com';
+        }
+
+        $showUrl = rtrim($baseUrl, '/') . '/liquidate-disposal/disposals/' . $this->disposal->id;
 
         if ($this->action === self::ACTION_NEEDS_REVIEW) {
             $subject = 'Disposal ' . $disposalId . ' needs your review';
             $line1 = 'A disposal has been submitted and needs your review.';
         } else {
             $subject = 'Disposal ' . $disposalId . ' is ready for approval';
-            $line1 = 'Disposal ' . $disposalId . ' has been reviewed and is ready for your approval or rejection.';
+            $line1 = 'Disposal ' . $disposalId . ' has been reviewed and is ready for your approval.';
         }
 
         return (new MailMessage)

@@ -12,21 +12,21 @@ use App\Models\WarehouseAmc;
  */
 class WarehouseAmcCalculationService
 {
-    /**
-     * Calculate AMC for a specific product using warehouse consumption data
-     * 
-     * @param int $productId
-     * @param string|null $excludeMonth Optional month to exclude (format: Y-m)
-     * @return array
-     */
-    public function calculateAmc($productId, $excludeMonth = null)
+    public function calculateAmc($productId, $excludeMonth = null, $warehouseId = null)
     {
+        $warehouseId = $warehouseId ?: (auth()->user() ? auth()->user()->warehouse_id : null);
+
         // Get warehouse consumption data (last 12 months, excluding zeros)
-        $warehouseConsumptions = WarehouseAmc::where('product_id', $productId)
+        $query = WarehouseAmc::where('product_id', $productId)
             ->where('quantity', '>', 0) // Exclude zero quantities
             ->orderBy('month_year', 'desc') // Newest first
-            ->limit(12)
-            ->get(['month_year', 'quantity']);
+            ->limit(12);
+
+        if ($warehouseId) {
+            $query->where('warehouse_id', $warehouseId);
+        }
+
+        $warehouseConsumptions = $query->get(['month_year', 'quantity']);
 
         // Convert to array for processing
         $monthsData = $warehouseConsumptions->map(function ($item) {
@@ -52,18 +52,13 @@ class WarehouseAmcCalculationService
         return $this->processAmcCalculation($monthsData, $productId);
     }
 
-    /**
-     * Calculate AMC for multiple products using warehouse consumption data
-     * 
-     * @param array $productIds
-     * @param string|null $excludeMonth
-     * @return array
-     */
-    public function calculateAmcForProducts(array $productIds, $excludeMonth = null)
+    public function calculateAmcForProducts(array $productIds, $excludeMonth = null, $warehouseId = null)
     {
         if (empty($productIds)) {
             return [];
         }
+
+        $warehouseId = $warehouseId ?: (auth()->user() ? auth()->user()->warehouse_id : null);
 
         // Exclude current month if not specified
         if ($excludeMonth === null) {
@@ -74,15 +69,20 @@ class WarehouseAmcCalculationService
         $startDate = Carbon::now()->subMonths(13)->format('Y-m');
         
         // Get all warehouse consumption data for all products in one query
-        $allConsumptions = WarehouseAmc::whereIn('product_id', $productIds)
+        $query = WarehouseAmc::whereIn('product_id', $productIds)
             ->where('quantity', '>', 0) // Exclude zero quantities
             ->where('month_year', '>=', $startDate) // Limit to last 13 months
             ->when($excludeMonth, function ($query, $excludeMonth) {
                 return $query->where('month_year', '!=', $excludeMonth);
             })
             ->orderBy('product_id')
-            ->orderBy('month_year', 'desc') // Newest first
-            ->get(['product_id', 'month_year', 'quantity'])
+            ->orderBy('month_year', 'desc'); // Newest first
+
+        if ($warehouseId) {
+            $query->where('warehouse_id', $warehouseId);
+        }
+
+        $allConsumptions = $query->get(['product_id', 'month_year', 'quantity'])
             ->groupBy('product_id');
 
         $results = [];

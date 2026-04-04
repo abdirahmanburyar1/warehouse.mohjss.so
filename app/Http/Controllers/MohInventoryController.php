@@ -50,22 +50,20 @@ class MohInventoryController extends Controller
             }
 
             $user = auth()->user();
-            // Get non-approved MOH inventories for the select dropdown
-            $nonApprovedQuery = MohInventory::whereNull('approved_at');
+            // Get non-approved MOH inventories
+            // If Central Warehouse, load all. Otherwise, only for the user's warehouse.
+            $query = MohInventory::whereNull('approved_at');
             
-            if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
-                $region = $user->warehouse->region;
-                $nonApprovedQuery->where(function($q) use ($region) {
-                    $q->whereHas('mohInventoryItems', function($sq) use ($region) {
-                        $sq->whereHas('warehouse', fn($w) => $w->where('region', $region));
-                    })->orWhere('created_by', auth()->id());
-                });
+            if ($user->warehouse?->type !== 'central') {
+                $query->where('warehouse_id', $user->warehouse_id);
             }
-            
-            $nonApprovedInventories = $nonApprovedQuery->with([
+
+            $nonApprovedInventories = $query->with([
                     'mohInventoryItems.product.category:id,name',
                     'mohInventoryItems.product.dosage:id,name',
                     'mohInventoryItems.warehouse:id,name',
+                    'warehouse:id,name',
+                    'creator:id,name',
                     'reviewer:id,name',
                     'approver:id,name',
                     'rejected:id,name',
@@ -76,25 +74,21 @@ class MohInventoryController extends Controller
             // Get selected MOH inventory details if ID is provided
             $selectedInventory = null;
             if ($request->filled('inventory_id')) {
-                $selectedInventoryQuery = MohInventory::with([
-                    'mohInventoryItems.product.category:id,name',
-                    'mohInventoryItems.product.dosage:id,name',
-                    'mohInventoryItems.warehouse:id,name',
-                    'reviewer:id,name',
-                    'approver:id,name',
-                    'rejected:id,name'
-                ]);
-                
-                if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
-                    $region = $user->warehouse->region;
-                    $selectedInventoryQuery->where(function($q) use ($region) {
-                        $q->whereHas('mohInventoryItems', function($sq) use ($region) {
-                            $sq->whereHas('warehouse', fn($w) => $w->where('region', $region));
-                        })->orWhere('created_by', auth()->id());
-                    });
+                $query = MohInventory::query();
+                if ($user->warehouse?->type !== 'central') {
+                    $query->where('warehouse_id', $user->warehouse_id);
                 }
                 
-                $selectedInventory = $selectedInventoryQuery->find($request->inventory_id);
+                $selectedInventory = $query->with([
+                        'mohInventoryItems.product.category:id,name',
+                        'mohInventoryItems.product.dosage:id,name',
+                        'mohInventoryItems.warehouse:id,name',
+                        'warehouse:id,name',
+                        'creator:id,name',
+                        'reviewer:id,name',
+                        'approver:id,name',
+                        'rejected:id,name'
+                    ])->find($request->inventory_id);
             }
 
             // Get filter options
@@ -107,7 +101,7 @@ class MohInventoryController extends Controller
                 ->orderBy('name')
                 ->get();
             $warehouses = Warehouse::select('id', 'name')->orderBy('name')->get();
-            $locations = Location::pluck('location')->toArray();
+            $locations = Location::where('warehouse', $user->warehouse?->name)->pluck('location')->toArray();
 
             return Inertia::render('MohInventory/Index', [
                 'nonApprovedInventories' => $nonApprovedInventories,
@@ -194,24 +188,25 @@ class MohInventoryController extends Controller
                 return MohInventory::create([
                     'uuid' => 'MOH-' . strtoupper(uniqid()),
                     'date' => now()->toDateString(),
+                    'warehouse_id' => auth()->user()->warehouse_id,
+                    'created_by' => auth()->id(),
                     'reviewed_at' => null,
                     'reviewed_by' => null,
                     'approved_by' => null,
                     'approved_at' => null,
                 ]);
             });
-
-            Log::info('Starting async MOH inventory import', [
-                'moh_inventory_id' => $mohInventory->id,
-                'import_id' => $importId,
-                'original_name' => $file->getClientOriginalName(),
-            ]);
-
             // Initialize progress
             Cache::put($importId, 1, 3600);
 
             // Import asynchronously
-            $import = new MohInventoryImport($mohInventory->id, $importId, $storedPath);
+            $import = new MohInventoryImport(
+                $mohInventory->id, 
+                auth()->user()->warehouse_id, 
+                auth()->user()->warehouse->name ?? 'Unknown Warehouse', 
+                $importId, 
+                $storedPath
+            );
             Excel::import($import, $file);
 
             return response()->json([
@@ -266,7 +261,7 @@ class MohInventoryController extends Controller
     {
         // If a specific MOH inventory ID is provided, use it
         if ($request->filled('moh_inventory_id')) {
-            $mohInventory = MohInventory::find($request->moh_inventory_id);
+            $mohInventory = MohInventory::where('warehouse_id', auth()->user()->warehouse_id)->find($request->moh_inventory_id);
             if ($mohInventory) {
                 return $mohInventory;
             }
@@ -276,6 +271,8 @@ class MohInventoryController extends Controller
         $mohInventory = MohInventory::create([
             'uuid' => 'MOH-' . strtoupper(uniqid()),
             'date' => now()->toDateString(),
+            'warehouse_id' => auth()->user()->warehouse_id,
+            'created_by' => auth()->id(),
             'reviewed_at' => null,
             'reviewed_by' => null,
             'approved_by' => null,
@@ -339,6 +336,8 @@ class MohInventoryController extends Controller
             $mohInventory = MohInventory::create([
                 'uuid' => 'MOH-TEST-' . strtoupper(uniqid()),
                 'date' => now()->toDateString(),
+                'warehouse_id' => auth()->user()->warehouse_id,
+                'created_by' => auth()->id(),
                 'reviewed_at' => null,
                 'reviewed_by' => null,
                 'approved_by' => null,
@@ -413,25 +412,33 @@ class MohInventoryController extends Controller
         $status = $request->input('status');
         $user = auth()->user();
 
-        if ($status === 'reviewed' && !$user->hasPermission('moh-inventory-review') && !$user->isAdmin()) {
-            return response()->json(['success' => false, 'message' => 'You do not have permission to review MOH inventory.'], 403);
+        if ($status === 'reviewed') {
+            if (!$user->hasPermission('moh-inventory-review') && !$user->isAdmin()) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to review MOH inventory.'], 403);
+            }
+            // Central can only review its own records.
+            if ($mohInventory->warehouse_id !== $user->warehouse_id && $user->warehouse?->type === 'central') {
+                return response()->json(['success' => false, 'message' => 'Reviewing is restricted to the originating warehouse.'], 403);
+            }
         }
-        if ($status === 'approved' && !$user->hasPermission('moh-inventory-approve') && !$user->isAdmin()) {
-            return response()->json(['success' => false, 'message' => 'You do not have permission to approve MOH inventory.'], 403);
+        if ($status === 'approved') {
+            if (!$user->hasPermission('moh-inventory-approve') && !$user->isAdmin()) {
+                return response()->json(['success' => false, 'message' => 'You do not have permission to approve MOH inventory.'], 403);
+            }
+            // Move Approve action to Central Warehouse
+            if ($user->warehouse?->type !== 'central') {
+                return response()->json(['success' => false, 'message' => 'MOH inventory approval is restricted to the Central Warehouse.'], 403);
+            }
         }
+        
         if ($status === 'rejected' && !$user->hasPermission('moh-inventory-reject') && !$user->isAdmin()) {
             return response()->json(['success' => false, 'message' => 'You do not have permission to reject MOH inventory.'], 403);
         }
 
         try {
-            $user = auth()->user();
-            if ($user->warehouse_id && $user->warehouse->type === 'regional' && $user->warehouse->region) {
-                $region = $user->warehouse->region;
-                $hasRegionalAccess = $mohInventory->mohInventoryItems()->whereHas('warehouse', fn($q) => $q->where('region', $region))->exists() 
-                                    || $mohInventory->created_by === $user->id;
-                if (!$hasRegionalAccess) {
-                    return response()->json(['success' => false, 'message' => 'Unauthorized access to this MOH inventory status change.'], 403);
-                }
+            // Check if the inventory belongs to the user's warehouse OR if user is Central Warehouse (who can approve any)
+            if ($mohInventory->warehouse_id !== $user->warehouse_id && $user->warehouse?->type !== 'central') {
+                return response()->json(['success' => false, 'message' => 'Unauthorized access to this MOH inventory status change.'], 403);
             }
 
             switch ($status) {
@@ -495,7 +502,7 @@ class MohInventoryController extends Controller
             return response()->json(['success' => false, 'message' => 'You do not have permission to edit MOH inventory items.'], 403);
         }
         $user = auth()->user();
-        if ($user->warehouse_id && $mohInventoryItem->warehouse_id !== $user->warehouse_id) {
+        if ($mohInventoryItem->warehouse_id !== $user->warehouse_id) {
             return response()->json(['success' => false, 'message' => 'Unauthorized access to this MOH inventory item.'], 403);
         }
         try {
@@ -727,6 +734,7 @@ class MohInventoryController extends Controller
                 // Keep consistent with Excel-imported MOH inventories (MOH-xxxxx format)
                 'uuid' => 'MOH-' . strtoupper(uniqid()),
                 'date' => $request->date,
+                'warehouse_id' => auth()->user()->warehouse_id,
                 'created_by' => auth()->id(),
             ]);
 

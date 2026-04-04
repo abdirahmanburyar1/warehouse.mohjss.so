@@ -23,7 +23,7 @@
                                 </p>
                             </div>
                         </div>
-                        <div class="mt-6 sm:mt-0 flex space-x-3">
+                        <div class="mt-6 sm:mt-0 flex items-center space-x-3">
                             <Link v-if="$page.props.auth.can.asset_create" :href="route('assets.get-create')"
                                 class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-indigo-700 bg-white hover:bg-indigo-50 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"
@@ -31,6 +31,15 @@
                                 <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
                             </svg>
                             Add Asset
+                            </Link>
+
+                            <Link v-if="$page.props.auth.can.asset_approve || $page.props.auth.can.asset_review" 
+                                :href="route('assets.approvals.index')"
+                                class="inline-flex items-center px-4 py-2 border border-white/50 text-sm font-medium rounded-md text-white hover:bg-white/10 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4 mr-2">
+                                    <path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" />
+                                </svg>
+                                Asset Approval
                             </Link>
 
                             <!-- Bulk Upload Buttons -->
@@ -86,7 +95,7 @@
                                 <div class="ml-4">
                                     <p class="text-sm font-medium text-green-600">Functioning Assets</p>
                                     <p class="text-2xl font-bold text-green-900">
-                                        {{props.assets.data.filter(a => a.status === 'functioning').length }}
+                                        {{ props.functioningCount }}
                                     </p>
                                 </div>
                             </div>
@@ -105,9 +114,11 @@
                                 </div>
                                 <div class="ml-4">
                                     <p class="text-sm font-medium text-yellow-600">Pending Approval</p>
-                                    <p class="text-2xl font-bold text-yellow-900">
-                                        {{ props.assets.data.filter(a => a.status === 'pending_approval').length }}
-                                    </p>
+                                    <Link :href="route('assets.approvals.index')" class="block hover:opacity-80 transition-opacity">
+                                        <p class="text-2xl font-bold text-yellow-900">
+                                            {{ props.pendingCount }}
+                                        </p>
+                                    </Link>
                                 </div>
                             </div>
                         </div>
@@ -279,43 +290,43 @@
                     <table class="min-w-full divide-y divide-gray-200">
                         <thead>
                             <tr style="background-color: #F4F7FB;">
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Asset Tag & Name</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Serial Number</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Category</span>
                                 </th>
                                 <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Type</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Status</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Assignee</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Region</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Location</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Sub Location</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Acquisition Date</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Value</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold border-r" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6; border-right-color: #B7C6E6;">
                                     <span>Fund Source</span>
                                 </th>
-                                <th class="px-3 py-2 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;">
+                                <th class="px-3 py-3 text-xs font-bold" style="color: #4F6FCB; border-bottom: 2px solid #B7C6E6;">
                                     <span>Actions</span>
                                 </th>
                             </tr>
@@ -460,8 +471,39 @@
                                                         <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
                                                     </svg>
                                                     Mark as Functioning
+                                                 </button>
+
+                                                <div class="border-t border-gray-100"></div>
+
+                                                <!-- Finalize Workflow Actions -->
+                                                <button v-if="canReviewAsset(asset) && !asset.asset.reviewed_at && !asset.asset.approved_at && !asset.asset.rejected_at" 
+                                                    @click="handleReview(asset); closeDropdown()"
+                                                    class="flex items-center w-full px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 transition-colors">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-2">
+                                                        <path d="M10 12.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5z" />
+                                                        <path fill-rule="evenodd" d="M.664 10.59a1.651 1.651 0 010-1.186A10.004 10.004 0 0110 3c4.257 0 7.893 2.66 9.336 6.41.147.381.146.804 0 1.186A10.004 10.004 0 0110 17c-4.257 0-7.893-2.66-9.336-6.41zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    Review Asset
                                                 </button>
-                                                                                            </div>
+
+                                                <button v-if="canApproveRejectAsset(asset) && asset.asset.reviewed_at && !asset.asset.approved_at" 
+                                                    @click="handleApprove(asset); closeDropdown()"
+                                                    class="flex items-center w-full px-4 py-2 text-sm text-green-700 hover:bg-green-50 transition-colors">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-2">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    Approve Asset
+                                                </button>
+
+                                                <button v-if="canApproveRejectAsset(asset) && asset.asset.reviewed_at && !asset.asset.approved_at" 
+                                                    @click="handleReject(asset); closeDropdown()"
+                                                    class="flex items-center w-full px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-2">
+                                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z" clip-rule="evenodd" />
+                                                    </svg>
+                                                    Reject Asset
+                                                </button>
+                                            </div>
                                         </div>
                                     </td>
                                 </tr>
@@ -927,123 +969,215 @@
                         enter-to="opacity-100 translate-y-0 sm:scale-100" leave="ease-in duration-200"
                         leave-from="opacity-100 translate-y-0 sm:scale-100"
                         leave-to="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95">
-                        <div class="inline-block align-bottom bg-white rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-                            <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                                <div class="sm:flex sm:items-start">
-                                    <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-blue-600">
-                                            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z" />
-                                        </svg>
-                                    </div>
-                                    <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-                                        <DialogTitle as="h3" class="text-lg leading-6 font-medium text-gray-900">
-                                            Bulk Upload Assets
-                                        </DialogTitle>
-                                        <div class="mt-2">
-                                            <p class="text-sm text-gray-600 mb-4">
-                                                Upload an Excel file (.xlsx) to import multiple assets at once. The Excel file should include all required fields: Asset Tag, Asset Name, Category, Type, Fund Source, Region, Asset Location, and Sub Location. Make sure to use the correct template format.
+                        <div class="inline-block align-bottom bg-white/95 rounded-3xl text-left shadow-2xl shadow-blue-500/10 transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full overflow-hidden border border-white/20 backdrop-blur-xl">
+                            <!-- Header with Gradient and Glassmorphism -->
+                            <div class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 px-6 py-10 sm:px-10">
+                                <div class="absolute top-0 right-0 -mt-10 -mr-10 h-40 w-40 rounded-full bg-white/10 blur-3xl"></div>
+                                <div class="absolute bottom-0 left-0 -mb-10 -ml-10 h-40 w-40 rounded-full bg-blue-400/20 blur-3xl"></div>
+                                
+                                <div class="relative flex items-center justify-between">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 bg-white/10 backdrop-blur-2xl p-4 rounded-2xl border border-white/20 shadow-xl">
+                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 text-white">
+                                                <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="ml-5">
+                                            <DialogTitle as="h3" class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                                                Bulk Asset Import
+                                            </DialogTitle>
+                                            <p class="text-blue-100/80 text-sm mt-1.5 font-medium leading-relaxed">
+                                                Seamlessly scale your central warehouse inventory
                                             </p>
+                                        </div>
+                                    </div>
+                                    <button @click="showBulkUploadModal = false" class="text-white/60 hover:text-white hover:bg-white/10 p-2 rounded-xl transition-all duration-200">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12" />
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="bg-white/50 px-6 py-8 sm:px-10 space-y-8">
+                                <!-- Enhanced Workflow Steps -->
+                                <div class="grid grid-cols-1 gap-8">
+                                    <!-- Step 1: Template -->
+                                    <div class="flex group">
+                                        <div class="flex-shrink-0 relative">
+                                            <div class="h-10 w-10 rounded-2xl bg-blue-50 flex items-center justify-center border border-blue-100 text-blue-600 font-bold shadow-sm group-hover:bg-blue-600 group-hover:text-white transition-all duration-300">1</div>
+                                            <div class="absolute top-10 left-5 w-px h-full bg-gradient-to-b from-blue-100 to-transparent"></div>
+                                        </div>
+                                        <div class="ml-5 pt-1">
+                                            <h4 class="text-sm font-bold text-slate-900 uppercase tracking-wide">Download Template</h4>
+                                            <p class="text-xs text-slate-500 mt-2 leading-relaxed">Ensure structural compatibility by using our standardized central template.</p>
+                                            <button @click="downloadTemplate" class="mt-4 flex items-center px-5 py-2.5 text-xs font-bold text-white bg-slate-900 rounded-xl hover:bg-slate-800 shadow-lg shadow-slate-900/10 transition-all duration-300 active:scale-95">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                                </svg>
+                                                Get Template (.xlsx)
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 2: Target Destination -->
+                                    <div class="flex group">
+                                        <div class="flex-shrink-0 relative">
+                                            <div class="h-10 w-10 rounded-2xl bg-indigo-50 flex items-center justify-center border border-indigo-100 text-indigo-600 font-bold shadow-sm group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300">2</div>
+                                            <div class="absolute top-10 left-5 w-px h-full bg-gradient-to-b from-indigo-100 to-transparent"></div>
+                                        </div>
+                                        <div class="ml-5 pt-1 space-y-4 w-full">
+                                            <h4 class="text-sm font-bold text-slate-900 uppercase tracking-wide text-gray-800 leading-none">Select Target Destination</h4>
+                                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                                <div>
+                                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Region</label>
+                                                    <Multiselect
+                                                        v-model="bulkUploadRegion"
+                                                        :options="props.regions"
+                                                        placeholder="Select Region"
+                                                        label="name"
+                                                        track-by="id"
+                                                        :show-labels="false"
+                                                        @select="bulkUploadDistrict = null; bulkUploadFacility = null"
+                                                        class="regional-import-multiselect"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">District</label>
+                                                    <Multiselect
+                                                        v-model="bulkUploadDistrict"
+                                                        :options="bulkUploadDistrictOptions"
+                                                        :placeholder="bulkUploadRegion ? 'Select District' : 'Select Region First'"
+                                                        :disabled="!bulkUploadRegion"
+                                                        label="name"
+                                                        track-by="id"
+                                                        :show-labels="false"
+                                                        @select="bulkUploadFacility = null"
+                                                        class="regional-import-multiselect"
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Asset Location</label>
+                                                    <Multiselect
+                                                        v-model="bulkUploadFacility"
+                                                        :options="bulkUploadFacilityOptions"
+                                                        :placeholder="bulkUploadDistrict ? 'Select Location' : 'Select District First'"
+                                                        :disabled="!bulkUploadDistrict"
+                                                        label="name"
+                                                        track-by="id"
+                                                        :show-labels="false"
+                                                        class="regional-import-multiselect"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <p class="text-[10px] text-blue-600/70 font-medium px-1 flex items-center">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                Sub Location will be read from the uploaded Excel file.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Step 3: Deployment -->
+                                    <div class="flex group">
+                                        <div class="flex-shrink-0 h-10 w-10 rounded-2xl bg-purple-50 flex items-center justify-center border border-purple-100 text-purple-600 font-bold shadow-sm group-hover:bg-purple-600 group-hover:text-white transition-all duration-300">3</div>
+                                        <div class="ml-5 pt-1 space-y-5 w-full">
+                                            <h4 class="text-sm font-bold text-slate-900 uppercase tracking-wide text-gray-800 leading-none">Final Deployment</h4>
                                             
-                                            <!-- File Upload Area -->
-                                            <div class="mt-4">
-                                                <div class="flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md" 
-                                                     :class="{'border-blue-400 bg-blue-50': isDragOver, 'border-gray-300': !isDragOver}"
-                                                     @drop.prevent="handleFileDrop"
-                                                     @dragover.prevent="isDragOver = true"
-                                                     @dragleave.prevent="isDragOver = false">
-                                                    <div class="space-y-1 text-center">
-                                                        <svg v-if="!selectedFile" class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                                            <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-                                                        </svg>
-                                                        <svg v-else class="mx-auto h-12 w-12 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                        </svg>
-                                                        <div class="flex text-sm text-gray-600">
-                                                            <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                                                                <span v-if="!selectedFile">Upload a file</span>
-                                                                <span v-else>{{ selectedFile.name }}</span>
-                                                                <input id="file-upload" name="file-upload" type="file" class="sr-only" accept=".xlsx,.xls" @change="handleFileSelect" />
-                                                            </label>
-                                                            <p v-if="!selectedFile" class="pl-1">or drag and drop</p>
-                                                        </div>
-                                                        <p v-if="!selectedFile" class="text-xs text-gray-500">Excel files only (.xlsx, .xls)</p>
-                                                        <p v-if="selectedFile" class="text-xs text-green-600">File selected successfully!</p>
-                                                    </div>
-                                                </div>
-
-                                                <!-- Smart Import Tips -->
-                                                <div class="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-                                                    <div class="flex">
-                                                        <div class="flex-shrink-0">
-                                                            <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                                            <!-- Advanced Drop Zone -->
+                                            <div class="relative group/zone"
+                                                 :class="{'opacity-50 pointer-events-none': uploading}"
+                                                 @drop.prevent="handleFileDrop"
+                                                 @dragover.prevent="isDragOver = true"
+                                                 @dragleave.prevent="isDragOver = false">
+                                                <div class="flex flex-col items-center justify-center w-full min-h-[180px] border-2 border-dashed rounded-3xl transition-all duration-500 border-slate-200 group-hover/zone:border-blue-400 group-hover/zone:bg-blue-50/30"
+                                                     :class="{'border-blue-500 bg-blue-50 shadow-2xl shadow-blue-500/5 rotate-[0.5deg]': isDragOver, 'border-emerald-500 bg-emerald-50/30': selectedFile && !isDragOver}">
+                                                    
+                                                    <div v-if="!selectedFile" class="text-center group-hover/zone:scale-105 transition-transform duration-300">
+                                                        <div class="mx-auto h-16 w-16 bg-slate-100 rounded-2xl flex items-center justify-center mb-4 text-slate-400 group-hover/zone:bg-blue-100 group-hover/zone:text-blue-500 transition-colors duration-300">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                                             </svg>
                                                         </div>
-                                                        <div class="ml-3">
-                                                            <h3 class="text-sm font-medium text-blue-800">Smart Import Tips</h3>
-                                                            <div class="mt-2 text-sm text-blue-700">
-                                                                <ul class="list-disc pl-5 space-y-1">
-                                                                    <li>The system will automatically create new Regions, Fund Sources, Asset Locations, and Sub Locations if they don't exist</li>
-                                                                    <li>Assignees must already exist in the system - they won't be created automatically</li>
-                                                                    <li>Download the template to see the exact format required</li>
-                                                                    <li>All required fields are clearly marked in the template</li>
-                                                                </ul>
-                                                            </div>
-                                                        </div>
+                                                        <label for="file-upload" class="cursor-pointer">
+                                                            <span class="text-sm font-extrabold text-blue-600 hover:text-blue-700 underline decoration-2 underline-offset-4">Select Spreadsheet</span>
+                                                            <input id="file-upload" name="file-upload" type="file" class="sr-only" accept=".xlsx,.xls" @change="handleFileSelect" />
+                                                        </label>
+                                                        <p class="text-[10px] text-slate-400 mt-2 font-bold uppercase tracking-widest leading-gray-800">Supported: .XLSX, .XLS</p>
                                                     </div>
-                                                </div>
-
-                                                <!-- Upload Progress -->
-                                                <div v-if="uploadProgress > 0 && uploadProgress < 100" class="mt-4">
-                                                    <div class="bg-gray-200 rounded-full h-2">
-                                                        <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" :style="{ width: uploadProgress + '%' }"></div>
-                                                    </div>
-                                                    <p class="text-sm text-gray-600 mt-1">Uploading... {{ uploadProgress }}%</p>
-                                                </div>
-
-                                                <!-- Error Messages -->
-                                                <div v-if="uploadErrors.length > 0" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-                                                    <div class="flex">
-                                                        <div class="flex-shrink-0">
-                                                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                                    
+                                                    <div v-else class="text-center">
+                                                        <div class="mx-auto h-14 w-14 bg-emerald-100 rounded-2xl flex items-center justify-center mb-4 text-emerald-600">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                                             </svg>
                                                         </div>
-                                                        <div class="ml-3">
-                                                            <h3 class="text-sm font-medium text-red-800">Upload Errors</h3>
-                                                            <div class="mt-2 text-sm text-red-700">
-                                                                <ul class="list-disc pl-5 space-y-1">
-                                                                    <li v-for="error in uploadErrors" :key="error">{{ error }}</li>
-                                                                </ul>
-                                                            </div>
-                                                        </div>
+                                                        <p class="text-sm font-bold text-slate-900 max-w-[200px] truncate mx-auto">{{ selectedFile.name }}</p>
+                                                        <button @click="selectedFile = null" class="mt-2 text-[10px] font-bold text-red-500 uppercase hover:underline decoration-2 transition-gray-800">Remove & Retry</button>
                                                     </div>
                                                 </div>
+                                            </div>
+
+                                            <!-- Progress Visual -->
+                                            <div v-if="uploadProgress > 0" class="space-y-3">
+                                                <div class="flex items-center justify-between">
+                                                    <span class="text-[10px] font-black text-slate-900 uppercase tracking-widest leading-gray-800">
+                                                        {{ uploadProgress === 100 ? 'Finalizing Registry...' : 'Injecting Assets...' }}
+                                                    </span>
+                                                    <span class="text-xs font-mono font-black text-blue-600">{{ uploadProgress }}%</span>
+                                                </div>
+                                                <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                                                    <div class="bg-gradient-to-r from-blue-500 to-indigo-600 h-full transition-all duration-300 shadow-[0_0_8px_rgba(59,130,246,0.5)]" :style="{ width: uploadProgress + '%' }"></div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Error Registry Display -->
+                                            <div v-if="uploadErrors.length > 0" class="mt-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                <div class="bg-rose-50/80 backdrop-blur-sm rounded-2xl border border-rose-100 overflow-hidden shadow-sm">
+                                                    <div class="bg-gradient-to-r from-rose-500 to-red-600 px-4 py-2 flex items-center justify-between">
+                                                        <span class="text-[10px] font-black text-white uppercase tracking-widest leading-gray-800">Error Registry ({{ uploadErrors.length }} Conflicts)</span>
+                                                        <button @click="uploadErrors = []" class="text-white/80 hover:text-white transition-colors">
+                                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                                                                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                    <div class="p-4 max-h-[160px] overflow-y-auto custom-scrollbar">
+                                                        <ul class="space-y-2.5">
+                                                            <li v-for="(error, index) in uploadErrors" :key="index" class="flex items-start">
+                                                                <span class="flex-shrink-0 h-4 w-4 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-[9px] font-black mt-0.5 border border-rose-200">!</span>
+                                                                <p class="ml-2.5 text-xs text-rose-700 font-medium leading-relaxed">{{ error }}</p>
+                                                            </li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="flex items-center justify-end space-x-4 pt-4 border-t border-slate-100">
+                                                <button @click="showBulkUploadModal = false" class="px-6 py-2.5 text-xs font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors">Abort</button>
+                                                <button @click="uploadFile" 
+                                                        :disabled="!selectedFile || uploading || !bulkUploadFacility"
+                                                        class="relative px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white text-xs font-black uppercase tracking-widest rounded-2xl shadow-xl shadow-blue-500/20 hover:scale-[1.02] hover:shadow-blue-500/40 active:scale-95 transition-all duration-300 disabled:opacity-50 disabled:grayscale disabled:pointer-events-none">
+                                                    <span v-if="!uploading" class="flex items-center">
+                                                        Execute Import
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                                        </svg>
+                                                    </span>
+                                                    <span v-else class="flex items-center">
+                                                        Extracing...
+                                                        <svg class="animate-spin h-4 w-4 ml-2 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                        </svg>
+                                                    </span>
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                            <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                                <button type="button" 
-                                    @click="uploadFile" 
-                                    :disabled="!selectedFile || uploading"
-                                    class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 sm:ml-3 sm:w-auto sm:text-sm bg-blue-600 hover:bg-blue-700 focus:ring-blue-500">
-                                    <svg v-if="uploading" class="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                        xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
-                                            stroke-width="4"></circle>
-                                        <path class="opacity-75" fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
-                                    </path>
-                                    </svg>
-                                    {{ uploading ? 'Uploading...' : 'Upload Assets' }}
-                                </button>
-                            </div>
-                            <button type="button" @click="showBulkUploadModal = false"
-                                class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
-                                Cancel
-                            </button>
                         </div>
                     </TransitionChild>
                 </div>
@@ -1060,6 +1194,7 @@ import { debounce } from "lodash";
 import axios from "axios";
 import * as XLSX from "xlsx";
 import moment from "moment";
+import Swal from 'sweetalert2';
 import { useToast } from "vue-toastification";
 import Multiselect from "vue-multiselect";
 import "vue-multiselect/dist/vue-multiselect.css";
@@ -1085,7 +1220,7 @@ const formatStatus = (status) => {
     if (!status) return '-';
     const statusMap = {
         'functioning': 'Functioning',
-        'not_functioning': 'Not functioning',
+        'not_functioning': 'Not Functioning',
         'maintenance': 'Maintenance',
         'disposed': 'Disposed',
         'pending_approval': 'Pending Approval'
@@ -1182,6 +1317,29 @@ const isDragOver = ref(false);
 const uploading = ref(false);
 const uploadProgress = ref(0);
 const uploadErrors = ref([]);
+
+const bulkUploadRegion = ref(null);
+const bulkUploadDistrict = ref(null);
+const bulkUploadFacility = ref(null);
+
+const bulkUploadDistrictOptions = computed(() => {
+    if (!bulkUploadRegion.value) return [];
+    return (props.districts || []).filter(d => d.region === bulkUploadRegion.value.name);
+});
+
+const bulkUploadFacilityOptions = computed(() => {
+    if (!bulkUploadDistrict.value) return [];
+    return (props.facilities || []).filter(f => f.district === bulkUploadDistrict.value.name);
+});
+
+watch(() => bulkUploadRegion.value, () => {
+    bulkUploadDistrict.value = null;
+    bulkUploadFacility.value = null;
+});
+
+watch(() => bulkUploadDistrict.value, () => {
+    bulkUploadFacility.value = null;
+});
 
 function openTransferModal(asset) {
     console.log('Opening transfer modal for asset:', asset);
@@ -1327,7 +1485,7 @@ const selectedStatus = ref(null);
 // Status options for multiselect
 const statusOptions = ref([
     { label: 'Functioning', value: 'functioning' },
-    { label: 'Not functioning', value: 'not_functioning' },
+    { label: 'Not Functioning', value: 'not_functioning' },
     { label: 'Maintenance', value: 'maintenance' },
     { label: 'Disposed', value: 'disposed' },
     { label: 'Pending Approval', value: 'pending_approval' }
@@ -1960,6 +2118,89 @@ async function processRetirement() {
     }
 }
 
+// New Finalize Workflow Handlers
+function handleReview(asset) {
+    const assetId = asset.asset_id || asset.asset?.id;
+    Swal.fire({
+        title: 'Review Asset Batch?',
+        text: "This marks the entire batch as reviewed and ready for final approval.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#aaa',
+        confirmButtonText: 'Yes, Review'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            axios.post(route('assets.review', assetId))
+                .then(response => {
+                    if (response.data.success) {
+                        toast.success(response.data.message);
+                        router.reload();
+                    }
+                })
+                .catch(error => {
+                    toast.error(error.response?.data?.message || 'Review failed');
+                });
+        }
+    });
+}
+
+function handleApprove(asset) {
+    const assetId = asset.asset_id || asset.asset?.id;
+    Swal.fire({
+        title: 'Final Approval?',
+        text: "This will approve the asset and release items to active inventory.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#aaa',
+        confirmButtonText: 'Yes, Approve'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            axios.post(route('assets.approve', assetId))
+                .then(response => {
+                    if (response.data.success) {
+                        toast.success(response.data.message);
+                        router.reload();
+                    }
+                })
+                .catch(error => {
+                    toast.error(error.response?.data?.message || 'Approval failed');
+                });
+        }
+    });
+}
+
+function handleReject(asset) {
+    const assetId = asset.asset_id || asset.asset?.id;
+    Swal.fire({
+        title: 'Reject Asset Batch?',
+        text: "Please provide a reason for rejection:",
+        input: 'textarea',
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#aaa',
+        confirmButtonText: 'Yes, Reject',
+        inputValidator: (value) => {
+            if (!value) return 'Rejection reason is required!';
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            axios.post(route('assets.reject', assetId), { rejection_reason: result.value })
+                .then(response => {
+                    if (response.data.success) {
+                        toast.success(response.data.message);
+                        router.reload();
+                    }
+                })
+                .catch(error => {
+                    toast.error(error.response?.data?.message || 'Rejection failed');
+                });
+        }
+    });
+}
+
 // New functions for asset indicators
 const getWarrantyStatus = (asset) => {
     if (!asset.warranty_expiry_date) return 'none';
@@ -2076,14 +2317,18 @@ const uploadFile = async () => {
 
     const formData = new FormData();
     formData.append('file', selectedFile.value);
+    
+    if (bulkUploadRegion.value) formData.append('region_id', bulkUploadRegion.value.id);
+    if (bulkUploadDistrict.value) formData.append('district_id', bulkUploadDistrict.value.id);
+    if (bulkUploadFacility.value) formData.append('facility_id', bulkUploadFacility.value.id);
 
     try {
-        // Simulate upload progress
+        // Simulation for visual feedback during processing
         const progressInterval = setInterval(() => {
-            if (uploadProgress.value < 90) {
-                uploadProgress.value += 10;
+            if (uploadProgress.value < 95) {
+                uploadProgress.value += 5;
             }
-        }, 100);
+        }, 150);
 
         const response = await axios.post(route('assets.import'), formData, {
             headers: {
@@ -2091,7 +2336,11 @@ const uploadFile = async () => {
             },
             onUploadProgress: (progressEvent) => {
                 if (progressEvent.total) {
-                    uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    const realProgress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+                    // Use the higher of simulation vs real upload
+                    if (realProgress > uploadProgress.value) {
+                        uploadProgress.value = realProgress;
+                    }
                 }
             }
         });
@@ -2099,36 +2348,90 @@ const uploadFile = async () => {
         clearInterval(progressInterval);
         uploadProgress.value = 100;
 
-        toast.success('Assets imported successfully!');
-        showBulkUploadModal.value = false;
-        selectedFile.value = null;
-        uploadProgress.value = 0;
-        
-        // Reload the page to show new assets
-        router.reload();
+        setTimeout(() => {
+            toast.success('Assets imported successfully!');
+            showBulkUploadModal.value = false;
+            selectedFile.value = null;
+            uploadProgress.value = 0;
+            router.reload();
+        }, 500);
 
     } catch (error) {
-        clearInterval(progressInterval);
         uploadProgress.value = 0;
+        // Search specifically for error data in the Axios response
+        const errorData = error.response?.data;
         
-        if (error.response?.data?.import_errors) {
-            uploadErrors.value = error.response.data.import_errors;
-        } else if (error.response?.data?.error) {
-            uploadErrors.value = [error.response.data.error];
+        if (errorData?.import_errors) {
+            uploadErrors.value = errorData.import_errors;
+        } else if (errorData?.error) {
+            uploadErrors.value = Array.isArray(errorData.error) ? errorData.error : [errorData.error];
         } else {
-            uploadErrors.value = ['An error occurred during upload. Please try again.'];
+            uploadErrors.value = ['An unexpected conflict occurred. Please review your data and try again.'];
         }
         
-        toast.error('Failed to import assets. Please check the errors below.');
+        toast.error('Validation conflict detected. Review the registry below.');
     } finally {
         uploading.value = false;
     }
 };
+// Watch for modal visibility to reset state on close
+watch(showBulkUploadModal, (isVisible) => {
+    if (!isVisible) {
+        selectedFile.value = null;
+        uploadProgress.value = 0;
+        uploadErrors.value = [];
+        uploading.value = false;
+        bulkUploadRegion.value = null;
+        bulkUploadDistrict.value = null;
+        bulkUploadFacility.value = null;
+    }
+});
 </script>
 
 <style scoped>
 .add-new-option {
     color: #4f46e5;
     font-weight: 500;
+}
+
+/* Premium Multiselect Styling */
+.regional-import-multiselect :deep(.multiselect__tags) {
+    border-radius: 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    padding-top: 6px !important;
+    min-height: 42px !important;
+    background: rgba(255, 255, 255, 0.5) !important;
+    transition: all 0.3s ease;
+}
+
+.regional-import-multiselect :deep(.multiselect__tags:hover) {
+    border-color: #3b82f6 !important;
+    background: white !important;
+}
+
+.regional-import-multiselect :deep(.multiselect__select) {
+    height: 40px !important;
+}
+
+.regional-import-multiselect :deep(.multiselect__placeholder) {
+    margin-bottom: 0 !important;
+    padding-top: 2px !important;
+    font-size: 13px !important;
+    color: #94a3b8 !important;
+}
+
+/* Custom Registry Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
 }
 </style>

@@ -159,7 +159,8 @@ Route::middleware(['auth', \App\Http\Middleware\TwoFactorAuth::class])->group(fu
         Route::post('/reports/facility-lmis-report/submit', [ReportController::class, 'submitFacilityLmisReport'])->name('reports.facility-lmis-report.submit');
         Route::post('/reports/facility-lmis-report/review', [ReportController::class, 'reviewFacilityLmisReport'])->name('reports.facility-lmis-report.review');
         Route::post('/reports/facility-lmis-report/approve', [ReportController::class, 'approveFacilityLmisReport'])->name('reports.facility-lmis-report.approve');
-        Route::post('/reports/facility-lmis-report/reject', [ReportController::class, 'rejectFacilityLmisReport'])->name('reports.facility-lmis-report.reject');
+        Route::post('/facility-lmis/reject', [ReportController::class, 'rejectFacilityLmisReport'])->name('reports.facility-lmis.reject');
+        Route::post('/facility-lmis/export', [ReportController::class, 'exportFacilityLmisExcel'])->name('reports.facility-lmis.export');
         Route::post('/reports/facility-lmis-report/generate-from-movements', [ReportController::class, 'generateFacilityLmisReportFromMovements'])->name('reports.facility-lmis-report.generate-from-movements');
         Route::get('/reports/facility-lmis-report/create', [ReportController::class, 'createFacilityLmisReport'])->name('reports.facility-lmis-report.create');
     });
@@ -468,6 +469,9 @@ Route::controller(LocationController::class)
         // 'order.update-quantity
         Route::post('/update-quantity', [OrderController::class, 'updateQuantity'])->name('orders.update-quantity');
 
+        // backorder
+        Route::post('/backorder', [OrderController::class, 'backorder'])->name('orders.backorder');
+
     });
     });
 
@@ -691,6 +695,7 @@ Route::controller(LocationController::class)
         Route::delete('/{inventory}', [InventoryController::class, 'destroy'])->name('inventories.destroy');
         Route::patch('/update-location', [InventoryController::class, 'updateLocation'])->name('inventories.update-location');
         Route::get('/get-locations', [InventoryController::class, 'getLocations'])->name('inventories.getLocations');
+        Route::get('/get-sub-warehouse-locations', [InventoryController::class, 'getSubWarehouseLocations'])->name('inventories.get-sub-warehouse-locations');
         Route::get('/get-all-locations', [InventoryController::class, 'getAllLocations'])->name('inventories.getAllLocations');
         Route::post('/import', [InventoryController::class, 'import'])->name('inventories.import');
 
@@ -813,8 +818,7 @@ Route::controller(LocationController::class)
         // Report schedules (programmable; use Laravel schedule:run in cron)
         Route::get('/report-schedules', [ReportScheduleController::class, 'index'])->name('settings.report-schedules.index');
         Route::put('/report-schedules', [ReportScheduleController::class, 'update'])->name('settings.report-schedules.update');
-        Route::post('/report-schedules/run-inventory-monthly-report', [ReportScheduleController::class, 'runInventoryMonthlyReportNow'])->name('settings.report-schedules.run-inventory-monthly-report');
-        Route::post('/report-schedules/run-schedule', [ReportScheduleController::class, 'runScheduleNow'])->name('settings.report-schedules.run-schedule');
+
 
         // Report Submission Rate (programmable: expected reports, ontime/late rules)
         Route::get('/report-submission', [ReportSubmissionSettingController::class, 'index'])->name('settings.report-submission.index');
